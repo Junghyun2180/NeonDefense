@@ -11,6 +11,8 @@ class SoundManager {
     this.bgmVolume = 0.3;
     this.sfxVolume = 0.5;
     this.initialized = false;
+    // BGM용 Audio 엘리먼트
+    this.bgmAudio = null;
   }
 
   init() {
@@ -36,67 +38,27 @@ class SoundManager {
 
   playBGM() {
     if (!this.bgmEnabled || this.bgmPlaying) return;
-    if (!this.init()) return;
     this.bgmPlaying = true;
 
-    const ctx = this.audioContext;
-    
-    const bassNotes = [65.41, 82.41, 73.42, 87.31];
-    const bassSequence = () => {
-      if (!this.bgmPlaying || !this.bgmEnabled) return;
-      
-      try {
-        const loopStart = ctx.currentTime;
-        bassNotes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          
-          osc.type = 'sawtooth';
-          osc.frequency.value = freq;
-          
-          const startTime = loopStart + i * 0.5;
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.45);
-          
-          osc.connect(gain);
-          gain.connect(this.bgmGain);
-          
-          osc.start(startTime);
-          osc.stop(startTime + 0.5);
-        });
-        
-        const arpNotes = [523.25, 659.25, 783.99, 659.25];
-        arpNotes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          
-          osc.type = 'triangle';
-          osc.frequency.value = freq;
-          
-          const startTime = loopStart + i * 0.25;
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(0.1, startTime + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
-          
-          osc.connect(gain);
-          gain.connect(this.bgmGain);
-          
-          osc.start(startTime);
-          osc.stop(startTime + 0.25);
-        });
-      } catch (e) {
-        console.warn('BGM error:', e);
+    try {
+      // BGM Audio 엘리먼트 생성 (최초 1회)
+      if (!this.bgmAudio) {
+        this.bgmAudio = new Audio('audio/bgm.mp3');
+        this.bgmAudio.loop = true;
+        this.bgmAudio.volume = this.bgmVolume;
       }
-      
-      setTimeout(() => bassSequence(), 2000);
-    };
-    
-    bassSequence();
+      this.bgmAudio.play().catch(e => console.warn('BGM 재생 실패:', e));
+    } catch (e) {
+      console.warn('BGM error:', e);
+    }
   }
 
   stopBGM() {
     this.bgmPlaying = false;
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+    }
   }
 
   toggleBGM() {
