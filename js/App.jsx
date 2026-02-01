@@ -371,7 +371,7 @@ const NeonDefense = () => {
           <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-cyan-500/50 flex items-center gap-2"><span className="text-cyan-400">🌊</span><span className="font-bold text-cyan-300">Wave {wave}/{SPAWN.wavesPerStage}</span></div>
           <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-yellow-500/50 flex items-center gap-2"><span className="text-yellow-400">💰</span><span className="font-bold text-yellow-300">{gold}</span></div>
           <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-red-500/50 flex items-center gap-2"><span className="text-red-400">❤️</span><span className="font-bold text-red-300">{lives}</span></div>
-          <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-2"><span className="text-orange-400">🚪</span><span className="font-bold text-orange-300">{pathData.paths.length}→{pathData.endPoints.length}</span></div>
+          <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-2"><span className="text-orange-400">🛤️</span><span className="font-bold text-orange-300">{pathData.paths.length}경로</span></div>
           {isPlaying && <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-purple-500/50 flex items-center gap-2"><span className="text-purple-400">👾</span><span className="font-bold text-purple-300">{killedCount}/{SPAWN.enemiesPerWave(stage, wave)}</span></div>}
         </div>
       </div>
@@ -412,10 +412,22 @@ const NeonDefense = () => {
                 if (isSelectedTile) extraClass = 'ring-2 ring-white ring-opacity-80';
                 const pathStyle = isPath && pathInfo ? { backgroundColor: pathInfo.color + '40', borderColor: pathInfo.color + '60' } : {};
 
+                // 출발점/도착점의 경로 색상 찾기
+                const startPath = startPoint && pathData.paths.find(p => p.startPoint.id === startPoint.id);
+                const endPaths = endPoint && pathData.paths.filter(p => p.endPoint.id === endPoint.id);
+
                 return (
                   <div key={x + '-' + y} className={'absolute ' + (isPath ? 'path-tile' : 'grass-tile') + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => canPlace && handleTileClick(x, y)}>
-                    {startPoint && (<div className="w-full h-full flex items-center justify-center text-lg font-bold" style={{textShadow: '0 0 10px #00ff00', color: '#00ff00'}}>🚪{startPoint.id}</div>)}
-                    {endPoint && (<div className="w-full h-full flex items-center justify-center text-lg font-bold" style={{textShadow: '0 0 10px #ff0000', color: '#ff0000'}}>🏠{endPoint.id}</div>)}
+                    {startPoint && startPath && (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, ' + startPath.color + '60 0%, transparent 70%)' }}>
+                        <span className="text-lg" style={{ filter: 'drop-shadow(0 0 6px ' + startPath.color + ')' }}>▶</span>
+                      </div>
+                    )}
+                    {endPoint && endPaths && endPaths.length > 0 && (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, ' + endPaths[0].color + '60 0%, transparent 70%)' }}>
+                        <span className="text-lg" style={{ filter: 'drop-shadow(0 0 6px ' + endPaths[0].color + ')' }}>🏠</span>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -615,7 +627,7 @@ const NeonDefense = () => {
             <div className="text-center">
               <h2 className="text-5xl font-black mb-4" style={{ background: 'linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96e6a1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', animation: 'neonPulse 1s ease-in-out infinite' }}>🎉 STAGE {stage} CLEAR! 🎉</h2>
               <p className="text-2xl text-cyan-300 mb-2">Stage {stage + 1} 준비 중...</p>
-              <p className="text-yellow-400 mb-2">⚠️ 경로: 🚪 {nextConfig.starts}개 → 🏠 {nextConfig.ends}개</p>
+              <p className="text-yellow-400 mb-2">⚠️ 출발 {nextConfig.starts}개 → 도착 {nextConfig.ends}개 ({nextConfig.starts}경로)</p>
               <p className="text-gray-500">타워가 초기화됩니다</p>
             </div>
           </div>
