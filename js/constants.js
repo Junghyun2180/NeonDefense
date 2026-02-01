@@ -147,6 +147,7 @@ const ECONOMY = {
   startGold: 100,
   startLives: 20,
   drawCost: 20,
+  maxInventory: 30, // 5행 x 6열
   sellRefundRate: 0.5,
   towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
   waveReward: (wave) => 20 + wave * 5 + (wave === 5 ? 20 : 0),

@@ -4,15 +4,17 @@
 네온 테마 랜덤 타워 디펜스 게임. 가챠 시스템 + 로그라이크 요소 결합 전략 게임.
 
 - **경로**: `F:\VibeCodingProject\NeonDefense\`
-- **실행**: `index.html`을 브라우저에서 직접 열기 (빌드 도구 없음)
+- **실행**: `npx serve .` → `http://localhost:3000` (file:// 불가, 로컬 서버 필수)
+- **배포**: GitHub Pages (`https://junghyun2180.github.io/NeonDefense/`) — main push 시 자동 배포
 - **언어**: 순수 JavaScript + JSX (Babel Standalone 런타임 변환)
 
 ## 기술 스택
 - **React 18** (CDN, 빌드 없음)
 - **Babel Standalone 7.23.5** (브라우저 내 JSX 변환)
 - **Tailwind CSS** (CDN)
-- **Web Audio API** (프로시저럴 사운드 생성)
-- **버전 관리**: Git
+- **Web Audio API** (SFX 프로시저럴 생성) + **HTML Audio** (BGM mp3 파일)
+- **Node.js** (로컬 서버용, `npx serve .`)
+- **버전 관리**: Git + GitHub Pages 자동 배포
 
 빌드 도구, 패키지 매니저, TypeScript 없음. 모든 의존성은 CDN으로 로드.
 
@@ -21,17 +23,20 @@
 ```
 NeonDefense/
 ├── index.html          # 모듈식 진입점 (~28줄, CDN + 스크립트 로드)
+├── dev.html            # 개발용 localhost:3000 리다이렉트
 ├── index-backup.html   # 리팩토링 전 단일 파일 번들 백업
 ├── README.md
 ├── CLAUDE.md           # 이 파일
+├── audio/
+│   └── bgm.mp3         # BGM 음악 파일 (루프 재생)
 ├── css/
 │   └── styles.css      # 애니메이션, UI 스타일 (~170줄)
 ├── js/
-│   ├── App.jsx         # 메인 React 컴포넌트, 순수 UI + 상태 관리 (~695줄)
+│   ├── App.jsx         # 메인 React 컴포넌트, 순수 UI + 상태 관리 (~715줄)
 │   ├── constants.js    # 게임 상수 및 설정 테이블 (~185줄)
 │   ├── enemy.js        # EnemySystem: 적 생성, 이동, 상태이상 (~175줄)
 │   ├── game-engine.js  # GameEngine: 게임 틱 오케스트레이터 (~290줄)
-│   ├── sound.js        # SoundManager: BGM/SFX 생성 (~340줄)
+│   ├── sound.js        # SoundManager: BGM(mp3)/SFX(Web Audio) (~340줄)
 │   ├── tower.js        # TowerSystem: 타워 생성, 배치, 조합, 공격 (~166줄)
 │   └── utils.js        # 경로 생성, 거리 계산, 유틸리티 (~136줄)
 └── .claude/
@@ -76,6 +81,8 @@ CDN 기반이므로 import/export 없이 **글로벌 네임스페이스 객체**
 - **다중 경로**: 스테이지별 복잡도 증가 (1경로 → 최대 3출발/3도착)
 - **적 타입** (6종): 일반, 빠름, 엘리트, 보스, 방해자(공속감소), 억제자(공격력감소)
 - **드래그앤드롭 + 모바일 배치**: PC는 드래그, 모바일은 탭 → 선택 방식
+- **인벤토리**: 6열 × 5행 = 30칸 고정 (`ECONOMY.maxInventory`), 가득 차면 뽑기 불가
+- **치트 콘솔**: 백틱(`) 키로 토글, 커맨드 입력 방식 (nextstage, gold, tower 등)
 
 ### 설정 테이블 (constants.js)
 | 상수 | 용도 |
@@ -174,6 +181,31 @@ baseHealth = HEALTH_SCALING.base * stageMult * waveMult * lateBonus
 
 ### 경제 (constants.js → ECONOMY)
 - 뽑기 비용: ECONOMY.drawCost (20G)
+- 인벤토리 상한: ECONOMY.maxInventory (30)
 - 판매 환급: ECONOMY.sellRefundRate (50%)
 - 웨이브 보상: ECONOMY.waveReward(wave)
 - 스테이지 클리어 보너스: ECONOMY.stageClearBonus(stage)
+
+## 개발 환경
+
+### 로컬 실행
+```bash
+npx serve .
+# → http://localhost:3000 에서 확인
+# 또는 dev.html 더블클릭 (서버가 켜져있어야 함)
+```
+
+### 배포
+- GitHub Pages: main 브랜치 push 시 자동 배포
+- URL: `https://junghyun2180.github.io/NeonDefense/`
+
+### 치트 콘솔 (테스트용)
+게임 화면에서 `` ` `` 키로 콘솔 열기:
+| 명령어 | 효과 |
+|--------|------|
+| `nextstage` / `ns` | 다음 스테이지 |
+| `stage [n]` | n 스테이지로 이동 |
+| `clearwave` / `cw` | 웨이브 즉시 클리어 |
+| `gold [n]` | 골드 추가 (기본 500) |
+| `lives [n]` | 목숨 추가 (기본 10) |
+| `tower [tier]` | 타워 획득 (기본 T4) |

@@ -132,14 +132,15 @@ const NeonDefense = () => {
   }, [toggleSelect]);
 
   // ===== 뽑기 (TowerSystem.create 사용) =====
+  const isInventoryFull = inventory.length >= ECONOMY.maxInventory;
   const drawRandomNeon = useCallback(() => {
-    if (gold < ECONOMY.drawCost) return;
+    if (gold < ECONOMY.drawCost || inventory.length >= ECONOMY.maxInventory) return;
     const colorIndex = Math.floor(Math.random() * 6);
     const newNeon = TowerSystem.create(1, colorIndex);
     setInventory(prev => [...prev, newNeon]);
     setGold(prev => prev - ECONOMY.drawCost);
     soundManager.playDraw();
-  }, [gold]);
+  }, [gold, inventory.length]);
 
   // ===== 조합 (TowerSystem 위임) =====
   const combineNeons = useCallback(() => {
@@ -358,6 +359,96 @@ const NeonDefense = () => {
 
   const getElementInfo = (element) => ELEMENT_EFFECTS[element] || ELEMENT_EFFECTS[ELEMENT_TYPES.VOID];
 
+  // ===== 치트 콘솔 (테스트용) =====
+  const [cheatOpen, setCheatOpen] = useState(false);
+  const [cheatInput, setCheatInput] = useState('');
+  const [cheatLog, setCheatLog] = useState([]);
+  const cheatInputRef = useRef(null);
+
+  const executeCheat = useCallback((cmd) => {
+    const parts = cmd.trim().toLowerCase().split(/\s+/);
+    const command = parts[0];
+    const arg = parts[1] ? parseInt(parts[1]) : null;
+
+    switch (command) {
+      case 'nextstage':
+      case 'ns':
+        setIsPlaying(false); setEnemies([]); setProjectiles([]);
+        setSpawnedCount(0); setKilledCount(0);
+        clearInterval(gameLoopRef.current);
+        clearInterval(spawnIntervalRef.current);
+        const ns = stage + 1;
+        setStage(ns); setWave(1);
+        setPathData(generateMultiplePaths(Date.now(), ns));
+        setTowers([]);
+        setGold(prev => prev + ECONOMY.stageClearBonus(stage));
+        return '▶ Stage ' + ns + '로 이동';
+      case 'stage':
+        if (!arg || arg < 1) return '❌ 사용법: stage [번호]';
+        setIsPlaying(false); setEnemies([]); setProjectiles([]);
+        setSpawnedCount(0); setKilledCount(0);
+        clearInterval(gameLoopRef.current);
+        clearInterval(spawnIntervalRef.current);
+        setStage(arg); setWave(1);
+        setPathData(generateMultiplePaths(Date.now(), arg));
+        setTowers([]);
+        return '▶ Stage ' + arg + '로 이동';
+      case 'clearwave':
+      case 'cw':
+        setEnemies([]);
+        return '▶ 웨이브 클리어';
+      case 'gold':
+        const goldAmt = arg || 500;
+        setGold(prev => prev + goldAmt);
+        return '▶ 골드 +' + goldAmt;
+      case 'lives':
+        const livesAmt = arg || 10;
+        setLives(prev => prev + livesAmt);
+        return '▶ 목숨 +' + livesAmt;
+      case 'tower':
+        const tier = Math.min(4, Math.max(1, arg || 4));
+        const elem = Math.floor(Math.random() * 6);
+        setInventory(prev => [...prev, TowerSystem.create(tier, elem)]);
+        return '▶ T' + tier + ' 타워 획득';
+      case 'help':
+        return [
+          '── 명령어 목록 ──',
+          'nextstage (ns)  다음 스테이지',
+          'stage [n]       n 스테이지로 이동',
+          'clearwave (cw)  웨이브 즉시 클리어',
+          'gold [n]        골드 추가 (기본 500)',
+          'lives [n]       목숨 추가 (기본 10)',
+          'tower [tier]    타워 획득 (기본 T4)',
+          'help            명령어 목록',
+        ].join('\n');
+      default:
+        return '❌ 알 수 없는 명령어. help 입력';
+    }
+  }, [stage]);
+
+  const handleCheatSubmit = useCallback((e) => {
+    e.preventDefault();
+    if (!cheatInput.trim()) return;
+    const result = executeCheat(cheatInput);
+    setCheatLog(prev => [...prev.slice(-20), '> ' + cheatInput, result]);
+    setCheatInput('');
+  }, [cheatInput, executeCheat]);
+
+  // 백틱(`)으로 콘솔 토글
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === '`') {
+        e.preventDefault();
+        setCheatOpen(prev => {
+          if (!prev) setTimeout(() => cheatInputRef.current?.focus(), 50);
+          return !prev;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
   // ===== 렌더링 =====
   return (
     <div className="min-h-screen bg-gray-950 text-white p-2 sm:p-4 overflow-x-hidden select-none" style={{fontFamily: "'Orbitron', sans-serif"}}>
@@ -490,7 +581,7 @@ const NeonDefense = () => {
         {/* 사이드 패널 */}
         <div className="flex-1 min-w-[280px] space-y-3">
           <div className="flex gap-2">
-            <button type="button" onClick={drawRandomNeon} disabled={gold < ECONOMY.drawCost} className="flex-1 btn-neon px-4 py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-pink-400/30">🎲 뽑기 ({ECONOMY.drawCost}G)</button>
+            <button type="button" onClick={drawRandomNeon} disabled={gold < ECONOMY.drawCost || isInventoryFull} className="flex-1 btn-neon px-4 py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-pink-400/30">{isInventoryFull ? '📦 가득 참' : '🎲 뽑기 (' + ECONOMY.drawCost + 'G)'}</button>
             <button type="button" onClick={startWave} disabled={isPlaying} className="flex-1 btn-neon px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-cyan-400/30">{isPlaying ? '전투 중...' : '▶ 시작'}</button>
           </div>
           <div className="flex gap-2">
@@ -502,22 +593,25 @@ const NeonDefense = () => {
             <button type="button" onClick={sellSelectedTowers} disabled={selectedTowers.length === 0} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm">💰 판매 (+{totalSellPrice}G)</button>
           </div>
 
-          {/* 인벤토리 */}
+          {/* 인벤토리 (5열 x 6행 고정) */}
           <div className="bg-gray-900/80 rounded-lg p-3 border border-gray-700">
-            <h3 className="text-sm font-bold mb-2 text-gray-400">📦 인벤토리 ({inventory.length}) - 클릭: 선택 / 드래그: 배치</h3>
-            <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto">
-              {inventory.map(neon => {
-                const isSelected = selectedInventory.some(n => n.id === neon.id);
-                const elementInfo = getElementInfo(neon.element);
-                return (
-                  <div key={neon.id} onMouseDown={(e) => handleDragStart(e, neon)} onTouchStart={(e) => handleDragStart(e, neon)} className={'inventory-item w-10 h-10 rounded-lg flex flex-col items-center justify-center border-2 ' + (isSelected ? 'border-white selected' : 'border-transparent')} style={{ background: 'radial-gradient(circle, ' + neon.color + '80 0%, ' + neon.color + '40 70%)', color: neon.color, boxShadow: isSelected ? '0 0 15px ' + neon.color : 'none' }} title={neon.name + '\nTier ' + neon.tier + '\n' + elementInfo.icon + ' ' + elementInfo.name + ': ' + elementInfo.desc}>
-                    <span className="text-sm">{elementInfo.icon}</span>
-                    <span className="text-xs font-black text-white drop-shadow">T{neon.tier}</span>
-                  </div>
-                );
+            <h3 className="text-sm font-bold mb-2 text-gray-400">📦 인벤토리 ({inventory.length}/{ECONOMY.maxInventory}) - 클릭: 선택 / 드래그: 배치</h3>
+            <div className="grid grid-cols-5 gap-1.5">
+              {Array.from({length: ECONOMY.maxInventory}, (_, i) => {
+                const neon = inventory[i];
+                if (neon) {
+                  const isSelected = selectedInventory.some(n => n.id === neon.id);
+                  const elementInfo = getElementInfo(neon.element);
+                  return (
+                    <div key={neon.id} onMouseDown={(e) => handleDragStart(e, neon)} onTouchStart={(e) => handleDragStart(e, neon)} className={'inventory-item w-10 h-10 rounded-lg flex flex-col items-center justify-center border-2 cursor-pointer ' + (isSelected ? 'border-white selected' : 'border-transparent hover:border-gray-500')} style={{ background: 'radial-gradient(circle, ' + neon.color + '80 0%, ' + neon.color + '40 70%)', color: neon.color, boxShadow: isSelected ? '0 0 15px ' + neon.color : 'none' }} title={neon.name + '\nTier ' + neon.tier + '\n' + elementInfo.icon + ' ' + elementInfo.name + ': ' + elementInfo.desc}>
+                      <span className="text-sm">{elementInfo.icon}</span>
+                      <span className="text-xs font-black text-white drop-shadow">T{neon.tier}</span>
+                    </div>
+                  );
+                }
+                return <div key={'empty-' + i} className="w-10 h-10 rounded-lg border border-gray-700/50 bg-gray-800/30" />;
               })}
             </div>
-            {inventory.length === 0 && <p className="text-gray-500 text-center text-sm py-4">뽑기로 네온을 획득하세요!</p>}
           </div>
 
           {/* 선택된 타워 정보 */}
@@ -696,6 +790,27 @@ const NeonDefense = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 치트 콘솔 (` 키로 토글) */}
+      {cheatOpen && (
+        <div className="fixed bottom-0 left-0 right-0 z-50" style={{fontFamily: 'monospace'}}>
+          <div className="bg-black/95 border-t border-green-500/50 max-h-60 flex flex-col">
+            <div className="flex justify-between items-center px-3 py-1 border-b border-green-500/30">
+              <span className="text-green-400 text-xs font-bold">CHEAT CONSOLE</span>
+              <button onClick={() => setCheatOpen(false)} className="text-gray-500 hover:text-white text-xs">ESC / `</button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-1 text-xs">
+              {cheatLog.map((line, i) => (
+                <div key={i} className={line.startsWith('>') ? 'text-cyan-400' : line.startsWith('❌') ? 'text-red-400' : 'text-green-300'} style={{whiteSpace: 'pre-wrap'}}>{line}</div>
+              ))}
+            </div>
+            <form onSubmit={handleCheatSubmit} className="flex border-t border-green-500/30">
+              <span className="text-green-400 px-2 py-2 text-sm">{'>'}</span>
+              <input ref={cheatInputRef} value={cheatInput} onChange={(e) => setCheatInput(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && setCheatOpen(false)} className="flex-1 bg-transparent text-green-300 text-sm py-2 outline-none" placeholder="help 입력으로 명령어 확인" autoFocus />
+            </form>
           </div>
         </div>
       )}
