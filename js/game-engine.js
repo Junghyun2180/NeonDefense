@@ -90,8 +90,8 @@ const processProjectile = (proj, enemies, gameSpeed) => {
   const dy = targetEnemy.y - proj.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
   
-  // 충돌 체크
-  if (dist < 15) {
+  // 충돌 체크: 프로젝타일 속도를 고려하여 overshoot 방지
+  if (dist < 15 + proj.speed) {
     return {
       projectile: null,
       hit: {
@@ -107,13 +107,13 @@ const processProjectile = (proj, enemies, gameSpeed) => {
     };
   }
   
-  // 이동
-  const speed = proj.speed * gameSpeed;
+  // 이동 (proj.speed에 이미 gameSpeed 포함)
+  const moveStep = Math.min(proj.speed, dist);
   return {
     projectile: {
       ...proj,
-      x: proj.x + (dx / dist) * speed,
-      y: proj.y + (dy / dist) * speed,
+      x: proj.x + (dx / dist) * moveStep,
+      y: proj.y + (dy / dist) * moveStep,
     },
     hit: null,
   };

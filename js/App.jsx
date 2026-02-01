@@ -725,7 +725,8 @@ const NeonDefense = () => {
             const dx = targetEnemy.x - proj.x, dy = targetEnemy.y - proj.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist < 15) {
+            // 충돌 감지: 프로젝타일 속도를 고려하여 overshoot 방지
+            if (dist < 15 + proj.speed) {
               let finalDamage = proj.damage;
               
               // 속성별 처리
@@ -778,7 +779,9 @@ const NeonDefense = () => {
               return null;
             }
             
-            return { ...proj, x: proj.x + (dx / dist) * proj.speed, y: proj.y + (dy / dist) * proj.speed };
+            // 이동 거리가 남은 거리보다 크면 적 위치로 스냅 (overshoot 방지)
+            const moveStep = Math.min(proj.speed, dist);
+            return { ...proj, x: proj.x + (dx / dist) * moveStep, y: proj.y + (dy / dist) * moveStep };
           }).filter(Boolean);
           
           // 체인 라이트닝 데미지 합산

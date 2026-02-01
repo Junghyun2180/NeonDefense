@@ -1508,7 +1508,9 @@
                 return null;
               }
               
-              return { ...proj, x: proj.x + (dx / dist) * proj.speed, y: proj.y + (dy / dist) * proj.speed };
+              // overshoot 방지: 이동 거리가 남은 거리보다 크면 적 위치로 스냅
+              const moveStep = Math.min(proj.speed, dist);
+              return { ...proj, x: proj.x + (dx / dist) * moveStep, y: proj.y + (dy / dist) * moveStep };
             }).filter(Boolean);
             
             // 체인 라이트닝 데미지 합산
