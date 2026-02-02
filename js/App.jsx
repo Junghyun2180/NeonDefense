@@ -1,6 +1,6 @@
 // Neon Defense - 메인 React 컴포넌트
 // 순수 UI + 상태 관리만 담당. 게임 로직은 GameEngine/TowerSystem/EnemySystem에 위임.
-const { useState, useEffect, useCallback, useRef } = React;
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
 const NeonDefense = () => {
   // ===== 게임 상태 =====
@@ -24,6 +24,34 @@ const NeonDefense = () => {
   // 다중 경로 시스템
   const [pathData, setPathData] = useState(() => generateMultiplePaths(Date.now(), 1));
   const currentPath = pathData.paths[0]?.tiles || [];
+
+  // 경로 꺾임 지점에 방향 화살표 사전 계산
+  const pathArrows = useMemo(() => {
+    const arrows = {};
+    for (const path of pathData.paths) {
+      const tiles = path.tiles;
+      for (let i = 1; i < tiles.length - 1; i++) {
+        const prev = tiles[i - 1];
+        const curr = tiles[i];
+        const next = tiles[i + 1];
+        // 이전 방향과 다음 방향이 다르면 꺾임 지점
+        const prevDx = curr.x - prev.x;
+        const prevDy = curr.y - prev.y;
+        const nextDx = next.x - curr.x;
+        const nextDy = next.y - curr.y;
+        if (prevDx === nextDx && prevDy === nextDy) continue; // 직선 구간 스킵
+        // 꺾인 후 진행 방향 화살표 표시
+        let arrow;
+        if (nextDx > 0) arrow = '→';
+        else if (nextDx < 0) arrow = '←';
+        else if (nextDy > 0) arrow = '↓';
+        else arrow = '↑';
+        const key = `${curr.x},${curr.y}`;
+        if (!arrows[key]) arrows[key] = { arrow, color: path.color };
+      }
+    }
+    return arrows;
+  }, [pathData]);
 
   const [showStageTransition, setShowStageTransition] = useState(false);
   const [draggingNeon, setDraggingNeon] = useState(null);
@@ -519,6 +547,13 @@ const NeonDefense = () => {
                         <span className="text-lg" style={{ filter: 'drop-shadow(0 0 6px ' + endPaths[0].color + ')' }}>🏠</span>
                       </div>
                     )}
+                    {!startPoint && !endPoint && pathArrows[`${x},${y}`] && (
+                      <div className="w-full h-full flex items-center justify-center pointer-events-none" style={{ opacity: 0.8 }}>
+                        <span style={{ color: pathArrows[`${x},${y}`].color, fontSize: '16px', lineHeight: 1, filter: 'drop-shadow(0 0 4px ' + pathArrows[`${x},${y}`].color + ')' }}>
+                          {pathArrows[`${x},${y}`].arrow}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -714,19 +749,16 @@ const NeonDefense = () => {
       )}
 
       {/* 스테이지 전환 모달 */}
-      {showStageTransition && (() => {
-        const nextConfig = getPathConfig(stage + 1);
-        return (
+      {showStageTransition && (
           <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
             <div className="text-center">
               <h2 className="text-5xl font-black mb-4" style={{ background: 'linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96e6a1)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', animation: 'neonPulse 1s ease-in-out infinite' }}>🎉 STAGE {stage} CLEAR! 🎉</h2>
               <p className="text-2xl text-cyan-300 mb-2">Stage {stage + 1} 준비 중...</p>
-              <p className="text-yellow-400 mb-2">⚠️ 출발 {nextConfig.starts}개 → 도착 {nextConfig.ends}개 ({nextConfig.starts}경로)</p>
+              <p className="text-yellow-400 mb-2">⚠️ 새로운 경로가 랜덤 생성됩니다</p>
               <p className="text-gray-500">타워가 초기화됩니다</p>
             </div>
           </div>
-        );
-      })()}
+      )}
 
       {/* 도움말 모달 (ELEMENT_UI + ENEMY_CONFIG 데이터 주도) */}
       {showHelp && (
