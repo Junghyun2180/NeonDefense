@@ -22,7 +22,7 @@ const NeonDefense = () => {
   const [chainLightnings, setChainLightnings] = useState([]);
 
   // 다중 경로 시스템
-  const [pathData, setPathData] = useState(() => generateMultiplePaths(1, 1));
+  const [pathData, setPathData] = useState(() => generateMultiplePaths(Date.now(), 1));
   const currentPath = pathData.paths[0]?.tiles || [];
 
   const [showStageTransition, setShowStageTransition] = useState(false);

@@ -18,17 +18,30 @@ const getTowerSellPrice = (tier) => {
 
 // ===== 경로 생성 시스템 =====
 
-// 스테이지별 경로 설정
-const getPathConfig = (stage) => {
-  const configs = {
-    1: { starts: 1, ends: 1 },
-    2: { starts: 2, ends: 1 },
-    3: { starts: 2, ends: 2 },
-    4: { starts: 3, ends: 2 },
-  };
-  return configs[stage] || {
-    starts: Math.min(3, 2 + Math.floor((stage - 4) / 2)),
-    ends: Math.min(3, 2 + Math.floor((stage - 3) / 2)),
+// 스테이지별 경로 설정 (랜덤 요소 포함)
+const getPathConfig = (stage, random) => {
+  // 스테이지 진행에 따라 범위 내에서 랜덤 결정
+  // stage 1: 항상 1시작 1도착 (튜토리얼 성격)
+  if (stage === 1) return { starts: 1, ends: 1 };
+
+  // stage 2~3: 1~2 시작, 1~2 도착
+  if (stage <= 3) {
+    return {
+      starts: 1 + Math.floor(random() * 2), // 1~2
+      ends: 1 + Math.floor(random() * 2),   // 1~2
+    };
+  }
+  // stage 4~5: 2~3 시작, 1~2 도착
+  if (stage <= 5) {
+    return {
+      starts: 2 + Math.floor(random() * 2), // 2~3
+      ends: 1 + Math.floor(random() * 2),   // 1~2
+    };
+  }
+  // stage 6+: 2~3 시작, 2~3 도착
+  return {
+    starts: 2 + Math.floor(random() * 2), // 2~3
+    ends: 2 + Math.floor(random() * 2),   // 2~3
   };
 };
 
@@ -94,7 +107,7 @@ const generateMultiplePaths = (seed, stage = 1) => {
   let randomIndex = 0;
   const random = () => seededRandom(seed + randomIndex++);
 
-  const config = getPathConfig(stage);
+  const config = getPathConfig(stage, random);
   const paths = [];
   const startPoints = [];
   const endPoints = [];
