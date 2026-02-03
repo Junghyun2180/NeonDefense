@@ -76,21 +76,38 @@ const GameMap = ({
 
                             return (
                                 <div key={x + '-' + y} className={'absolute ' + (isPath ? 'path-tile' : 'grass-tile') + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => canPlace && handleTileClick(x, y)}>
-                                    {startPoint && startPath && (
-                                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, ' + startPath.color + '60 0%, transparent 70%)' }}>
-                                            <span className="text-lg" style={{ filter: 'drop-shadow(0 0 6px ' + startPath.color + ')' }}>▶</span>
-                                        </div>
-                                    )}
+                                    {startPoint && startPath && (() => {
+                                        // 경로 방향에 따른 화살표 결정
+                                        const tiles = startPath.tiles;
+                                        let startArrow = '▶'; // 기본값
+                                        if (tiles.length > 1) {
+                                            const dx = tiles[1].x - tiles[0].x;
+                                            const dy = tiles[1].y - tiles[0].y;
+                                            if (dx > 0) startArrow = '▶';
+                                            else if (dx < 0) startArrow = '◀';
+                                            else if (dy > 0) startArrow = '▼';
+                                            else if (dy < 0) startArrow = '▲';
+                                        }
+                                        // 첫 번째 경로(A)는 노란색, 나머지는 경로별 색상
+                                        const arrowColor = startPath.id === 'A' ? '#FFD700' : startPath.color;
+                                        return (
+                                            <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, ' + arrowColor + '50 0%, transparent 70%)' }}>
+                                                <span className="text-lg font-bold" style={{ color: arrowColor, textShadow: '0 0 8px ' + arrowColor + ', 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000', filter: 'drop-shadow(0 0 6px ' + arrowColor + ')' }}>{startArrow}</span>
+                                            </div>
+                                        );
+                                    })()}
                                     {endPoint && endPaths && endPaths.length > 0 && (
-                                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, ' + endPaths[0].color + '60 0%, transparent 70%)' }}>
-                                            <span className="text-lg" style={{ filter: 'drop-shadow(0 0 6px ' + endPaths[0].color + ')' }}>🏠</span>
+                                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, rgba(255,100,100,0.5) 0%, transparent 70%)' }}>
+                                            <span className="text-lg" style={{ filter: 'drop-shadow(0 0 6px #FF6666)' }}>🏠</span>
                                         </div>
                                     )}
-                                    {!startPoint && !endPoint && pathArrows[`${x},${y}`] && (
-                                        <div className="w-full h-full flex items-center justify-center pointer-events-none" style={{ opacity: 0.8 }}>
-                                            <span style={{ color: pathArrows[`${x},${y}`].color, fontSize: '16px', lineHeight: 1, filter: 'drop-shadow(0 0 4px ' + pathArrows[`${x},${y}`].color + ')' }}>
-                                                {pathArrows[`${x},${y}`].arrow}
-                                            </span>
+                                    {!startPoint && !endPoint && pathArrows[`${x},${y}`] && pathArrows[`${x},${y}`].length > 0 && (
+                                        <div className="w-full h-full flex items-center justify-center pointer-events-none flex-wrap gap-0" style={{ opacity: 0.9 }}>
+                                            {pathArrows[`${x},${y}`].map((arrowInfo, idx) => (
+                                                <span key={idx} style={{ color: arrowInfo.color, fontSize: pathArrows[`${x},${y}`].length > 1 ? '11px' : '14px', lineHeight: 1, fontWeight: 'bold', textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 6px ' + arrowInfo.color }}>
+                                                    {arrowInfo.arrow}
+                                                </span>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
