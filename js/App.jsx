@@ -187,6 +187,7 @@ const NeonDefense = () => {
         cheatLog={cheatState.cheatLog}
         cheatInputRef={cheatState.cheatInputRef}
         handleCheatSubmit={cheatState.handleCheatSubmit}
+        handleKeyDown={cheatState.handleKeyDown}
       />
     </div>
   );

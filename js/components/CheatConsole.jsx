@@ -6,7 +6,8 @@ const CheatConsole = ({
     setCheatInput,
     cheatLog,
     cheatInputRef,
-    handleCheatSubmit
+    handleCheatSubmit,
+    handleKeyDown,
 }) => {
     if (!cheatOpen) return null;
 
@@ -28,7 +29,10 @@ const CheatConsole = ({
                         ref={cheatInputRef}
                         value={cheatInput}
                         onChange={(e) => setCheatInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Escape' && setCheatOpen(false)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape') setCheatOpen(false);
+                            else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') handleKeyDown(e);
+                        }}
                         className="flex-1 bg-transparent text-green-300 text-sm py-2 outline-none"
                         placeholder="help 입력으로 명령어 확인"
                         autoFocus

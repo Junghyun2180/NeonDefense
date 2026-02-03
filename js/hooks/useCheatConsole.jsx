@@ -17,10 +17,26 @@ const useCheatConsole = (gameState, inventoryState) => {
     const [cheatLog, setCheatLog] = useState([]);
     const cheatInputRef = useRef(null);
 
+    // 명령어 히스토리
+    const [history, setHistory] = useState([]);
+    const [historyIndex, setHistoryIndex] = useState(-1);
+
+    // 속성명 → 인덱스 매핑
+    const ELEMENT_MAP = {
+        fire: 0, 화염: 0, 불: 0, f: 0, '0': 0,
+        water: 1, 냉기: 1, 얼음: 1, w: 1, ice: 1, '1': 1,
+        electric: 2, 전격: 2, 전기: 2, e: 2, '2': 2,
+        wind: 3, 질풍: 3, 바람: 3, 공허: 3, v: 3, '3': 3,
+        void: 4, 보라: 4, p: 4, purple: 4, '4': 4,
+        light: 5, 광휘: 5, 빛: 5, l: 5, '5': 5,
+    };
+
     const executeCheat = useCallback((cmd) => {
         const parts = cmd.trim().toLowerCase().split(/\s+/);
         const command = parts[0];
         const arg = parts[1] ? parseInt(parts[1]) : null;
+        const arg2 = parts[2];
+        const arg3 = parts[3] ? parseInt(parts[3]) : 1;
 
         switch (command) {
             case 'nextstage':
@@ -50,6 +66,28 @@ const useCheatConsole = (gameState, inventoryState) => {
                 const elem = Math.floor(Math.random() * 6);
                 addTowerToInventory(tier, elem);
                 return '▶ T' + tier + ' 타워 획득';
+
+            // 새 명령어: give [tier] [element] [count]
+            case 'give':
+            case 'g':
+                const gTier = Math.min(4, Math.max(1, arg || 3));
+                const gElem = arg2 !== undefined ? (ELEMENT_MAP[arg2] ?? Math.floor(Math.random() * 6)) : Math.floor(Math.random() * 6);
+                const gCount = Math.min(30, Math.max(1, arg3));
+                for (let i = 0; i < gCount; i++) {
+                    addTowerToInventory(gTier, gElem);
+                }
+                const elemName = ELEMENT_UI[gElem]?.name || gElem;
+                return `▶ T${gTier} ${elemName} × ${gCount} 획득`;
+
+            // 새 명령어: t3all - 모든 속성 T3 타워 3개씩 추가
+            case 't3all':
+                for (let e = 0; e < 6; e++) {
+                    for (let i = 0; i < 3; i++) {
+                        addTowerToInventory(3, e);
+                    }
+                }
+                return '▶ 모든 속성 T3 × 3 획득 (18개)';
+
             case 'support':
                 const sTier = Math.min(3, Math.max(1, arg || 3));
                 const sType = Math.floor(Math.random() * 4);
@@ -63,8 +101,13 @@ const useCheatConsole = (gameState, inventoryState) => {
                     'clearwave (cw)  웨이브 즉시 클리어',
                     'gold [n]        골드 추가 (기본 500)',
                     'lives [n]       목숨 추가 (기본 10)',
-                    'tower [tier]    타워 획득 (기본 T4)',
+                    'tower [tier]    랜덤 타워 획득',
+                    'give [tier] [속성] [개수]  지정 타워 획득',
+                    '  예: give 3 fire 3, give 3 electric 5',
+                    '  속성: fire/water/electric/wind/void/light',
+                    't3all           모든 속성 T3 × 3 획득',
                     'support [tier]  서포트 획득 (기본 S3)',
+                    '↑/↓ 방향키     이전/다음 명령어',
                     'help            명령어 목록',
                 ].join('\n');
             default:
@@ -77,8 +120,36 @@ const useCheatConsole = (gameState, inventoryState) => {
         if (!cheatInput.trim()) return;
         const result = executeCheat(cheatInput);
         setCheatLog(prev => [...prev.slice(-20), '> ' + cheatInput, result]);
+        // 히스토리에 추가
+        setHistory(prev => [...prev.slice(-50), cheatInput]);
+        setHistoryIndex(-1);
         setCheatInput('');
     }, [cheatInput, executeCheat]);
+
+    // 방향키로 히스토리 탐색
+    const handleKeyDown = useCallback((e) => {
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHistoryIndex(prev => {
+                const newIdx = Math.min(prev + 1, history.length - 1);
+                if (newIdx >= 0 && history.length > 0) {
+                    setCheatInput(history[history.length - 1 - newIdx]);
+                }
+                return newIdx;
+            });
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setHistoryIndex(prev => {
+                const newIdx = Math.max(prev - 1, -1);
+                if (newIdx < 0) {
+                    setCheatInput('');
+                } else {
+                    setCheatInput(history[history.length - 1 - newIdx]);
+                }
+                return newIdx;
+            });
+        }
+    }, [history]);
 
     // 백틱(`)으로 콘솔 토글
     useEffect(() => {
@@ -103,7 +174,9 @@ const useCheatConsole = (gameState, inventoryState) => {
         cheatLog,
         cheatInputRef,
         handleCheatSubmit,
+        handleKeyDown,
     };
 };
 
 window.useCheatConsole = useCheatConsole;
+
