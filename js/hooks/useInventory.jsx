@@ -2,7 +2,12 @@
 const useInventory = (gameState) => {
     const { useState, useCallback, useMemo } = React;
 
-    const { gold, setGold, towers, setTowers, supportTowers, setSupportTowers, setEffects, permanentBuffs = {} } = gameState;
+    const { gold, setGold, towers, setTowers, supportTowers, setSupportTowers, setEffects, permanentBuffs = {}, gameStats, setGameStats } = gameState;
+
+    // 통계 업데이트 헬퍼
+    const updateStats = useCallback((updater) => {
+        if (setGameStats) setGameStats(updater);
+    }, [setGameStats]);
 
     // 일반 타워 인벤토리
     const [inventory, setInventory] = useState([]);
@@ -110,8 +115,14 @@ const useInventory = (gameState) => {
         const newNeon = TowerSystem.create(1, colorIndex);
         setInventory(prev => [...prev, newNeon]);
         setGold(prev => prev - cost);
+        // 통계: 타워 뽑기, 골드 사용
+        updateStats(prev => ({
+            ...prev,
+            towersDrawn: prev.towersDrawn + 1,
+            totalGoldSpent: prev.totalGoldSpent + cost,
+        }));
         soundManager.playDraw();
-    }, [gold, inventory.length, setGold, permanentBuffs]);
+    }, [gold, inventory.length, setGold, permanentBuffs, updateStats]);
 
     const drawRandomSupport = useCallback(() => {
         if (gold < ECONOMY.supportDrawCost || supportInventory.length >= ECONOMY.maxSupportInventory) return;
@@ -119,8 +130,14 @@ const useInventory = (gameState) => {
         const newSupport = TowerSystem.createSupport(1, supportType);
         setSupportInventory(prev => [...prev, newSupport]);
         setGold(prev => prev - ECONOMY.supportDrawCost);
+        // 통계: 서포트 뽑기, 골드 사용
+        updateStats(prev => ({
+            ...prev,
+            supportTowersDrawn: prev.supportTowersDrawn + 1,
+            totalGoldSpent: prev.totalGoldSpent + ECONOMY.supportDrawCost,
+        }));
         soundManager.playDraw();
-    }, [gold, supportInventory.length, setGold]);
+    }, [gold, supportInventory.length, setGold, updateStats]);
 
     // ===== 조합 =====
     const combineNeons = useCallback(() => {

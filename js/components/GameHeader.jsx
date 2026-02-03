@@ -13,7 +13,7 @@ const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCoun
             <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4 text-sm sm:text-base">
                 <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-emerald-500/50 flex items-center gap-2">
                     <span className="text-emerald-400">🏰</span>
-                    <span className="font-bold text-emerald-300">Stage {stage}</span>
+                    <span className="font-bold text-emerald-300">Stage {stage}/{SPAWN.maxStage}</span>
                 </div>
                 <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-cyan-500/50 flex items-center gap-2">
                     <span className="text-cyan-400">🌊</span>

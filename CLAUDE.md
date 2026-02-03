@@ -17,6 +17,8 @@ NeonDefense/
 │   ├── App.jsx         # 메인 React 컴포넌트
 │   ├── constants.js    # 게임 상수 및 설정 테이블
 │   ├── status-effect.js # StatusEffectSystem (상태이상 처리)
+│   ├── permanent-buff.js # 영구 버프 시스템 (로그라이크)
+│   ├── game-stats.js   # 게임 통계 추적
 │   ├── enemy.js        # EnemySystem (적 생성/이동)
 │   ├── game-engine.js  # GameEngine (게임 틱)
 │   ├── sound.js        # SoundManager
@@ -34,6 +36,8 @@ NeonDefense/
 - `EnemySystem` — 적 생성/이동 (StatusEffectSystem에 위임)
 - `TowerSystem` — 타워/서포트 생성/조합/공격
 - `GameEngine` — 게임 틱 오케스트레이터
+- `PermanentBuffManager` — 영구 버프 관리
+- `GameStats` — 게임 통계 추적/요약
 
 ### 주요 시스템
 - **공격 타워** (6속성 × 4티어): 화염/냉기/전격/질풍/공허/광휘

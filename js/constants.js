@@ -230,6 +230,7 @@ const SPAWN = {
     return Math.max(100, base); // 최소 100ms
   },
   wavesPerStage: 5,
+  maxStage: 10,  // 최종 스테이지
 };
 
 // ===== 모바일 배치 UI 속성 데이터 =====

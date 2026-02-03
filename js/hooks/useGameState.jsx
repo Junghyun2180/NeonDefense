@@ -27,6 +27,12 @@ const useGameState = () => {
     const [buffChoices, setBuffChoices] = useState([]);
     const permanentBuffsRef = useRef({});
 
+    // 게임 클리어 및 통계
+    const [gameCleared, setGameCleared] = useState(false);
+    const [gameStats, setGameStats] = useState(() => GameStats.createEmpty());
+    const gameStatsRef = useRef(gameStats);
+    const livesAtWaveStart = useRef(ECONOMY.startLives);
+
     // 다중 경로 시스템
     const [pathData, setPathData] = useState(() => generateMultiplePaths(Date.now(), 1));
 
@@ -50,6 +56,7 @@ const useGameState = () => {
     useEffect(() => { projectilesRef.current = projectiles; }, [projectiles]);
     useEffect(() => { supportTowersRef.current = supportTowers; }, [supportTowers]);
     useEffect(() => { permanentBuffsRef.current = permanentBuffs; }, [permanentBuffs]);
+    useEffect(() => { gameStatsRef.current = gameStats; }, [gameStats]);
 
     // ===== 웨이브 시작 =====
     const startWave = useCallback(() => {
@@ -57,9 +64,10 @@ const useGameState = () => {
         setIsPlaying(true);
         setSpawnedCount(0);
         setKilledCount(0);
+        livesAtWaveStart.current = lives;  // 웨이브 시작 시 목숨 저장
         soundManager.playWaveStart();
         soundManager.playBGM();
-    }, [isPlaying]);
+    }, [isPlaying, lives]);
 
     // ===== 메인 게임 루프 =====
     useEffect(() => {
@@ -97,11 +105,22 @@ const useGameState = () => {
             setTowers(result.towers);
             setProjectiles(result.projectiles);
 
-            if (result.killedCount > 0) setKilledCount(prev => prev + result.killedCount);
+            if (result.killedCount > 0) {
+                setKilledCount(prev => prev + result.killedCount);
+                // 통계: 킬 카운트 업데이트
+                setGameStats(prev => ({ ...prev, totalKills: prev.totalKills + result.killedCount }));
+            }
             if (result.goldEarned > 0) {
                 // 영구 버프 골드 보너스 적용
                 const goldMult = PermanentBuffManager.getGoldMultiplier(permanentBuffsRef.current);
-                setGold(prev => prev + Math.floor(result.goldEarned * goldMult));
+                const earnedGold = Math.floor(result.goldEarned * goldMult);
+                setGold(prev => prev + earnedGold);
+                // 통계: 골드 획득
+                setGameStats(prev => ({
+                    ...prev,
+                    totalGoldEarned: prev.totalGoldEarned + earnedGold,
+                    goldFromKills: prev.goldFromKills + earnedGold,
+                }));
             }
             if (result.newEffects.length > 0) setEffects(prev => [...prev, ...result.newEffects]);
 
@@ -118,6 +137,8 @@ const useGameState = () => {
             });
 
             if (result.livesLost > 0) {
+                // 통계: 목숨 손실
+                setGameStats(prev => ({ ...prev, livesLost: prev.livesLost + result.livesLost }));
                 setLives(l => {
                     const newLives = l - result.livesLost;
                     if (newLives <= 0) { setGameOver(true); soundManager.playGameOver(); soundManager.stopBGM(); }
@@ -137,15 +158,55 @@ const useGameState = () => {
         if (spawnedCount < totalEnemies || enemies.length > 0 || !isPlaying || gameOver) return;
 
         setIsPlaying(false);
-        setGold(prev => prev + ECONOMY.waveReward(wave));
+
+        // 통계: 웨이브 클리어
+        const livesLostThisWave = livesAtWaveStart.current - lives;
+        setGameStats(prev => ({
+            ...prev,
+            wavesCleared: prev.wavesCleared + 1,
+            perfectWaves: livesLostThisWave === 0 ? prev.perfectWaves + 1 : prev.perfectWaves,
+            closeCallWaves: lives === 1 ? prev.closeCallWaves + 1 : prev.closeCallWaves,
+        }));
+
+        // 웨이브 보상
+        const waveReward = ECONOMY.waveReward(wave);
+        setGold(prev => prev + waveReward);
+        setGameStats(prev => ({
+            ...prev,
+            totalGoldEarned: prev.totalGoldEarned + waveReward,
+            goldFromWaves: prev.goldFromWaves + waveReward,
+        }));
 
         // 웨이브 클리어 시 이자 적용
         const interestRate = PermanentBuffManager.getInterestRate(permanentBuffs);
         if (interestRate > 0) {
-            setGold(prev => prev + Math.floor(prev * interestRate));
+            setGold(prev => {
+                const interest = Math.floor(prev * interestRate);
+                // 통계: 이자 수익
+                setGameStats(ps => ({
+                    ...ps,
+                    totalGoldEarned: ps.totalGoldEarned + interest,
+                    goldFromInterest: ps.goldFromInterest + interest,
+                }));
+                return prev + interest;
+            });
         }
 
         if (wave >= SPAWN.wavesPerStage) {
+            // 통계: 스테이지 클리어
+            setGameStats(prev => ({ ...prev, stagesCleared: prev.stagesCleared + 1 }));
+
+            // 최종 스테이지 클리어 체크 (10스테이지)
+            if (stage >= SPAWN.maxStage) {
+                // 게임 클리어!
+                setGameStats(prev => GameStats.finalize(prev));
+                setGameCleared(true);
+                soundManager.stopBGM();
+                // 승리 사운드 (없으면 웨이브 시작 사운드로 대체)
+                soundManager.playWaveStart();
+                return;
+            }
+
             setShowStageTransition(true);
             // 2초 후 버프 선택 모달 표시
             setTimeout(() => {
@@ -158,7 +219,7 @@ const useGameState = () => {
         } else {
             setWave(prev => prev + 1);
         }
-    }, [spawnedCount, enemies.length, isPlaying, gameOver, wave, stage]);
+    }, [spawnedCount, enemies.length, isPlaying, gameOver, wave, stage, lives]);
 
     // ===== 리셋 =====
     const resetGame = useCallback(() => {
@@ -182,6 +243,9 @@ const useGameState = () => {
         setPermanentBuffs({});
         setShowBuffSelection(false);
         setBuffChoices([]);
+        // 게임 클리어 및 통계 초기화
+        setGameCleared(false);
+        setGameStats(GameStats.createEmpty());
         soundManager.stopBGM();
     }, []);
 
@@ -211,6 +275,12 @@ const useGameState = () => {
         setShowBuffSelection(false);
         setBuffChoices([]);
 
+        // 통계: 버프 선택 기록
+        setGameStats(prev => ({
+            ...prev,
+            buffsSelected: [...prev.buffsSelected, buffId],
+        }));
+
         // 다음 스테이지로 진행
         const nextStage = stage + 1;
         setStage(nextStage);
@@ -218,7 +288,15 @@ const useGameState = () => {
         setPathData(generateMultiplePaths(Date.now(), nextStage));
         setTowers([]);
         setSupportTowers([]);
-        setGold(prev => prev + ECONOMY.stageClearBonus(stage));
+
+        // 스테이지 클리어 보너스
+        const stageBonus = ECONOMY.stageClearBonus(stage);
+        setGold(prev => prev + stageBonus);
+        setGameStats(prev => ({
+            ...prev,
+            totalGoldEarned: prev.totalGoldEarned + stageBonus,
+            goldFromStages: prev.goldFromStages + stageBonus,
+        }));
 
         // 최대 목숨 버프 적용
         const bonusLives = PermanentBuffManager.getBonusMaxLives(permanentBuffs);
@@ -251,6 +329,9 @@ const useGameState = () => {
         showBuffSelection,
         buffChoices,
         selectBuff,
+        // 게임 클리어 및 통계
+        gameCleared,
+        gameStats, setGameStats,
         // 액션
         startWave,
         resetGame,

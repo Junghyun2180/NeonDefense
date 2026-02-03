@@ -206,6 +206,16 @@ const NeonDefense = () => {
         currentBuffs={gameState.permanentBuffs}
         onSelectBuff={gameState.selectBuff}
       />
+
+      {/* 게임 클리어 모달 */}
+      <GameClearModal
+        isOpen={gameState.gameCleared}
+        stats={gameState.gameStats}
+        lives={gameState.lives}
+        gold={gameState.gold}
+        permanentBuffs={gameState.permanentBuffs}
+        onRestart={handleResetGame}
+      />
     </div>
   );
 };

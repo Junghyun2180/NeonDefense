@@ -2,7 +2,12 @@
 const useDragAndDrop = (gameState, inventoryState) => {
     const { useState, useCallback, useRef, useEffect } = React;
 
-    const { towers, setTowers, supportTowers, setSupportTowers, pathData } = gameState;
+    const { towers, setTowers, supportTowers, setSupportTowers, pathData, setGameStats } = gameState;
+
+    // 통계 업데이트 헬퍼
+    const updateStats = useCallback((updater) => {
+        if (setGameStats) setGameStats(updater);
+    }, [setGameStats]);
     const {
         inventory, setInventory,
         supportInventory, setSupportInventory,
@@ -48,8 +53,14 @@ const useDragAndDrop = (gameState, inventoryState) => {
         const newTower = TowerSystem.placeOnGrid(neonToPlace, placementMode.gridX, placementMode.gridY);
         setTowers(prev => [...prev, newTower]);
         setInventory(prev => prev.filter(n => n.id !== neonToPlace.id));
+        // 통계: 타워 배치
+        updateStats(prev => ({
+            ...prev,
+            towersPlaced: prev.towersPlaced + 1,
+            t4TowersCreated: newTower.tier === 4 ? prev.t4TowersCreated + 1 : prev.t4TowersCreated,
+        }));
         setPlacementMode(null);
-    }, [placementMode, inventory, setTowers, setInventory]);
+    }, [placementMode, inventory, setTowers, setInventory, updateStats]);
 
     // ===== 드래그 앤 드롭 =====
     const handleDragStart = useCallback((e, neon) => {
@@ -102,16 +113,27 @@ const useDragAndDrop = (gameState, inventoryState) => {
                 const newTower = TowerSystem.placeSupportOnGrid(draggingNeon, dropPreview.gridX, dropPreview.gridY);
                 setSupportTowers(prev => [...prev, newTower]);
                 setSupportInventory(prev => prev.filter(n => n.id !== draggingNeon.id));
+                // 통계: 서포트 타워 배치
+                updateStats(prev => ({
+                    ...prev,
+                    supportTowersPlaced: (prev.supportTowersPlaced || 0) + 1,
+                }));
             } else {
                 const newTower = TowerSystem.placeOnGrid(draggingNeon, dropPreview.gridX, dropPreview.gridY);
                 setTowers(prev => [...prev, newTower]);
                 setInventory(prev => prev.filter(n => n.id !== draggingNeon.id));
+                // 통계: 타워 배치
+                updateStats(prev => ({
+                    ...prev,
+                    towersPlaced: prev.towersPlaced + 1,
+                    t4TowersCreated: newTower.tier === 4 ? prev.t4TowersCreated + 1 : prev.t4TowersCreated,
+                }));
             }
         }
         setDraggingNeon(null);
         setDropPreview(null);
         setIsDragging(false);
-    }, [draggingNeon, dropPreview, isDragging, toggleInventorySelect, toggleSupportInventorySelect, setTowers, setInventory, setSupportTowers, setSupportInventory]);
+    }, [draggingNeon, dropPreview, isDragging, toggleInventorySelect, toggleSupportInventorySelect, setTowers, setInventory, setSupportTowers, setSupportInventory, updateStats]);
 
     useEffect(() => {
         if (!draggingNeon) return;
