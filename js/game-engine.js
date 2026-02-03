@@ -3,9 +3,9 @@
 
 const GameEngine = {
   // 체인 라이트닝 처리 (순수 함수)
-  processChainLightning(startX, startY, firstTargetId, damage, tier, currentEnemies) {
+  processChainLightning(startX, startY, firstTargetId, damage, tier, currentEnemies, chainBonus = 0) {
     const effect = ELEMENT_EFFECTS[ELEMENT_TYPES.ELECTRIC];
-    const chainCount = effect.chainCount[tier] || 2;
+    const chainCount = Math.max(1, (effect.chainCount[tier] || 2) + chainBonus);
     const chainRange = effect.chainRange;
     const decay = effect.chainDamageDecay;
 
@@ -107,52 +107,272 @@ const GameEngine = {
 
     hits.forEach(hit => {
       let finalDamage = hit.damage;
+      const special = hit.special || {};
+      const isT4 = hit.tier === 4;
 
       switch (hit.element) {
         case ELEMENT_TYPES.FIRE: {
           const fe = ELEMENT_EFFECTS[ELEMENT_TYPES.FIRE];
+          let burnDamage = Math.floor(hit.damage * fe.burnDamagePercent[hit.tier]);
+          let burnDuration = fe.burnDuration[hit.tier];
+
+          // T4 화염: 확산 연소형 - 주변 적에게 화상 전파
+          if (isT4 && special.burnSpread) {
+            const spreadCount = special.spreadCount || 2;
+            let spreadTargets = 0;
+            currentEnemies.forEach(enemy => {
+              if (enemy.id === hit.enemyId || spreadTargets >= spreadCount) return;
+              const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
+              if (dist <= 60) {
+                statusEffects.push({
+                  enemyId: enemy.id, type: 'burn',
+                  damage: Math.floor(burnDamage * 0.5),
+                  duration: burnDuration * 0.7,
+                });
+                visualEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 't4-fire-spread', color: '#FF4500' });
+                spreadTargets++;
+              }
+            });
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-fire-spread', color: '#FF4500' });
+          }
+          // T4 화염: 고열 압축형 - 빠른 적 추가 피해
+          else if (isT4 && special.fastEnemyBonus) {
+            const target = currentEnemies.find(e => e.id === hit.enemyId);
+            if (target && target.baseSpeed > 0.6) {
+              finalDamage = Math.floor(finalDamage * (1 + special.fastEnemyBonus));
+              visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-fire-fast', color: '#FFD700' });
+            }
+          }
+          // T4 화염: 연소 누적형 - 이펙트만 (스택은 enemy.js에서 처리 필요)
+          else if (isT4 && special.burnStacks) {
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-fire-stack', color: '#FF0000' });
+          }
+
           statusEffects.push({
             enemyId: hit.enemyId, type: 'burn',
-            damage: Math.floor(hit.damage * fe.burnDamagePercent[hit.tier]),
-            duration: fe.burnDuration[hit.tier],
+            damage: burnDamage,
+            duration: burnDuration,
           });
-          visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'burn', color: '#FF6B6B' });
+          if (!isT4) {
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'burn', color: '#FF6B6B' });
+          }
           break;
         }
+
         case ELEMENT_TYPES.WATER: {
           const we = ELEMENT_EFFECTS[ELEMENT_TYPES.WATER];
+          let slowPercent = we.slowPercent[hit.tier];
+          let slowDuration = we.slowDuration[hit.tier];
+
+          // T4 냉기: 빙결 제어형 - 스턴 확률
+          if (isT4 && special.freezeChance) {
+            if (Math.random() < special.freezeChance) {
+              statusEffects.push({
+                enemyId: hit.enemyId, type: 'freeze',
+                duration: special.freezeDuration || 1500,
+              });
+              visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-ice-freeze', color: '#00FFFF' });
+            }
+          }
+          // T4 냉기: 광역 감속형 - 주변 적 슬로우
+          else if (isT4 && special.aoeSlowBonus) {
+            currentEnemies.forEach(enemy => {
+              if (enemy.id === hit.enemyId) return;
+              const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
+              if (dist <= 80) {
+                statusEffects.push({
+                  enemyId: enemy.id, type: 'slow',
+                  percent: slowPercent * 0.6,
+                  duration: slowDuration * 0.5,
+                });
+              }
+            });
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-ice-aoe', color: '#87CEEB' });
+          }
+          // T4 냉기: 파동 차단형 - 넉백 추가
+          else if (isT4 && special.knockbackBonus) {
+            statusEffects.push({
+              enemyId: hit.enemyId, type: 'knockback',
+              distance: special.knockbackBonus,
+            });
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-ice-knockback', color: '#B0E0E6' });
+          }
+
           statusEffects.push({
             enemyId: hit.enemyId, type: 'slow',
-            percent: we.slowPercent[hit.tier],
-            duration: we.slowDuration[hit.tier],
+            percent: slowPercent,
+            duration: slowDuration,
           });
-          visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'slow', color: '#45B7D1' });
+          if (!isT4) {
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'slow', color: '#45B7D1' });
+          }
           break;
         }
+
         case ELEMENT_TYPES.ELECTRIC: {
+          let chainBonus = 0;
+          // T4 전격: 체인 집중형 - 체인 수 증가
+          if (isT4 && special.chainBonus) {
+            chainBonus = special.chainBonus;
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-elec-chain', color: '#9400D3' });
+          }
+          // T4 전격: 번개 러너형 - 첫 타격 강화
+          if (isT4 && special.firstHitBonus) {
+            finalDamage = Math.floor(finalDamage * (1 + special.firstHitBonus));
+            chainBonus = special.chainPenalty || 0;
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-elec-first', color: '#FFD700' });
+          }
+
           const { chains, chainDamages } = this.processChainLightning(
-            hit.towerX, hit.towerY, hit.enemyId, hit.damage, hit.tier, currentEnemies
+            hit.towerX, hit.towerY, hit.enemyId, hit.damage, hit.tier, currentEnemies, chainBonus
           );
           allChainLightnings = allChainLightnings.concat(chains);
+
+          // T4 전격: 과부하 제어형 - 체인 적중 시 스턴
+          if (isT4 && special.chainStunChance) {
+            chainDamages.forEach((dmg, id) => {
+              if (Math.random() < special.chainStunChance) {
+                statusEffects.push({
+                  enemyId: id, type: 'freeze',
+                  duration: special.chainStunDuration || 800,
+                });
+              }
+            });
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-elec-stun', color: '#00CED1' });
+          }
+
           chainDamages.forEach((dmg, id) => {
             chainDamagesAll.set(id, (chainDamagesAll.get(id) || 0) + dmg);
           });
           break;
         }
+
         case ELEMENT_TYPES.WIND: {
           const we = ELEMENT_EFFECTS[ELEMENT_TYPES.WIND];
           finalDamage = Math.floor(hit.damage * we.damageMultiplier[hit.tier]);
+          let knockbackDist = we.knockbackDistance[hit.tier];
+
+          // T4 질풍: 광역 분쇄형 - 범위 피해
+          if (isT4 && special.aoeDamage) {
+            const aoeRadius = special.aoeRadius || 50;
+            currentEnemies.forEach(enemy => {
+              if (enemy.id === hit.enemyId) return;
+              const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
+              if (dist <= aoeRadius) {
+                const aoeDmg = Math.floor(finalDamage * 0.5);
+                damageMap.set(enemy.id, (damageMap.get(enemy.id) || 0) + aoeDmg);
+              }
+            });
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-wind-aoe', color: '#32CD32', radius: aoeRadius });
+          }
+          // T4 질풍: 흡인 제어형 - 적 끌어당김
+          else if (isT4 && special.pullEnemies) {
+            currentEnemies.forEach(enemy => {
+              if (enemy.id === hit.enemyId) return;
+              const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
+              if (dist <= 100 && dist > 20) {
+                statusEffects.push({
+                  enemyId: enemy.id, type: 'pull',
+                  targetX: hit.x, targetY: hit.y,
+                  distance: special.pullDistance || 30,
+                });
+              }
+            });
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-wind-pull', color: '#9370DB' });
+          }
+          // T4 질풍: 돌풍 타격형 - 넉백 강화 + 보스 추가 피해
+          else if (isT4 && special.knockbackBonus) {
+            knockbackDist += special.knockbackBonus;
+            const target = currentEnemies.find(e => e.id === hit.enemyId);
+            if (target && target.type === 'boss' && special.bossBonus) {
+              finalDamage = Math.floor(finalDamage * (1 + special.bossBonus));
+            }
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-wind-gust', color: '#00FF7F' });
+          }
+
           statusEffects.push({
             enemyId: hit.enemyId, type: 'knockback',
-            distance: we.knockbackDistance[hit.tier],
+            distance: knockbackDist,
           });
-          visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'knockback', color: '#96E6A1' });
+          if (!isT4) {
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'knockback', color: '#96E6A1' });
+          }
+          break;
+        }
+
+        case ELEMENT_TYPES.VOID: {
+          // T4 공허: 시너지 촉매형 - 주변 타워 버프 (별도 시스템 필요)
+          if (isT4 && special.synergyBuff) {
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-void-synergy', color: '#8A2BE2' });
+          }
+          // T4 공허: 차원 파열형 - 관통 (뒤에 있는 적도 피해)
+          else if (isT4 && special.piercing) {
+            let pierceCount = special.pierceCount || 3;
+            let pierced = 0;
+            const sortedEnemies = currentEnemies
+              .filter(e => e.id !== hit.enemyId)
+              .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
+              .filter(e => e.dist <= 120)
+              .sort((a, b) => a.dist - b.dist);
+
+            sortedEnemies.forEach(({ enemy }) => {
+              if (pierced >= pierceCount) return;
+              const pierceDmg = Math.floor(finalDamage * 0.7);
+              damageMap.set(enemy.id, (damageMap.get(enemy.id) || 0) + pierceDmg);
+              pierced++;
+            });
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-void-pierce', color: '#4B0082' });
+          }
+          // T4 공허: 균형 딜러형 - 기본
+          else if (isT4) {
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-void-balance', color: '#9932CC' });
+          }
+          break;
+        }
+
+        case ELEMENT_TYPES.LIGHT: {
+          // T4 광휘: 파쇄 타격형 - 크리티컬
+          if (isT4 && special.critChance) {
+            if (Math.random() < special.critChance) {
+              finalDamage = Math.floor(finalDamage * (special.critDamage || 2.0));
+              visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-crit', color: '#FFD700' });
+            } else {
+              visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-hit', color: '#FFFACD' });
+            }
+          }
+          // T4 광휘: 넉백 제어형 - 넉백 + 슬로우
+          else if (isT4 && special.knockbackBonus) {
+            statusEffects.push({
+              enemyId: hit.enemyId, type: 'knockback',
+              distance: special.knockbackBonus,
+            });
+            if (special.knockbackSlow) {
+              statusEffects.push({
+                enemyId: hit.enemyId, type: 'slow',
+                percent: special.knockbackSlow,
+                duration: 2000,
+              });
+            }
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-knockback', color: '#E6E6FA' });
+          }
+          // T4 광휘: 러시 차단형 - 빠른 적 보너스
+          else if (isT4 && special.fastEnemyBonus) {
+            const target = currentEnemies.find(e => e.id === hit.enemyId);
+            if (target && target.baseSpeed > 0.6) {
+              finalDamage = Math.floor(finalDamage * (1 + special.fastEnemyBonus));
+              visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-fast', color: '#FF69B4' });
+            }
+          } else if (isT4) {
+            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-hit', color: '#FFFACD' });
+          }
           break;
         }
       }
 
       damageMap.set(hit.enemyId, (damageMap.get(hit.enemyId) || 0) + finalDamage);
-      visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'hit', color: hit.color });
+      if (!isT4) {
+        visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'hit', color: hit.color });
+      }
     });
 
     // 체인 데미지 병합

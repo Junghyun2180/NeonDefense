@@ -92,6 +92,8 @@ enemies[], projectiles[], effects[], chainLightnings[]
 | `BugFixer` | 6단계 버그 수정 워크플로우 |
 | `BalanceDesigner` | 경제/전투/메타 밸런스 설계 |
 | `MonsterDesigner` | 몬스터 설계 및 구현 워크플로우 |
+| `TowerDesigner` | 타워/서포트 타워 설계 및 구현 |
+| `UIRefactor` | App.jsx 모듈화 가이드 (토큰 최적화) |
 
 ## 주요 수치
 

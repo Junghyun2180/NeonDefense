@@ -198,7 +198,7 @@ const EnemySystem = {
     return null;
   },
 
-  // 상태이상 적용 (burn, slow, knockback)
+  // 상태이상 적용 (burn, slow, knockback, freeze, pull)
   applyStatusEffect(enemy, effect, now) {
     const updatedEnemy = { ...enemy };
 
@@ -225,6 +225,25 @@ const EnemySystem = {
             updatedEnemy.x = newTile.x * TILE_SIZE + TILE_SIZE / 2;
             updatedEnemy.y = newTile.y * TILE_SIZE + TILE_SIZE / 2;
           }
+        }
+        break;
+      }
+      case 'freeze':
+        // 빙결: 완전 정지 (슬로우 100%)
+        updatedEnemy.slowPercent = 1.0;
+        updatedEnemy.slowEndTime = now + effect.duration;
+        updatedEnemy.isFrozen = true;
+        updatedEnemy.freezeEndTime = now + effect.duration;
+        break;
+      case 'pull': {
+        // 끌어당김: 타겟 방향으로 이동
+        const dx = effect.targetX - enemy.x;
+        const dy = effect.targetY - enemy.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0) {
+          const pullDist = Math.min(effect.distance, dist - 10);
+          updatedEnemy.x = enemy.x + (dx / dist) * pullDist;
+          updatedEnemy.y = enemy.y + (dy / dist) * pullDist;
         }
         break;
       }

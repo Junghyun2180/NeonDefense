@@ -230,3 +230,124 @@ body {
   0%, 100% { box-shadow: 0 0 8px #84cc16; }
   50% { box-shadow: 0 0 15px #84cc16, 0 0 25px #84cc16; }
 }
+
+/* ===== T4 타워 특수 이펙트 ===== */
+
+/* 🔥 화염 T4 이펙트 */
+@keyframes t4FireSpread {
+  0% { transform: scale(0.5); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes t4FireStack {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; box-shadow: 0 0 10px #FF0000; }
+  50% { transform: scale(1.3) rotate(180deg); opacity: 0.9; box-shadow: 0 0 30px #FF4500; }
+  100% { transform: scale(1.6) rotate(360deg); opacity: 0; box-shadow: 0 0 50px #FF6347; }
+}
+
+@keyframes t4FireFast {
+  0% { transform: scale(0.8); opacity: 1; filter: brightness(1.5); }
+  100% { transform: scale(2); opacity: 0; filter: brightness(2); }
+}
+
+/* ❄️ 냉기 T4 이펙트 */
+@keyframes t4IceFreeze {
+  0% { transform: scale(1); opacity: 1; }
+  30% { transform: scale(1.5); opacity: 1; box-shadow: 0 0 30px #00FFFF; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes t4IceAoe {
+  0% { transform: scale(0.5); opacity: 0.8; border: 2px solid #87CEEB; }
+  100% { transform: scale(3); opacity: 0; border: 2px solid #87CEEB; }
+}
+
+@keyframes t4IceKnockback {
+  0% { transform: scale(1) translateY(0); opacity: 1; }
+  100% { transform: scale(1.5) translateY(-20px); opacity: 0; }
+}
+
+/* ⚡ 전격 T4 이펙트 */
+@keyframes t4ElecChain {
+  0% { transform: scale(1); opacity: 1; filter: hue-rotate(0deg); }
+  50% { transform: scale(1.8); opacity: 0.8; filter: hue-rotate(90deg); }
+  100% { transform: scale(2.5); opacity: 0; filter: hue-rotate(180deg); }
+}
+
+@keyframes t4ElecFirst {
+  0% { transform: scale(1); opacity: 1; }
+  25% { transform: scale(2); opacity: 1; box-shadow: 0 0 40px #FFD700; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes t4ElecStun {
+  0%, 50%, 100% { opacity: 1; }
+  25%, 75% { opacity: 0.3; }
+}
+
+/* 🌪️ 질풍 T4 이펙트 */
+@keyframes t4WindAoe {
+  0% { transform: scale(0.3) rotate(0deg); opacity: 0.9; }
+  100% { transform: scale(2.5) rotate(360deg); opacity: 0; }
+}
+
+@keyframes t4WindPull {
+  0% { transform: scale(2); opacity: 0.8; }
+  100% { transform: scale(0.5); opacity: 0; }
+}
+
+@keyframes t4WindGust {
+  0% { transform: scale(1) translateX(0); opacity: 1; }
+  100% { transform: scale(1.5) translateX(30px); opacity: 0; }
+}
+
+/* 🌀 공허 T4 이펙트 */
+@keyframes t4VoidSynergy {
+  0% { transform: scale(1); opacity: 0.8; box-shadow: 0 0 20px #8A2BE2; }
+  50% { transform: scale(2); opacity: 0.5; box-shadow: 0 0 40px #8A2BE2; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes t4VoidPierce {
+  0% { transform: scaleX(1) scaleY(0.3); opacity: 1; }
+  100% { transform: scaleX(3) scaleY(0.3); opacity: 0; }
+}
+
+@keyframes t4VoidBalance {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(2) rotate(180deg); opacity: 0; }
+}
+
+/* 💎 광휘 T4 이펙트 */
+@keyframes t4LightCrit {
+  0% { transform: scale(1); opacity: 1; filter: brightness(2); }
+  30% { transform: scale(2.5); opacity: 1; filter: brightness(3); }
+  100% { transform: scale(4); opacity: 0; filter: brightness(1); }
+}
+
+@keyframes t4LightHit {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes t4LightKnockback {
+  0% { transform: scale(1); opacity: 1; box-shadow: 0 0 15px #E6E6FA; }
+  100% { transform: scale(2); opacity: 0; box-shadow: 0 0 30px #E6E6FA; }
+}
+
+@keyframes t4LightFast {
+  0% { transform: scale(0.5); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.8; filter: hue-rotate(30deg); }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* 빙결 상태 표시 */
+@keyframes frozen {
+  0%, 100% { filter: brightness(1.2) saturate(0.5); }
+  50% { filter: brightness(1.5) saturate(0.3); }
+}
+
+.frozen-enemy {
+  animation: frozen 0.5s ease-in-out infinite;
+}

@@ -166,11 +166,71 @@ const GameMap = ({
 
                     {/* 이펙트 */}
                     {effects.map(effect => {
+                        // 기본 이펙트 클래스
                         let effectClass = effect.type === 'explosion' ? 'explosion' : 'hit';
                         if (effect.type === 'burn') effectClass = 'burning-effect';
                         if (effect.type === 'slow') effectClass = 'slowed-effect';
                         if (effect.type === 'knockback') effectClass = 'knockback-effect';
-                        return <div key={effect.id} className={'absolute rounded-full ' + effectClass} style={{ left: effect.x - 15, top: effect.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + effect.color + ' 0%, transparent 70%)' }} />;
+                        if (effect.type === 'heal') effectClass = 'heal-effect';
+                        if (effect.type === 'split') effectClass = 'split-effect';
+
+                        // T4 특수 이펙트 - 더 크고 화려하게
+                        let size = 30;
+                        let extraStyle = {};
+                        if (effect.type.startsWith('t4-')) {
+                            size = 50; // T4 이펙트는 더 큼
+                            const t4Type = effect.type.replace('t4-', '');
+
+                            // 애니메이션 이름 매핑
+                            const animMap = {
+                                'fire-spread': 't4FireSpread',
+                                'fire-stack': 't4FireStack',
+                                'fire-fast': 't4FireFast',
+                                'ice-freeze': 't4IceFreeze',
+                                'ice-aoe': 't4IceAoe',
+                                'ice-knockback': 't4IceKnockback',
+                                'elec-chain': 't4ElecChain',
+                                'elec-first': 't4ElecFirst',
+                                'elec-stun': 't4ElecStun',
+                                'wind-aoe': 't4WindAoe',
+                                'wind-pull': 't4WindPull',
+                                'wind-gust': 't4WindGust',
+                                'void-synergy': 't4VoidSynergy',
+                                'void-pierce': 't4VoidPierce',
+                                'void-balance': 't4VoidBalance',
+                                'light-crit': 't4LightCrit',
+                                'light-hit': 't4LightHit',
+                                'light-knockback': 't4LightKnockback',
+                                'light-fast': 't4LightFast',
+                            };
+
+                            const anim = animMap[t4Type];
+                            if (anim) {
+                                extraStyle.animation = `${anim} 0.6s ease-out forwards`;
+                            }
+
+                            // AOE 이펙트는 범위 표시
+                            if (effect.radius) {
+                                size = effect.radius * 2;
+                            }
+
+                            effectClass = ''; // CSS 클래스 대신 인라인 애니메이션 사용
+                        }
+
+                        return (
+                            <div
+                                key={effect.id}
+                                className={'absolute rounded-full ' + effectClass}
+                                style={{
+                                    left: effect.x - size / 2,
+                                    top: effect.y - size / 2,
+                                    width: size,
+                                    height: size,
+                                    background: `radial-gradient(circle, ${effect.color} 0%, transparent 70%)`,
+                                    ...extraStyle
+                                }}
+                            />
+                        );
                     })}
                 </div>
             </div>

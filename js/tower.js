@@ -188,6 +188,9 @@ const TowerSystem = {
       tier: tower.tier,
       towerX: tower.x,
       towerY: tower.y,
+      // T4 특수 능력 정보
+      special: tower.special || null,
+      role: tower.role || null,
     };
   },
 
