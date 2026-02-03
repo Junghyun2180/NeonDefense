@@ -101,23 +101,36 @@ const GameEngine = {
   },
 
   // 충돌 효과 해석 — 데미지, 상태이상, 시각 효과, 체인 데이터 분리
-  resolveHits(hits, currentEnemies) {
+  resolveHits(hits, currentEnemies, permanentBuffs = {}) {
     const damageMap = new Map();
     const statusEffects = [];
     const visualEffects = [];
     let allChainLightnings = [];
     const chainDamagesAll = new Map();
 
+    // 영구 버프 계산
+    const permBurnMult = typeof PermanentBuffManager !== 'undefined'
+      ? PermanentBuffManager.getBurnDurationMultiplier(permanentBuffs) : 1;
+    const permSlowMult = typeof PermanentBuffManager !== 'undefined'
+      ? PermanentBuffManager.getSlowPowerMultiplier(permanentBuffs) : 1;
+    const permChainBonus = typeof PermanentBuffManager !== 'undefined'
+      ? PermanentBuffManager.getChainBonus(permanentBuffs) : 0;
+
     hits.forEach(hit => {
       let finalDamage = hit.damage;
       const special = hit.special || {};
       const isT4 = hit.tier === 4;
 
+      // 크리티컬 이펙트
+      if (hit.isCrit) {
+        visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'crit', color: '#FFD700' });
+      }
+
       switch (hit.element) {
         case ELEMENT_TYPES.FIRE: {
           const fe = ELEMENT_EFFECTS[ELEMENT_TYPES.FIRE];
           let burnDamage = Math.floor(hit.damage * fe.burnDamagePercent[hit.tier]);
-          let burnDuration = fe.burnDuration[hit.tier];
+          let burnDuration = Math.floor(fe.burnDuration[hit.tier] * permBurnMult); // 영구 버프 적용
 
           // T4 화염: 확산 연소형 - 주변 적에게 화상 전파
           if (isT4 && special.burnSpread) {
@@ -164,7 +177,7 @@ const GameEngine = {
 
         case ELEMENT_TYPES.WATER: {
           const we = ELEMENT_EFFECTS[ELEMENT_TYPES.WATER];
-          let slowPercent = we.slowPercent[hit.tier];
+          let slowPercent = we.slowPercent[hit.tier] * permSlowMult; // 영구 버프 적용
           let slowDuration = we.slowDuration[hit.tier];
 
           // T4 냉기: 빙결 제어형 - 스턴 확률
@@ -213,7 +226,7 @@ const GameEngine = {
         }
 
         case ELEMENT_TYPES.ELECTRIC: {
-          let chainBonus = 0;
+          let chainBonus = permChainBonus; // 영구 버프 기본 적용
           // T4 전격: 체인 집중형 - 체인 수 증가
           if (isT4 && special.chainBonus) {
             chainBonus = special.chainBonus;
@@ -393,7 +406,7 @@ const GameEngine = {
 
   // ===== 메인 게임 틱 (오케스트레이터) =====
   gameTick(state, now) {
-    const { enemies, towers, supportTowers, projectiles, gameSpeed } = state;
+    const { enemies, towers, supportTowers, projectiles, gameSpeed, permanentBuffs = {} } = state;
     const newEffects = [];
     const soundEvents = [];
     let totalLivesLost = 0;
@@ -467,10 +480,10 @@ const GameEngine = {
       }
     }
 
-    // 2단계: 타워 공격 → 투사체 생성 (서포트 버프 적용)
+    // 2단계: 타워 공격 → 투사체 생성 (서포트 버프 + 영구 버프 적용)
     const newProjectiles = [];
     const updatedTowers = towers.map(tower => {
-      const result = TowerSystem.processAttack(tower, movedEnemies, supportTowers || [], now, gameSpeed);
+      const result = TowerSystem.processAttack(tower, movedEnemies, supportTowers || [], now, gameSpeed, permanentBuffs);
       if (result.projectile) {
         newProjectiles.push(result.projectile);
         if (Math.random() < COMBAT.shootSoundChance) {
@@ -487,7 +500,7 @@ const GameEngine = {
     // 4단계: 충돌 효과 해석
     let newChainLightnings = [];
     if (hits.length > 0) {
-      const resolved = this.resolveHits(hits, movedEnemies);
+      const resolved = this.resolveHits(hits, movedEnemies, permanentBuffs);
       newEffects.push(...resolved.visualEffects);
       newChainLightnings = resolved.chainLightnings;
 

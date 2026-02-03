@@ -79,6 +79,7 @@ const NeonDefense = () => {
         pathCount={gameState.pathData.paths.length}
         isPlaying={gameState.isPlaying}
         killedCount={gameState.killedCount}
+        permanentBuffs={gameState.permanentBuffs}
       />
 
       <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
@@ -141,6 +142,7 @@ const NeonDefense = () => {
           selectedSupportTowers={inventoryState.selectedSupportTowers}
           totalSupportSellPrice={inventoryState.totalSupportSellPrice}
           canCombineSupportTowers={inventoryState.canCombineSupportTowers}
+          effectiveDrawCost={inventoryState.effectiveDrawCost}
         />
       </div>
 
@@ -195,6 +197,14 @@ const NeonDefense = () => {
         cheatInputRef={cheatState.cheatInputRef}
         handleCheatSubmit={cheatState.handleCheatSubmit}
         handleKeyDown={cheatState.handleKeyDown}
+      />
+
+      {/* 영구 버프 선택 모달 */}
+      <BuffSelectionModal
+        isOpen={gameState.showBuffSelection}
+        buffChoices={gameState.buffChoices}
+        currentBuffs={gameState.permanentBuffs}
+        onSelectBuff={gameState.selectBuff}
       />
     </div>
   );

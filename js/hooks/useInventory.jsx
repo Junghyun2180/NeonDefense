@@ -2,7 +2,7 @@
 const useInventory = (gameState) => {
     const { useState, useCallback, useMemo } = React;
 
-    const { gold, setGold, towers, setTowers, supportTowers, setSupportTowers, setEffects } = gameState;
+    const { gold, setGold, towers, setTowers, supportTowers, setSupportTowers, setEffects, permanentBuffs = {} } = gameState;
 
     // 일반 타워 인벤토리
     const [inventory, setInventory] = useState([]);
@@ -97,14 +97,21 @@ const useInventory = (gameState) => {
     }, []);
 
     // ===== 뽑기 =====
+    // 영구 버프 할인 적용
+    const drawDiscount = typeof PermanentBuffManager !== 'undefined'
+        ? PermanentBuffManager.getDrawDiscount(permanentBuffs) : 0;
+    const effectiveDrawCost = Math.max(1, ECONOMY.drawCost - drawDiscount);
+
     const drawRandomNeon = useCallback(() => {
-        if (gold < ECONOMY.drawCost || inventory.length >= ECONOMY.maxInventory) return;
+        const cost = Math.max(1, ECONOMY.drawCost - (typeof PermanentBuffManager !== 'undefined'
+            ? PermanentBuffManager.getDrawDiscount(permanentBuffs) : 0));
+        if (gold < cost || inventory.length >= ECONOMY.maxInventory) return;
         const colorIndex = Math.floor(Math.random() * 6);
         const newNeon = TowerSystem.create(1, colorIndex);
         setInventory(prev => [...prev, newNeon]);
-        setGold(prev => prev - ECONOMY.drawCost);
+        setGold(prev => prev - cost);
         soundManager.playDraw();
-    }, [gold, inventory.length, setGold]);
+    }, [gold, inventory.length, setGold, permanentBuffs]);
 
     const drawRandomSupport = useCallback(() => {
         if (gold < ECONOMY.supportDrawCost || supportInventory.length >= ECONOMY.maxSupportInventory) return;
@@ -333,6 +340,8 @@ const useInventory = (gameState) => {
         addTowerToInventory,
         addSupportToInventory,
         resetInventory,
+        // 영구 버프 적용 비용
+        effectiveDrawCost,
     };
 };
 

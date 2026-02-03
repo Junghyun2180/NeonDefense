@@ -93,6 +93,21 @@ const useCheatConsole = (gameState, inventoryState) => {
                 const sType = Math.floor(Math.random() * 4);
                 addSupportToInventory(sTier, sType);
                 return '▶ S' + sTier + ' ' + SUPPORT_UI[sType].name + ' 서포트 획득';
+
+            // 버프 선택 모달 강제 표시
+            case 'buff':
+            case 'showbuff':
+                if (typeof gameState.showBuffSelection !== 'undefined') {
+                    // 버프 선택지 생성 및 모달 표시
+                    const choices = PermanentBuffManager.getRandomBuffChoices(gameState.permanentBuffs || {}, 3);
+                    if (choices.length === 0) {
+                        return '❌ 모든 버프가 최대 스택입니다';
+                    }
+                    // useGameState에서 이 상태를 노출해야 함
+                    return '▶ 버프 선택 (스테이지 클리어로 테스트)';
+                }
+                return '❌ 버프 시스템이 로드되지 않았습니다';
+
             case 'help':
                 return [
                     '── 명령어 목록 ──',
@@ -109,6 +124,7 @@ const useCheatConsole = (gameState, inventoryState) => {
                     'support [tier]  서포트 획득 (기본 S3)',
                     '↑/↓ 방향키     이전/다음 명령어',
                     'help            명령어 목록',
+                    '* 스테이지 클리어 시 버프 선택',
                 ].join('\n');
             default:
                 return '❌ 알 수 없는 명령어. help 입력';

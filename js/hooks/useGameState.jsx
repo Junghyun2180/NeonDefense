@@ -21,6 +21,12 @@ const useGameState = () => {
     // 서포트 타워 상태
     const [supportTowers, setSupportTowers] = useState([]);
 
+    // 영구 버프 시스템
+    const [permanentBuffs, setPermanentBuffs] = useState({});
+    const [showBuffSelection, setShowBuffSelection] = useState(false);
+    const [buffChoices, setBuffChoices] = useState([]);
+    const permanentBuffsRef = useRef({});
+
     // 다중 경로 시스템
     const [pathData, setPathData] = useState(() => generateMultiplePaths(Date.now(), 1));
 
@@ -43,6 +49,7 @@ const useGameState = () => {
     useEffect(() => { towersRef.current = towers; }, [towers]);
     useEffect(() => { projectilesRef.current = projectiles; }, [projectiles]);
     useEffect(() => { supportTowersRef.current = supportTowers; }, [supportTowers]);
+    useEffect(() => { permanentBuffsRef.current = permanentBuffs; }, [permanentBuffs]);
 
     // ===== 웨이브 시작 =====
     const startWave = useCallback(() => {
@@ -83,6 +90,7 @@ const useGameState = () => {
                 supportTowers: supportTowersRef.current,
                 projectiles: projectilesRef.current,
                 gameSpeed: speed,
+                permanentBuffs: permanentBuffsRef.current,
             }, now);
 
             setEnemies(result.enemies);
@@ -90,7 +98,11 @@ const useGameState = () => {
             setProjectiles(result.projectiles);
 
             if (result.killedCount > 0) setKilledCount(prev => prev + result.killedCount);
-            if (result.goldEarned > 0) setGold(prev => prev + result.goldEarned);
+            if (result.goldEarned > 0) {
+                // 영구 버프 골드 보너스 적용
+                const goldMult = PermanentBuffManager.getGoldMultiplier(permanentBuffsRef.current);
+                setGold(prev => prev + Math.floor(result.goldEarned * goldMult));
+            }
             if (result.newEffects.length > 0) setEffects(prev => [...prev, ...result.newEffects]);
 
             if (result.newChainLightnings.length > 0) {
@@ -127,17 +139,21 @@ const useGameState = () => {
         setIsPlaying(false);
         setGold(prev => prev + ECONOMY.waveReward(wave));
 
+        // 웨이브 클리어 시 이자 적용
+        const interestRate = PermanentBuffManager.getInterestRate(permanentBuffs);
+        if (interestRate > 0) {
+            setGold(prev => prev + Math.floor(prev * interestRate));
+        }
+
         if (wave >= SPAWN.wavesPerStage) {
             setShowStageTransition(true);
-            const nextStage = stage + 1;
+            // 2초 후 버프 선택 모달 표시
             setTimeout(() => {
-                setStage(nextStage);
-                setWave(1);
-                setPathData(generateMultiplePaths(Date.now(), nextStage));
-                setTowers([]);
-                setSupportTowers([]);
-                setGold(prev => prev + ECONOMY.stageClearBonus(stage));
                 setShowStageTransition(false);
+                // 버프 선택지 생성
+                const choices = PermanentBuffManager.getRandomBuffChoices(permanentBuffs, 3);
+                setBuffChoices(choices);
+                setShowBuffSelection(true);
             }, 2000);
         } else {
             setWave(prev => prev + 1);
@@ -162,6 +178,10 @@ const useGameState = () => {
         setShowStageTransition(false);
         setChainLightnings([]);
         setGameSpeed(1);
+        // 영구 버프 초기화
+        setPermanentBuffs({});
+        setShowBuffSelection(false);
+        setBuffChoices([]);
         soundManager.stopBGM();
     }, []);
 
@@ -185,6 +205,28 @@ const useGameState = () => {
         setSupportTowers([]);
     }, [clearWave]);
 
+    // 버프 선택 핸들러
+    const selectBuff = useCallback((buffId) => {
+        setPermanentBuffs(prev => PermanentBuffManager.applyBuff(prev, buffId));
+        setShowBuffSelection(false);
+        setBuffChoices([]);
+
+        // 다음 스테이지로 진행
+        const nextStage = stage + 1;
+        setStage(nextStage);
+        setWave(1);
+        setPathData(generateMultiplePaths(Date.now(), nextStage));
+        setTowers([]);
+        setSupportTowers([]);
+        setGold(prev => prev + ECONOMY.stageClearBonus(stage));
+
+        // 최대 목숨 버프 적용
+        const bonusLives = PermanentBuffManager.getBonusMaxLives(permanentBuffs);
+        if (bonusLives > 0 && lives < ECONOMY.startLives + bonusLives) {
+            setLives(ECONOMY.startLives + bonusLives);
+        }
+    }, [stage, permanentBuffs, lives]);
+
     return {
         // 상태
         gold, setGold,
@@ -204,6 +246,11 @@ const useGameState = () => {
         showStageTransition,
         pathData,
         gameSpeed, setGameSpeed,
+        // 영구 버프
+        permanentBuffs,
+        showBuffSelection,
+        buffChoices,
+        selectBuff,
         // 액션
         startWave,
         resetGame,

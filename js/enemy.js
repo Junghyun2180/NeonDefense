@@ -106,7 +106,7 @@ const EnemySystem = {
     return splitEnemies;
   },
 
-  // 힐러의 주변 적 치유 처리
+  // 힐러의 주변 적 치유 처리 (즉시 힐 방식)
   processHealerHeal(healer, allEnemies, now) {
     const config = ENEMY_CONFIG.healer;
 
@@ -134,6 +134,39 @@ const EnemySystem = {
     return {
       updatedHealer: { ...healer, lastHealTime: now },
       healedEnemies,
+    };
+  },
+
+  // 힐러가 재생 버프를 부여하는 방식 (StatusEffect 활용)
+  applyHealerRegeneration(healer, allEnemies, now) {
+    const config = ENEMY_CONFIG.healer;
+
+    // 쿨다운 체크
+    if (now - healer.lastHealTime < config.healInterval) {
+      return { updatedHealer: healer, affectedEnemies: [] };
+    }
+
+    const affectedEnemies = [];
+    const healRange = config.healRange;
+
+    allEnemies.forEach(enemy => {
+      if (enemy.id === healer.id) return;
+
+      const dist = calcDistance(healer.x, healer.y, enemy.x, enemy.y);
+      if (dist <= healRange) {
+        // 재생 버프 부여 (2초간 틱당 2.5% 회복)
+        const updatedEnemy = StatusEffectSystem.apply(enemy, {
+          type: 'regeneration',
+          healPercent: 0.025,
+          duration: 2000,
+        }, now);
+        affectedEnemies.push(updatedEnemy);
+      }
+    });
+
+    return {
+      updatedHealer: { ...healer, lastHealTime: now },
+      affectedEnemies,
     };
   },
 

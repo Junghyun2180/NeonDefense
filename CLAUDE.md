@@ -40,6 +40,7 @@ NeonDefense/
 - **서포트 타워** (4종 × 3티어): 공격력/공속/방감/사거리 버프
 - **적 타입** (8종): normal, fast, elite, boss, jammer, suppressor, healer, splitter
 - **경로**: 스테이지별 다중 경로 (최대 3출발/3도착)
+- **영구 버프** (로그라이크): 스테이지 클리어 시 3가지 중 1개 선택
 
 ### 상태 관리 (App.jsx)
 ```javascript
@@ -97,7 +98,7 @@ switch (effect.type) {
 | 패턴 | 적용 대상 | 예시 |
 |------|----------|------|
 | **상속** | 상태이상 | `BurnEffect extends StatusEffect` |
-| **컴포지션** | 적에게 상태이상 부착 | `enemy.statusEffects[]` |
+| **컴포지션** | 적/타워에 효과 부착 | `target.statusEffects[]` |
 | **팩토리** | 객체 생성 | `StatusEffects.burn(damage, duration)` |
 | **전략** | 행동 위임 | 각 Effect 클래스가 tick() 구현 |
 
@@ -105,6 +106,39 @@ switch (effect.type) {
 1. **기존 코드 수정 최소화** - 새 클래스 추가로 해결
 2. **자기 완결적 객체** - 객체가 자신의 로직을 캡슐화
 3. **다형성 활용** - 공통 인터페이스로 일관된 처리
+
+## StatusEffect 통합 시스템
+
+### 효과 분류
+| 대상 | 유형 | 클래스 | 설명 |
+|------|------|--------|------|
+| 적 | 디버프 | `BurnEffect` | 화상 (지속 데미지) |
+| 적 | 디버프 | `SlowEffect` | 슬로우 (이동속도 감소) |
+| 적 | 디버프 | `FreezeEffect` | 빙결 (완전 정지) |
+| 적 | 디버프 | `StunEffect` | 스턴 (완전 정지) |
+| 적 | 디버프 | `KnockbackEffect` | 넉백 (즉시 적용) |
+| 적 | 디버프 | `PullEffect` | 끌어당김 (즉시 적용) |
+| 적 | 디버프 | `VulnerabilityEffect` | 취약 (받는 피해 증가) |
+| 적 | 버프 | `RegenerationEffect` | 재생 (지속 회복) |
+| 타워 | 버프 | `AttackBuffEffect` | 공격력 증가 |
+| 타워 | 버프 | `AttackSpeedBuffEffect` | 공속 증가 |
+| 타워 | 버프 | `RangeBuffEffect` | 사거리 증가 |
+| 타워 | 디버프 | `AttackSpeedDebuffEffect` | 공속 감소 |
+| 타워 | 디버프 | `DamageDebuffEffect` | 공격력 감소 |
+
+### 사용법
+```javascript
+// 적에게 디버프 적용
+enemy = StatusEffectSystem.apply(enemy, { type: 'burn', damage: 10, duration: 2000 }, now);
+
+// 타워에 버프 적용
+tower = StatusEffectSystem.applyToTower(tower, { type: 'attackBuff', percent: 0.15, sourceId: supportId }, now);
+
+// 배율 조회
+const speedMult = StatusEffectManager.getSpeedMultiplier(target, now);
+const damageMult = StatusEffectManager.getDamageMultiplier(target, now);
+const vulnMult = StatusEffectManager.getVulnerabilityMultiplier(target, now);
+```
 
 ## 토큰 최적화 원칙
 
