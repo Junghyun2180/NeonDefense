@@ -25,11 +25,13 @@ const NeonDefense = () => {
   const toggleBgm = () => setBgmEnabled(soundManager.toggleBGM());
   const toggleSfx = () => setSfxEnabled(soundManager.toggleSFX());
 
-  // 경로 꺾임 지점에 방향 화살표 사전 계산
+  // 경로 꺾임 지점에 방향 화살표 사전 계산 (여러 경로 겹침 지원)
   const pathArrows = useMemo(() => {
     const arrows = {};
     for (const path of gameState.pathData.paths) {
       const tiles = path.tiles;
+      // 첫 번째 경로(A)는 노란색, 나머지는 경로 색상
+      const arrowColor = path.id === 'A' ? '#FFD700' : path.color;
       for (let i = 1; i < tiles.length - 1; i++) {
         const prev = tiles[i - 1];
         const curr = tiles[i];
@@ -45,7 +47,12 @@ const NeonDefense = () => {
         else if (nextDy > 0) arrow = '↓';
         else arrow = '↑';
         const key = `${curr.x},${curr.y}`;
-        if (!arrows[key]) arrows[key] = { arrow, color: path.color };
+        // 배열로 저장하여 여러 경로 화살표 지원
+        if (!arrows[key]) arrows[key] = [];
+        // 같은 화살표가 이미 있으면 추가하지 않음
+        if (!arrows[key].some(a => a.arrow === arrow && a.color === arrowColor)) {
+          arrows[key].push({ arrow, color: arrowColor });
+        }
       }
     }
     return arrows;
