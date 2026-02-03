@@ -66,12 +66,8 @@ const EnemySystem = {
       goldReward,
       x: pathTiles[0].x * TILE_SIZE + TILE_SIZE / 2,
       y: pathTiles[0].y * TILE_SIZE + TILE_SIZE / 2,
-      // 상태이상
-      burnDamage: 0,
-      burnEndTime: 0,
-      burnTickTime: 0,
-      slowEndTime: 0,
-      slowPercent: 0,
+      // 상태이상 (StatusEffectSystem에서 기본값 가져옴)
+      ...StatusEffectSystem.getDefaultFields(),
       // 힐러 전용
       lastHealTime: 0,
     };
@@ -100,11 +96,7 @@ const EnemySystem = {
         x: parent.x + (Math.random() - 0.5) * 20,
         y: parent.y + (Math.random() - 0.5) * 20,
         // 상태이상 초기화
-        burnDamage: 0,
-        burnEndTime: 0,
-        burnTickTime: 0,
-        slowEndTime: 0,
-        slowPercent: 0,
+        ...StatusEffectSystem.getDefaultFields(),
         lastHealTime: 0,
         isSplitChild: true, // 분열 자식 표시 (재분열 방지)
       };
@@ -155,12 +147,9 @@ const EnemySystem = {
 
     let updatedEnemy = { ...enemy };
 
-    // 슬로우 처리
-    if (enemy.slowEndTime > now) {
-      updatedEnemy.speed = enemy.baseSpeed * (1 - enemy.slowPercent);
-    } else {
-      updatedEnemy.speed = enemy.baseSpeed;
-    }
+    // 슬로우 처리 (StatusEffectSystem 위임)
+    const speedMult = StatusEffectSystem.getSpeedMultiplier(enemy, now);
+    updatedEnemy.speed = enemy.baseSpeed * speedMult;
 
     // 배속 적용된 이동
     const moveSpeed = updatedEnemy.speed * gameSpeed;
@@ -187,69 +176,14 @@ const EnemySystem = {
     };
   },
 
-  // 화상 데미지 처리
+  // 화상 데미지 처리 (StatusEffectSystem 위임)
   processBurn(enemy, now, gameSpeed) {
-    if (enemy.burnEndTime > now && now >= enemy.burnTickTime) {
-      return {
-        damage: enemy.burnDamage,
-        updatedEnemy: { ...enemy, burnTickTime: now + COMBAT.burnTickInterval / gameSpeed },
-      };
-    }
-    return null;
+    return StatusEffectSystem.processBurnTick(enemy, now, gameSpeed);
   },
 
-  // 상태이상 적용 (burn, slow, knockback, freeze, pull)
+  // 상태이상 적용 (StatusEffectSystem 위임)
   applyStatusEffect(enemy, effect, now) {
-    const updatedEnemy = { ...enemy };
-
-    switch (effect.type) {
-      case 'burn':
-        updatedEnemy.burnDamage = effect.damage;
-        updatedEnemy.burnEndTime = now + effect.duration;
-        updatedEnemy.burnTickTime = now + COMBAT.burnTickInterval;
-        break;
-      case 'slow':
-        if (effect.percent > enemy.slowPercent || now > enemy.slowEndTime) {
-          updatedEnemy.slowPercent = effect.percent;
-          updatedEnemy.slowEndTime = now + effect.duration;
-        }
-        break;
-      case 'knockback': {
-        const path = enemy.pathTiles;
-        if (path) {
-          const knockbackTiles = Math.floor(effect.distance / TILE_SIZE);
-          const newPathIndex = Math.max(0, enemy.pathIndex - knockbackTiles);
-          if (newPathIndex < enemy.pathIndex && path[newPathIndex]) {
-            const newTile = path[newPathIndex];
-            updatedEnemy.pathIndex = newPathIndex;
-            updatedEnemy.x = newTile.x * TILE_SIZE + TILE_SIZE / 2;
-            updatedEnemy.y = newTile.y * TILE_SIZE + TILE_SIZE / 2;
-          }
-        }
-        break;
-      }
-      case 'freeze':
-        // 빙결: 완전 정지 (슬로우 100%)
-        updatedEnemy.slowPercent = 1.0;
-        updatedEnemy.slowEndTime = now + effect.duration;
-        updatedEnemy.isFrozen = true;
-        updatedEnemy.freezeEndTime = now + effect.duration;
-        break;
-      case 'pull': {
-        // 끌어당김: 타겟 방향으로 이동
-        const dx = effect.targetX - enemy.x;
-        const dy = effect.targetY - enemy.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 0) {
-          const pullDist = Math.min(effect.distance, dist - 10);
-          updatedEnemy.x = enemy.x + (dx / dist) * pullDist;
-          updatedEnemy.y = enemy.y + (dy / dist) * pullDist;
-        }
-        break;
-      }
-    }
-
-    return updatedEnemy;
+    return StatusEffectSystem.apply(enemy, effect, now);
   },
 
   // 폭발 색상 (ENEMY_CONFIG 참조)

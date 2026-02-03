@@ -158,8 +158,11 @@ const GameMap = ({
                     {/* 적 렌더링 */}
                     {enemies.map(enemy => {
                         const config = ENEMY_CONFIG[enemy.type];
-                        const isBurning = enemy.burnEndTime > Date.now();
-                        const isSlowed = enemy.slowEndTime > Date.now();
+                        const now = Date.now();
+                        // StatusEffectManager를 통해 상태이상 확인
+                        const isBurning = StatusEffectManager.hasEffect(enemy, 'burn', now);
+                        const isSlowed = StatusEffectManager.hasEffect(enemy, 'slow', now);
+                        const isFrozen = StatusEffectManager.hasEffect(enemy, 'freeze', now);
                         return (
                             <div key={enemy.id} className="absolute" style={{ left: enemy.x - 12, top: enemy.y - 12 }}>
                                 {EnemySystem.isDebuffer(enemy) && (
@@ -170,7 +173,8 @@ const GameMap = ({
                                     <div className="h-full bg-green-500 rounded enemy-health-bar" style={{ width: (enemy.health / enemy.maxHealth * 100) + '%' }} />
                                 </div>
                                 {isBurning && <div className="absolute -top-4 left-0 text-xs burning-effect">🔥</div>}
-                                {isSlowed && <div className="absolute -top-4 right-0 text-xs slowed-effect">❄️</div>}
+                                {isSlowed && !isFrozen && <div className="absolute -top-4 right-0 text-xs slowed-effect">❄️</div>}
+                                {isFrozen && <div className="absolute -top-4 right-0 text-xs frozen-effect">🧊</div>}
                                 {config.icon && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs">{config.icon}</div>}
                             </div>
                         );

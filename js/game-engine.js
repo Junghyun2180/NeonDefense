@@ -84,6 +84,9 @@ const GameEngine = {
           towerX: proj.towerX,
           towerY: proj.towerY,
           color: proj.color,
+          // T4 특수 능력 정보 전달
+          special: proj.special || {},
+          role: proj.role || null,
         });
         return null;
       }

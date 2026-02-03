@@ -159,6 +159,17 @@ body {
   animation: slowed 0.8s ease-in-out infinite;
 }
 
+/* Frozen Effect */
+@keyframes frozen {
+  0%, 100% { opacity: 1; transform: scale(1); filter: brightness(1.5); }
+  50% { opacity: 0.8; transform: scale(1.1); filter: brightness(2); }
+}
+
+.frozen-effect {
+  animation: frozen 0.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 5px #00FFFF);
+}
+
 /* Knockback Effect */
 @keyframes knockback {
   0% { transform: scale(1.5); opacity: 1; }

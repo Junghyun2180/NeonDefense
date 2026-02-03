@@ -12,22 +12,26 @@
 ```
 NeonDefense/
 ├── index.html          # 진입점 (CDN + 스크립트 로드)
-├── css/styles.css      # 애니메이션, UI 스타일 (~230줄)
+├── css/styles.css      # 애니메이션, UI 스타일 (~330줄)
 ├── js/
-│   ├── App.jsx         # 메인 React 컴포넌트 (~850줄) ⚠️ 모듈화 검토 대상
-│   ├── constants.js    # 게임 상수 및 설정 테이블 (~260줄)
-│   ├── enemy.js        # EnemySystem (~185줄)
-│   ├── game-engine.js  # GameEngine (~310줄)
-│   ├── sound.js        # SoundManager (~340줄)
-│   ├── tower.js        # TowerSystem (~320줄)
-│   └── utils.js        # 유틸리티 (~136줄)
+│   ├── App.jsx         # 메인 React 컴포넌트
+│   ├── constants.js    # 게임 상수 및 설정 테이블
+│   ├── status-effect.js # StatusEffectSystem (상태이상 처리)
+│   ├── enemy.js        # EnemySystem (적 생성/이동)
+│   ├── game-engine.js  # GameEngine (게임 틱)
+│   ├── sound.js        # SoundManager
+│   ├── tower.js        # TowerSystem (타워/서포트)
+│   ├── utils.js        # 유틸리티
+│   ├── hooks/          # 커스텀 훅 (useGameState, useInventory 등)
+│   └── components/     # UI 컴포넌트 (GameMap, ControlPanel 등)
 └── .claude/SKILL/      # Claude 스킬 정의
 ```
 
 ## 핵심 아키텍처
 
 ### 네임스페이스 (글로벌 객체)
-- `EnemySystem` — 적 생성/이동/상태이상
+- `StatusEffectSystem` — 상태이상 정의/적용/틱 처리
+- `EnemySystem` — 적 생성/이동 (StatusEffectSystem에 위임)
 - `TowerSystem` — 타워/서포트 생성/조합/공격
 - `GameEngine` — 게임 틱 오케스트레이터
 
@@ -64,6 +68,43 @@ enemies[], projectiles[], effects[], chainLightnings[]
 - CDN 기반 → import/export 불가 (글로벌 스코프)
 - 적 타입은 문자열 기반 (`enemy.type`)
 - 씨드 기반 경로 생성 → 호환성 고려
+
+## 객체지향 설계 원칙
+
+### SOLID 원칙 준수
+- **S (단일 책임)**: 클래스는 하나의 역할만 담당
+- **O (개방-폐쇄)**: 확장에 열려있고, 수정에 닫혀있음
+- **L (리스코프 치환)**: 하위 클래스는 상위 클래스를 대체 가능
+- **I (인터페이스 분리)**: 필요한 메서드만 노출
+- **D (의존성 역전)**: 구체 클래스가 아닌 추상에 의존
+
+### 클래스 설계 규칙
+```javascript
+// ✅ 좋은 예: 객체가 자신의 상태와 행동을 관리
+class BurnEffect extends StatusEffect {
+  tick(enemy, now) { /* 자신이 처리 */ }
+  canStack(other) { /* 자신이 판단 */ }
+}
+
+// ❌ 나쁜 예: switch문으로 타입별 분기
+switch (effect.type) {
+  case 'burn': /* 외부에서 처리 */
+  case 'slow': /* 외부에서 처리 */
+}
+```
+
+### 적용 패턴
+| 패턴 | 적용 대상 | 예시 |
+|------|----------|------|
+| **상속** | 상태이상 | `BurnEffect extends StatusEffect` |
+| **컴포지션** | 적에게 상태이상 부착 | `enemy.statusEffects[]` |
+| **팩토리** | 객체 생성 | `StatusEffects.burn(damage, duration)` |
+| **전략** | 행동 위임 | 각 Effect 클래스가 tick() 구현 |
+
+### 새 기능 추가 시
+1. **기존 코드 수정 최소화** - 새 클래스 추가로 해결
+2. **자기 완결적 객체** - 객체가 자신의 로직을 캡슐화
+3. **다형성 활용** - 공통 인터페이스로 일관된 처리
 
 ## 토큰 최적화 원칙
 
