@@ -140,14 +140,14 @@ const ENEMY_CONFIG = {
 
 // ===== 스폰 규칙 (우선순위 순 — 첫 매칭 타입 사용) =====
 const SPAWN_RULES = [
-  { type: 'boss',       condition: (idx, total) => idx === total - 1 },
-  { type: 'healer',     condition: (idx, total, wave, stage) => stage >= 2 && wave >= 3, chanceBase: 0.08, chancePerStage: 0.03 },
-  { type: 'splitter',   condition: (idx, total, wave, stage) => stage >= 2, chanceBase: 0.1, chancePerStage: 0.03 },
-  { type: 'elite',      condition: (idx, total, wave, stage, progress) => wave >= 2 && progress > 0.5, chanceBase: 0.15, chancePerWave: 0.08 },
-  { type: 'jammer',     condition: (idx, total, wave, stage) => wave >= 2, chanceBase: 0.12, chancePerStage: 0.03 },
+  { type: 'boss', condition: (idx, total) => idx === total - 1 },
+  { type: 'healer', condition: (idx, total, wave, stage) => stage >= 2 && wave >= 3, chanceBase: 0.08, chancePerStage: 0.03 },
+  { type: 'splitter', condition: (idx, total, wave, stage) => stage >= 2, chanceBase: 0.1, chancePerStage: 0.03 },
+  { type: 'elite', condition: (idx, total, wave, stage, progress) => wave >= 2 && progress > 0.5, chanceBase: 0.15, chancePerWave: 0.08 },
+  { type: 'jammer', condition: (idx, total, wave, stage) => wave >= 2, chanceBase: 0.12, chancePerStage: 0.03 },
   { type: 'suppressor', condition: (idx, total, wave, stage) => wave >= 3, chanceBase: 0.10, chancePerStage: 0.03 },
-  { type: 'fast',       condition: () => true, chanceBase: 0.25, chancePerWave: 0.06 },
-  { type: 'normal',     condition: () => true, chance: 1.0 },
+  { type: 'fast', condition: () => true, chanceBase: 0.25, chancePerWave: 0.06 },
+  { type: 'normal', condition: () => true, chance: 1.0 },
 ];
 
 // ===== 체력 스케일링 =====
@@ -253,4 +253,135 @@ const SUPPORT_CAPS = {
   speed: 1.0,    // +100% 공속
   defense: 0.5,  // +50% 추가 피해
   range: 1.0,    // +100% 사거리
+};
+
+// ===== T4 타워 역할 선택 시스템 =====
+// T3 → T4 조합 시 3가지 역할 중 선택
+const T4_ROLES = {
+  // 🔥 화염 계열
+  [ELEMENT_TYPES.FIRE]: [
+    {
+      id: 'A', name: '연소 누적형', icon: '🎯',
+      desc: '보스/브루저 특화\n화상 중첩 가능, 범위 감소',
+      statMod: { damage: 1.2, range: 0.8, speed: 1.0 },
+      special: { burnStacks: true, maxStacks: 5 },
+    },
+    {
+      id: 'B', name: '확산 연소형', icon: '🌊',
+      desc: '다수 적 대응\n화상 전파, 단일 DPS 감소',
+      statMod: { damage: 0.7, range: 1.3, speed: 1.0 },
+      special: { burnSpread: true, spreadCount: 2 },
+    },
+    {
+      id: 'C', name: '고열 압축형', icon: '⚡',
+      desc: '러시 적 특화\n빠른 틱, 빠른 적 추가 피해',
+      statMod: { damage: 1.0, range: 0.9, speed: 0.7 },
+      special: { fastEnemyBonus: 0.5 },
+    },
+  ],
+  // ❄️ 냉기 계열
+  [ELEMENT_TYPES.WATER]: [
+    {
+      id: 'A', name: '빙결 제어형', icon: '🧊',
+      desc: '스턴 확률 부여\n슬로우 누적 시 빙결',
+      statMod: { damage: 0.8, range: 1.0, speed: 1.0 },
+      special: { freezeChance: 0.15, freezeDuration: 1500 },
+    },
+    {
+      id: 'B', name: '광역 감속형', icon: '❄️',
+      desc: '넓은 범위 감속\n개별 제어력 감소',
+      statMod: { damage: 0.9, range: 1.4, speed: 1.1 },
+      special: { aoeSlowBonus: 0.2 },
+    },
+    {
+      id: 'C', name: '파동 차단형', icon: '🌊',
+      desc: '넉백 강화\n단일 적 제어 특화',
+      statMod: { damage: 1.1, range: 0.9, speed: 1.0 },
+      special: { knockbackBonus: 20 },
+    },
+  ],
+  // ⚡ 전격 계열
+  [ELEMENT_TYPES.ELECTRIC]: [
+    {
+      id: 'A', name: '체인 집중형', icon: '🔗',
+      desc: '체인 횟수 대폭 증가\n단일 피해 감소',
+      statMod: { damage: 0.7, range: 1.0, speed: 1.0 },
+      special: { chainBonus: 4, chainExplosion: false },
+    },
+    {
+      id: 'B', name: '과부하 제어형', icon: '💥',
+      desc: '체인 적중 시 스턴\nDPS 감소',
+      statMod: { damage: 0.8, range: 1.0, speed: 1.2 },
+      special: { chainStunChance: 0.2, chainStunDuration: 800 },
+    },
+    {
+      id: 'C', name: '번개 러너형', icon: '⚡',
+      desc: '첫 타격 극대화\n체인 수 감소',
+      statMod: { damage: 1.8, range: 1.0, speed: 1.0 },
+      special: { firstHitBonus: 0.5, chainPenalty: -2 },
+    },
+  ],
+  // 🌪️ 질풍 계열
+  [ELEMENT_TYPES.WIND]: [
+    {
+      id: 'A', name: '광역 분쇄형', icon: '💨',
+      desc: '범위 피해 증가\n단일 DPS 감소',
+      statMod: { damage: 0.9, range: 1.3, speed: 1.1 },
+      special: { aoeDamage: true, aoeRadius: 50 },
+    },
+    {
+      id: 'B', name: '흡인 제어형', icon: '🌀',
+      desc: '적 끌어당김\n피해 감소',
+      statMod: { damage: 0.7, range: 1.1, speed: 1.0 },
+      special: { pullEnemies: true, pullDistance: 30 },
+    },
+    {
+      id: 'C', name: '돌풍 타격형', icon: '🌪️',
+      desc: '넉백 강화, 고데미지\n범위 감소',
+      statMod: { damage: 1.4, range: 0.85, speed: 1.0 },
+      special: { knockbackBonus: 25, bossBonus: 0.3 },
+    },
+  ],
+  // 🌀 공허 계열
+  [ELEMENT_TYPES.VOID]: [
+    {
+      id: 'A', name: '시너지 촉매형', icon: '🔮',
+      desc: '주변 타워 버프\n개인 DPS 감소',
+      statMod: { damage: 0.7, range: 1.2, speed: 1.0 },
+      special: { synergyBuff: true, buffRadius: 100, buffAmount: 0.15 },
+    },
+    {
+      id: 'B', name: '균형 딜러형', icon: '⚖️',
+      desc: '공격/범위 균형\n전반적 수치 증가',
+      statMod: { damage: 1.15, range: 1.15, speed: 0.95 },
+      special: {},
+    },
+    {
+      id: 'C', name: '차원 파열형', icon: '🕳️',
+      desc: '관통 공격\n피해 감소',
+      statMod: { damage: 0.85, range: 1.0, speed: 1.0 },
+      special: { piercing: true, pierceCount: 3 },
+    },
+  ],
+  // 💎 광휘 계열
+  [ELEMENT_TYPES.LIGHT]: [
+    {
+      id: 'A', name: '파쇄 타격형', icon: '💎',
+      desc: '단일 고데미지\n공격 속도 감소',
+      statMod: { damage: 1.6, range: 1.0, speed: 1.4 },
+      special: { critChance: 0.2, critDamage: 2.0 },
+    },
+    {
+      id: 'B', name: '넉백 제어형', icon: '🛡️',
+      desc: '넉백 거리 증가\n피해 감소',
+      statMod: { damage: 0.9, range: 1.1, speed: 1.0 },
+      special: { knockbackBonus: 30, knockbackSlow: 0.3 },
+    },
+    {
+      id: 'C', name: '러시 차단형', icon: '🚫',
+      desc: '빠른 적 추가 피해\n범위 감소',
+      statMod: { damage: 1.1, range: 0.9, speed: 0.9 },
+      special: { fastEnemyBonus: 0.6, killBonus: 5 },
+    },
+  ],
 };

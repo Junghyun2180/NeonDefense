@@ -170,6 +170,14 @@ const NeonDefense = () => {
         getElementInfo={getElementInfo}
       />
 
+      {/* T4 역할 선택 모달 */}
+      <RoleSelectionModal
+        pendingT4Choice={inventoryState.pendingT4Choice}
+        onSelectRole={inventoryState.confirmT4Role}
+        onCancel={inventoryState.cancelT4Choice}
+        getElementInfo={getElementInfo}
+      />
+
       {/* 치트 콘솔 */}
       <CheatConsole
         cheatOpen={cheatState.cheatOpen}

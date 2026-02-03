@@ -34,13 +34,54 @@ const TowerSystem = {
   },
 
   // 3개 조합 → 상위 티어 (인벤토리 / 맵 타워 공용)
+  // T3 → T4 조합 시에는 { pending: true } 반환하여 역할 선택 UI 표시
   combine(items) {
     if (items.length !== 3) return null;
     const baseTier = items[0].tier;
     const baseColorIndex = items[0].colorIndex;
     const allSame = items.every(t => t.tier === baseTier && t.colorIndex === baseColorIndex);
     if (!allSame || baseTier >= 4) return null;
+
+    // T3 → T4 조합 시 역할 선택 필요
+    if (baseTier === 3) {
+      return {
+        pending: true,
+        element: baseColorIndex,
+        roles: T4_ROLES[baseColorIndex] || [],
+        items: items,
+      };
+    }
+
     return this.create(baseTier + 1, baseColorIndex);
+  },
+
+  // T4 타워 생성 (역할 선택 후 호출)
+  createT4WithRole(colorIndex, roleId) {
+    const roles = T4_ROLES[colorIndex];
+    const selectedRole = roles?.find(r => r.id === roleId);
+    if (!selectedRole) return null;
+
+    const baseData = NEON_TYPES[4];
+    const statMod = selectedRole.statMod;
+
+    return {
+      id: Date.now() + Math.random(),
+      tier: 4,
+      colorIndex,
+      color: baseData.colors[colorIndex],
+      name: baseData.names[colorIndex],
+      damage: Math.floor(baseData.damage * (statMod.damage || 1)),
+      range: Math.floor(baseData.range * (statMod.range || 1)),
+      speed: Math.floor(baseData.speed * (statMod.speed || 1)),
+      element: colorIndex,
+      lastShot: 0,
+      isDebuffed: false,
+      // 역할 관련 추가 속성
+      role: roleId,
+      roleName: selectedRole.name,
+      roleIcon: selectedRole.icon,
+      special: selectedRole.special || {},
+    };
   },
 
   // 전체 자동 조합 (인벤토리 전용)
@@ -51,7 +92,8 @@ const TowerSystem = {
 
     while (combined) {
       combined = false;
-      for (let tier = 1; tier <= 3; tier++) {
+      // T1 → T2, T2 → T3만 자동 조합 (T3 → T4는 역할 선택 필요하므로 제외)
+      for (let tier = 1; tier <= 2; tier++) {
         for (let element = 0; element < 6; element++) {
           const matching = current.filter(n => n.tier === tier && n.colorIndex === element);
           while (matching.length >= 3) {
@@ -71,14 +113,25 @@ const TowerSystem = {
     return current;
   },
 
-  // 조합 가능 세트 수 계산
+  // 조합 가능 세트 수 계산 (전체 조합용 - T3 제외)
   getCombinableCount(inventory) {
     let count = 0;
-    for (let tier = 1; tier <= 3; tier++) {
+    // T1 → T2, T2 → T3만 카운트 (T3 → T4는 수동으로만)
+    for (let tier = 1; tier <= 2; tier++) {
       for (let element = 0; element < 6; element++) {
         const matching = inventory.filter(n => n.tier === tier && n.colorIndex === element);
         count += Math.floor(matching.length / 3);
       }
+    }
+    return count;
+  },
+
+  // T3 조합 가능 여부 확인 (역할 선택 필요)
+  getT3CombinableCount(inventory) {
+    let count = 0;
+    for (let element = 0; element < 6; element++) {
+      const matching = inventory.filter(n => n.tier === 3 && n.colorIndex === element);
+      count += Math.floor(matching.length / 3);
     }
     return count;
   },

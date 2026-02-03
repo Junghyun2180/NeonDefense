@@ -14,6 +14,9 @@ const useInventory = (gameState) => {
     const [selectedSupportInventory, setSelectedSupportInventory] = useState([]);
     const [selectedSupportTowers, setSelectedSupportTowers] = useState([]);
 
+    // T4 역할 선택 대기 상태
+    const [pendingT4Choice, setPendingT4Choice] = useState(null);
+
     const isInventoryFull = inventory.length >= ECONOMY.maxInventory;
     const isSupportInventoryFull = supportInventory.length >= ECONOMY.maxSupportInventory;
 
@@ -117,6 +120,17 @@ const useInventory = (gameState) => {
         if (selectedInventory.length !== 3) return;
         const result = TowerSystem.combine(selectedInventory);
         if (!result) return;
+
+        // T3 → T4 조합 시 역할 선택 모달 표시
+        if (result.pending) {
+            setPendingT4Choice({
+                ...result,
+                source: 'inventory',
+                itemIds: selectedInventory.map(n => n.id),
+            });
+            return;
+        }
+
         const idsToRemove = selectedInventory.map(n => n.id);
         setInventory(prev => [...prev.filter(n => !idsToRemove.includes(n.id)), result]);
         setSelectedInventory([]);
@@ -133,6 +147,20 @@ const useInventory = (gameState) => {
         if (selectedTowers.length !== 3) return;
         const result = TowerSystem.combine(selectedTowers);
         if (!result) return;
+
+        // T3 → T4 조합 시 역할 선택 모달 표시
+        if (result.pending) {
+            const firstTower = selectedTowers[0];
+            setPendingT4Choice({
+                ...result,
+                source: 'map',
+                itemIds: selectedTowers.map(t => t.id),
+                gridX: firstTower.gridX,
+                gridY: firstTower.gridY,
+            });
+            return;
+        }
+
         const firstTower = selectedTowers[0];
         const placedTower = TowerSystem.placeOnGrid(result, firstTower.gridX, firstTower.gridY);
         const idsToRemove = selectedTowers.map(t => t.id);
@@ -141,6 +169,41 @@ const useInventory = (gameState) => {
         setEffects(prev => [...prev, { id: Date.now(), x: firstTower.x, y: firstTower.y, type: 'explosion', color: result.color }]);
         soundManager.playCombine();
     }, [selectedTowers, setTowers, setEffects]);
+
+    // T4 역할 선택 완료 핸들러
+    const confirmT4Role = useCallback((roleId) => {
+        if (!pendingT4Choice) return;
+
+        const t4Tower = TowerSystem.createT4WithRole(pendingT4Choice.element, roleId);
+        if (!t4Tower) {
+            setPendingT4Choice(null);
+            return;
+        }
+
+        if (pendingT4Choice.source === 'inventory') {
+            setInventory(prev => [...prev.filter(n => !pendingT4Choice.itemIds.includes(n.id)), t4Tower]);
+            setSelectedInventory([]);
+        } else if (pendingT4Choice.source === 'map') {
+            const placedTower = TowerSystem.placeOnGrid(t4Tower, pendingT4Choice.gridX, pendingT4Choice.gridY);
+            setTowers(prev => [...prev.filter(t => !pendingT4Choice.itemIds.includes(t.id)), placedTower]);
+            setSelectedTowers([]);
+            setEffects(prev => [...prev, {
+                id: Date.now(),
+                x: pendingT4Choice.gridX * TILE_SIZE + TILE_SIZE / 2,
+                y: pendingT4Choice.gridY * TILE_SIZE + TILE_SIZE / 2,
+                type: 'explosion',
+                color: t4Tower.color
+            }]);
+        }
+
+        setPendingT4Choice(null);
+        soundManager.playCombine();
+    }, [pendingT4Choice, setTowers, setEffects]);
+
+    // T4 역할 선택 취소 핸들러
+    const cancelT4Choice = useCallback(() => {
+        setPendingT4Choice(null);
+    }, []);
 
     const sellSelectedTowers = useCallback(() => {
         if (selectedTowers.length === 0) return;
@@ -222,6 +285,7 @@ const useInventory = (gameState) => {
         setSupportInventory([]);
         setSelectedSupportInventory([]);
         setSelectedSupportTowers([]);
+        setPendingT4Choice(null);
     }, []);
 
     return {
@@ -261,6 +325,10 @@ const useInventory = (gameState) => {
         canCombineTowers,
         totalSupportSellPrice,
         canCombineSupportTowers,
+        // T4 역할 선택
+        pendingT4Choice,
+        confirmT4Role,
+        cancelT4Choice,
         // 치트용
         addTowerToInventory,
         addSupportToInventory,
