@@ -170,7 +170,7 @@ const GameEngine = {
 
   // ===== 메인 게임 틱 (오케스트레이터) =====
   gameTick(state, now) {
-    const { enemies, towers, projectiles, gameSpeed } = state;
+    const { enemies, towers, supportTowers, projectiles, gameSpeed } = state;
     const newEffects = [];
     const soundEvents = [];
     let totalLivesLost = 0;
@@ -216,10 +216,38 @@ const GameEngine = {
       soundEvents.push({ method: 'playLifeLost', args: [] });
     }
 
-    // 2단계: 타워 공격 → 투사체 생성
+    // 1.5단계: 힐러의 주변 적 치유 처리
+    const healers = movedEnemies.filter(e => EnemySystem.isHealer(e));
+    if (healers.length > 0) {
+      const healMap = new Map(); // enemyId -> 최종 체력
+      healers.forEach(healer => {
+        const { updatedHealer, healedEnemies } = EnemySystem.processHealerHeal(healer, movedEnemies, now);
+        // 힐러 상태 업데이트
+        const idx = movedEnemies.findIndex(e => e.id === healer.id);
+        if (idx !== -1) movedEnemies[idx] = updatedHealer;
+        // 치유 적용
+        healedEnemies.forEach(({ id, newHealth }) => {
+          const current = healMap.get(id) || movedEnemies.find(e => e.id === id)?.health || 0;
+          healMap.set(id, Math.max(current, newHealth));
+        });
+      });
+      // 치유 적용 및 이펙트
+      if (healMap.size > 0) {
+        movedEnemies = movedEnemies.map(enemy => {
+          const newHealth = healMap.get(enemy.id);
+          if (newHealth && newHealth > enemy.health) {
+            newEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'heal', color: '#22c55e' });
+            return { ...enemy, health: newHealth };
+          }
+          return enemy;
+        });
+      }
+    }
+
+    // 2단계: 타워 공격 → 투사체 생성 (서포트 버프 적용)
     const newProjectiles = [];
     const updatedTowers = towers.map(tower => {
-      const result = TowerSystem.processAttack(tower, movedEnemies, now, gameSpeed);
+      const result = TowerSystem.processAttack(tower, movedEnemies, supportTowers || [], now, gameSpeed);
       if (result.projectile) {
         newProjectiles.push(result.projectile);
         if (Math.random() < COMBAT.shootSoundChance) {
@@ -252,11 +280,17 @@ const GameEngine = {
         });
       }
 
-      // 데미지 적용
+      // 데미지 적용 (서포트 방감 타워 취약도 포함)
+      const splitSpawns = []; // 분열체가 죽으면 여기에 새 적 추가
       if (resolved.damageMap.size > 0) {
         movedEnemies = movedEnemies.map(enemy => {
-          const damage = resolved.damageMap.get(enemy.id);
+          let damage = resolved.damageMap.get(enemy.id);
           if (!damage) return enemy;
+
+          // 서포트 타워 방어력 감소 적용 (적이 추가 피해를 받음)
+          const vulnerability = TowerSystem.calcEnemyVulnerability(enemy, supportTowers || []);
+          damage = Math.floor(damage * (1 + vulnerability));
+
           const newHealth = enemy.health - damage;
           if (newHealth <= 0) {
             totalKilled++;
@@ -266,11 +300,27 @@ const GameEngine = {
               type: 'explosion', color: EnemySystem.getExplosionColor(enemy),
             });
             soundEvents.push({ method: 'playKill', args: [enemy.type === 'boss'] });
+
+            // 분열체 처리: 죽으면 작은 적 2마리로 분열
+            if (EnemySystem.isSplitter(enemy)) {
+              const splitChildren = EnemySystem.createSplitEnemies(enemy);
+              splitSpawns.push(...splitChildren);
+              newEffects.push({
+                id: Date.now() + Math.random(), x: enemy.x, y: enemy.y,
+                type: 'split', color: '#84cc16',
+              });
+            }
+
             return null;
           }
           soundEvents.push({ method: 'playHit', args: [] });
           return { ...enemy, health: newHealth };
         }).filter(Boolean);
+
+        // 분열된 새 적 추가
+        if (splitSpawns.length > 0) {
+          movedEnemies = [...movedEnemies, ...splitSpawns];
+        }
       }
     }
 

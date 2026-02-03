@@ -21,6 +21,12 @@ const NeonDefense = () => {
   const [effects, setEffects] = useState([]);
   const [chainLightnings, setChainLightnings] = useState([]);
 
+  // ===== 서포트 타워 상태 =====
+  const [supportInventory, setSupportInventory] = useState([]);
+  const [selectedSupportInventory, setSelectedSupportInventory] = useState([]);
+  const [supportTowers, setSupportTowers] = useState([]);
+  const [selectedSupportTowers, setSelectedSupportTowers] = useState([]);
+
   // 다중 경로 시스템
   const [pathData, setPathData] = useState(() => generateMultiplePaths(Date.now(), 1));
   const currentPath = pathData.paths[0]?.tiles || [];
@@ -87,10 +93,13 @@ const NeonDefense = () => {
   const projectilesRef = useRef([]);
   const pathDataRef = useRef(pathData);
 
+  const supportTowersRef = useRef([]);
+
   useEffect(() => { pathDataRef.current = pathData; }, [pathData]);
   useEffect(() => { enemiesRef.current = enemies; }, [enemies]);
   useEffect(() => { towersRef.current = towers; }, [towers]);
   useEffect(() => { projectilesRef.current = projectiles; }, [projectiles]);
+  useEffect(() => { supportTowersRef.current = supportTowers; }, [supportTowers]);
 
   // ===== 인벤토리 헬퍼 =====
   const getInventoryByElement = useCallback((element) => {
@@ -115,11 +124,14 @@ const NeonDefense = () => {
   const handleTileClick = useCallback((gridX, gridY) => {
     const isPath = pathData.paths.some(p => p.tiles.some(t => t.x === gridX && t.y === gridY));
     const hasTower = towers.some(t => t.gridX === gridX && t.gridY === gridY);
-    if (isPath || hasTower) { setPlacementMode(null); return; }
+    const hasSupportTower = supportTowers.some(t => t.gridX === gridX && t.gridY === gridY);
+    if (isPath || hasTower || hasSupportTower) { setPlacementMode(null); return; }
     setPlacementMode({ gridX, gridY, step: 'element', element: null });
     setSelectedInventory([]);
     setSelectedTowers([]);
-  }, [pathData, towers]);
+    setSelectedSupportInventory([]);
+    setSelectedSupportTowers([]);
+  }, [pathData, towers, supportTowers]);
 
   const handleElementSelect = useCallback((element) => {
     if (!placementMode) return;
@@ -152,15 +164,48 @@ const NeonDefense = () => {
   }, []);
 
   const toggleInventorySelect = useCallback((neon) => {
+    setSelectedSupportInventory([]);
+    setSelectedSupportTowers([]);
     toggleSelect(neon, setSelectedInventory, setSelectedTowers);
   }, [toggleSelect]);
 
   const toggleTowerSelect = useCallback((tower) => {
+    setSelectedSupportInventory([]);
+    setSelectedSupportTowers([]);
     toggleSelect(tower, setSelectedTowers, setSelectedInventory);
   }, [toggleSelect]);
 
+  // 서포트 타워 선택 토글
+  const toggleSupportInventorySelect = useCallback((support) => {
+    setSelectedInventory([]);
+    setSelectedTowers([]);
+    setSelectedSupportTowers([]);
+    setSelectedSupportInventory(prev => {
+      const isSelected = prev.some(s => s.id === support.id);
+      if (isSelected) return prev.filter(s => s.id !== support.id);
+      if (prev.length >= 3) return prev;
+      if (prev.length > 0 && (prev[0].tier !== support.tier || prev[0].supportType !== support.supportType)) return prev;
+      return [...prev, support];
+    });
+  }, []);
+
+  const toggleSupportTowerSelect = useCallback((support) => {
+    setSelectedInventory([]);
+    setSelectedTowers([]);
+    setSelectedSupportInventory([]);
+    setSelectedSupportTowers(prev => {
+      const isSelected = prev.some(s => s.id === support.id);
+      if (isSelected) return prev.filter(s => s.id !== support.id);
+      if (prev.length >= 3) return prev;
+      if (prev.length > 0 && (prev[0].tier !== support.tier || prev[0].supportType !== support.supportType)) return prev;
+      return [...prev, support];
+    });
+  }, []);
+
   // ===== 뽑기 (TowerSystem.create 사용) =====
   const isInventoryFull = inventory.length >= ECONOMY.maxInventory;
+  const isSupportInventoryFull = supportInventory.length >= ECONOMY.maxSupportInventory;
+
   const drawRandomNeon = useCallback(() => {
     if (gold < ECONOMY.drawCost || inventory.length >= ECONOMY.maxInventory) return;
     const colorIndex = Math.floor(Math.random() * 6);
@@ -169,6 +214,16 @@ const NeonDefense = () => {
     setGold(prev => prev - ECONOMY.drawCost);
     soundManager.playDraw();
   }, [gold, inventory.length]);
+
+  // 서포트 타워 뽑기
+  const drawRandomSupport = useCallback(() => {
+    if (gold < ECONOMY.supportDrawCost || supportInventory.length >= ECONOMY.maxSupportInventory) return;
+    const supportType = Math.floor(Math.random() * 4);
+    const newSupport = TowerSystem.createSupport(1, supportType);
+    setSupportInventory(prev => [...prev, newSupport]);
+    setGold(prev => prev - ECONOMY.supportDrawCost);
+    soundManager.playDraw();
+  }, [gold, supportInventory.length]);
 
   // ===== 조합 (TowerSystem 위임) =====
   const combineNeons = useCallback(() => {
@@ -212,6 +267,48 @@ const NeonDefense = () => {
   const totalSellPrice = selectedTowers.reduce((sum, t) => sum + getTowerSellPrice(t.tier), 0);
   const canCombineTowers = selectedTowers.length === 3 && selectedTowers[0]?.tier < 4;
 
+  // ===== 서포트 타워 조합/판매 =====
+  const combineSupports = useCallback(() => {
+    if (selectedSupportInventory.length !== 3) return;
+    const result = TowerSystem.combineSupport(selectedSupportInventory);
+    if (!result) return;
+    const idsToRemove = selectedSupportInventory.map(s => s.id);
+    setSupportInventory(prev => [...prev.filter(s => !idsToRemove.includes(s.id)), result]);
+    setSelectedSupportInventory([]);
+    soundManager.playCombine();
+  }, [selectedSupportInventory]);
+
+  const combineAllSupports = useCallback(() => {
+    setSupportInventory(prev => TowerSystem.combineAllSupport(prev));
+    setSelectedSupportInventory([]);
+    soundManager.playCombine();
+  }, []);
+
+  const combineSupportTowers = useCallback(() => {
+    if (selectedSupportTowers.length !== 3) return;
+    const result = TowerSystem.combineSupport(selectedSupportTowers);
+    if (!result) return;
+    const firstTower = selectedSupportTowers[0];
+    const placedTower = TowerSystem.placeSupportOnGrid(result, firstTower.gridX, firstTower.gridY);
+    const idsToRemove = selectedSupportTowers.map(t => t.id);
+    setSupportTowers(prev => [...prev.filter(t => !idsToRemove.includes(t.id)), placedTower]);
+    setSelectedSupportTowers([]);
+    setEffects(prev => [...prev, { id: Date.now(), x: firstTower.x, y: firstTower.y, type: 'explosion', color: result.color }]);
+    soundManager.playCombine();
+  }, [selectedSupportTowers]);
+
+  const sellSelectedSupportTowers = useCallback(() => {
+    if (selectedSupportTowers.length === 0) return;
+    const totalRefund = selectedSupportTowers.reduce((sum, t) => sum + TowerSystem.getSupportSellPrice(t.tier), 0);
+    const idsToRemove = selectedSupportTowers.map(t => t.id);
+    setSupportTowers(prev => prev.filter(t => !idsToRemove.includes(t.id)));
+    setGold(prev => prev + totalRefund);
+    setSelectedSupportTowers([]);
+  }, [selectedSupportTowers]);
+
+  const totalSupportSellPrice = selectedSupportTowers.reduce((sum, t) => sum + TowerSystem.getSupportSellPrice(t.tier), 0);
+  const canCombineSupportTowers = selectedSupportTowers.length === 3 && selectedSupportTowers[0]?.tier < 3;
+
   // ===== 드래그 앤 드롭 =====
   const handleDragStart = (e, neon) => {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -227,7 +324,7 @@ const NeonDefense = () => {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     const distance = calcDistance(clientX, clientY, dragStartPos.current.x, dragStartPos.current.y);
-    if (distance > 10) { setIsDragging(true); setSelectedInventory([]); setSelectedTowers([]); }
+    if (distance > 10) { setIsDragging(true); setSelectedInventory([]); setSelectedTowers([]); setSelectedSupportInventory([]); setSelectedSupportTowers([]); }
     setDragPosition({ x: clientX, y: clientY });
     if (mapRef.current && isDragging) {
       const rect = mapRef.current.getBoundingClientRect();
@@ -236,26 +333,39 @@ const NeonDefense = () => {
       if (gridX >= 0 && gridX < GRID_WIDTH && gridY >= 0 && gridY < GRID_HEIGHT) {
         const isPath = pathData.paths.some(p => p.tiles.some(t => t.x === gridX && t.y === gridY));
         const hasTower = towers.some(t => t.gridX === gridX && t.gridY === gridY);
-        setDropPreview({ gridX, gridY, valid: !isPath && !hasTower });
+        const hasSupportTower = supportTowers.some(t => t.gridX === gridX && t.gridY === gridY);
+        setDropPreview({ gridX, gridY, valid: !isPath && !hasTower && !hasSupportTower });
       } else { setDropPreview(null); }
     }
-  }, [draggingNeon, towers, pathData, isDragging]);
+  }, [draggingNeon, towers, supportTowers, pathData, isDragging]);
 
   const handleDragEnd = useCallback(() => {
     if (!draggingNeon) return;
     if (!isDragging) {
       const neon = draggingNeon;
       setDraggingNeon(null); setDropPreview(null);
-      toggleInventorySelect(neon);
+      // 서포트 타워인지 일반 타워인지 구분
+      if (neon.isSupport) {
+        toggleSupportInventorySelect(neon);
+      } else {
+        toggleInventorySelect(neon);
+      }
       return;
     }
     if (dropPreview && dropPreview.valid) {
-      const newTower = TowerSystem.placeOnGrid(draggingNeon, dropPreview.gridX, dropPreview.gridY);
-      setTowers(prev => [...prev, newTower]);
-      setInventory(prev => prev.filter(n => n.id !== draggingNeon.id));
+      // 서포트 타워인지 일반 타워인지 구분
+      if (draggingNeon.isSupport) {
+        const newTower = TowerSystem.placeSupportOnGrid(draggingNeon, dropPreview.gridX, dropPreview.gridY);
+        setSupportTowers(prev => [...prev, newTower]);
+        setSupportInventory(prev => prev.filter(n => n.id !== draggingNeon.id));
+      } else {
+        const newTower = TowerSystem.placeOnGrid(draggingNeon, dropPreview.gridX, dropPreview.gridY);
+        setTowers(prev => [...prev, newTower]);
+        setInventory(prev => prev.filter(n => n.id !== draggingNeon.id));
+      }
     }
     setDraggingNeon(null); setDropPreview(null); setIsDragging(false);
-  }, [draggingNeon, dropPreview, isDragging, toggleInventorySelect]);
+  }, [draggingNeon, dropPreview, isDragging, toggleInventorySelect, toggleSupportInventorySelect]);
 
   useEffect(() => {
     if (!draggingNeon) return;
@@ -305,6 +415,7 @@ const NeonDefense = () => {
       const result = GameEngine.gameTick({
         enemies: enemiesRef.current,
         towers: towersRef.current,
+        supportTowers: supportTowersRef.current,
         projectiles: projectilesRef.current,
         gameSpeed: speed,
       }, now);
@@ -362,7 +473,7 @@ const NeonDefense = () => {
       setTimeout(() => {
         setStage(nextStage); setWave(1);
         setPathData(generateMultiplePaths(Date.now(), nextStage));
-        setTowers([]);
+        setTowers([]); setSupportTowers([]);
         setGold(prev => prev + ECONOMY.stageClearBonus(stage));
         setShowStageTransition(false);
       }, 2000);
@@ -377,6 +488,7 @@ const NeonDefense = () => {
     setIsPlaying(false); setGameOver(false);
     setTowers([]); setEnemies([]); setProjectiles([]);
     setInventory([]); setSelectedInventory([]); setSelectedTowers([]);
+    setSupportTowers([]); setSupportInventory([]); setSelectedSupportInventory([]); setSelectedSupportTowers([]);
     setSpawnedCount(0); setKilledCount(0);
     setDraggingNeon(null); setDropPreview(null);
     setPathData(generateMultiplePaths(Date.now(), 1)); setShowStageTransition(false);
@@ -438,6 +550,11 @@ const NeonDefense = () => {
         const elem = Math.floor(Math.random() * 6);
         setInventory(prev => [...prev, TowerSystem.create(tier, elem)]);
         return '▶ T' + tier + ' 타워 획득';
+      case 'support':
+        const sTier = Math.min(3, Math.max(1, arg || 3));
+        const sType = Math.floor(Math.random() * 4);
+        setSupportInventory(prev => [...prev, TowerSystem.createSupport(sTier, sType)]);
+        return '▶ S' + sTier + ' ' + SUPPORT_UI[sType].name + ' 서포트 획득';
       case 'help':
         return [
           '── 명령어 목록 ──',
@@ -447,6 +564,7 @@ const NeonDefense = () => {
           'gold [n]        골드 추가 (기본 500)',
           'lives [n]       목숨 추가 (기본 10)',
           'tower [tier]    타워 획득 (기본 T4)',
+          'support [tier]  서포트 획득 (기본 S3)',
           'help            명령어 목록',
         ].join('\n');
       default:
@@ -568,14 +686,33 @@ const NeonDefense = () => {
             {towers.map(tower => {
               const isSelected = selectedTowers.some(t => t.id === tower.id);
               const elementInfo = getElementInfo(tower.element);
+              const displayRange = tower.effectiveRange || tower.range;
               return (
                 <div key={tower.id} onClick={() => toggleTowerSelect(tower)} style={{cursor: 'pointer'}}>
-                  <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - tower.range, top: tower.y - tower.range, width: tower.range * 2, height: tower.range * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />
+                  <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - displayRange, top: tower.y - displayRange, width: displayRange * 2, height: displayRange * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />
                   <div className={'absolute neon-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: tower.x - 15, top: tower.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + tower.color + ' 0%, ' + tower.color + '80 50%, transparent 70%)', borderRadius: '50%', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + tower.color : undefined, color: tower.color, opacity: tower.isDebuffed ? 0.6 : 1 }}>
                     <span className="text-xs font-black text-white drop-shadow-lg">{elementInfo.icon}</span>
                   </div>
                   <div className="absolute text-xs font-bold text-white" style={{ left: tower.x - 8, top: tower.y + 12, textShadow: '0 0 3px black' }}>T{tower.tier}</div>
                   {tower.isDebuffed && <div className="absolute text-xs" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬇️</div>}
+                  {tower.isBuffed && <div className="absolute text-xs" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬆️</div>}
+                </div>
+              );
+            })}
+
+            {/* 서포트 타워 렌더링 (육각형) */}
+            {supportTowers.map(support => {
+              const isSelected = selectedSupportTowers.some(t => t.id === support.id);
+              const supportInfo = SUPPORT_UI[support.supportType];
+              return (
+                <div key={support.id} onClick={() => toggleSupportTowerSelect(support)} style={{cursor: 'pointer'}}>
+                  {/* 버프 범위 (점선 원) */}
+                  <div className="absolute rounded-full support-range pointer-events-none" style={{ left: support.x - support.range, top: support.y - support.range, width: support.range * 2, height: support.range * 2, border: '2px dashed ' + (isSelected ? '#ffffff' : support.color) + '60', background: 'radial-gradient(circle, ' + support.color + '15 0%, transparent 70%)' }} />
+                  {/* 육각형 서포트 타워 */}
+                  <div className={'absolute support-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: support.x - 15, top: support.y - 15, width: 30, height: 30, background: 'linear-gradient(135deg, ' + support.color + ' 0%, ' + support.color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + support.color : '0 0 10px ' + support.color }}>
+                    <span className="text-sm">{supportInfo.icon}</span>
+                  </div>
+                  <div className="absolute text-xs font-bold text-white" style={{ left: support.x - 6, top: support.y + 12, textShadow: '0 0 3px black' }}>S{support.tier}</div>
                 </div>
               );
             })}
@@ -615,14 +752,18 @@ const NeonDefense = () => {
 
         {/* 사이드 패널 */}
         <div className="flex-1 min-w-[280px] space-y-3">
+          {/* 뽑기 버튼들 */}
           <div className="flex gap-2">
-            <button type="button" onClick={drawRandomNeon} disabled={gold < ECONOMY.drawCost || isInventoryFull} className="flex-1 btn-neon px-4 py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-pink-400/30">{isInventoryFull ? '📦 가득 참' : '🎲 뽑기 (' + ECONOMY.drawCost + 'G)'}</button>
-            <button type="button" onClick={startWave} disabled={isPlaying} className="flex-1 btn-neon px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-cyan-400/30">{isPlaying ? '전투 중...' : '▶ 시작'}</button>
+            <button type="button" onClick={drawRandomNeon} disabled={gold < ECONOMY.drawCost || isInventoryFull} className="flex-1 btn-neon px-3 py-2 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-pink-400/30 text-sm">{isInventoryFull ? '📦 가득 참' : '🎲 뽑기 (' + ECONOMY.drawCost + 'G)'}</button>
+            <button type="button" onClick={drawRandomSupport} disabled={gold < ECONOMY.supportDrawCost || isSupportInventoryFull} className="flex-1 btn-neon px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400/30 text-sm">{isSupportInventoryFull ? '📦 가득 참' : '🛡️ 서포트 (' + ECONOMY.supportDrawCost + 'G)'}</button>
+            <button type="button" onClick={startWave} disabled={isPlaying} className="flex-1 btn-neon px-3 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-cyan-400/30 text-sm">{isPlaying ? '전투 중...' : '▶ 시작'}</button>
           </div>
+          {/* 일반 타워 조합 */}
           <div className="flex gap-2">
             <button type="button" onClick={combineNeons} disabled={selectedInventory.length !== 3 || selectedInventory[0]?.tier >= 4} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400/30 text-sm">⚡ 선택 조합</button>
             <button type="button" onClick={combineAllNeons} disabled={TowerSystem.getCombinableCount(inventory) === 0} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-amber-400/30 text-sm">🔄 전체 조합 ({TowerSystem.getCombinableCount(inventory)})</button>
           </div>
+          {/* 맵 타워 조합/판매 */}
           <div className="flex gap-2">
             <button type="button" onClick={combineTowers} disabled={!canCombineTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-400/30 text-sm">🔮 타워 조합 ({selectedTowers.length}/3)</button>
             <button type="button" onClick={sellSelectedTowers} disabled={selectedTowers.length === 0} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm">💰 판매 (+{totalSellPrice}G)</button>
@@ -649,6 +790,40 @@ const NeonDefense = () => {
             </div>
           </div>
 
+          {/* 서포트 인벤토리 (3열 x 5행 = 15칸) */}
+          <div className="bg-gray-900/80 rounded-lg p-3 border border-orange-500/30">
+            <h3 className="text-sm font-bold mb-2 text-orange-400">🛡️ 서포트 ({supportInventory.length}/{ECONOMY.maxSupportInventory})</h3>
+            <div className="grid grid-cols-5 gap-1.5">
+              {Array.from({length: ECONOMY.maxSupportInventory}, (_, i) => {
+                const support = supportInventory[i];
+                if (support) {
+                  const isSelected = selectedSupportInventory.some(s => s.id === support.id);
+                  const supportInfo = SUPPORT_UI[support.supportType];
+                  return (
+                    <div key={support.id} onMouseDown={(e) => handleDragStart(e, support)} onTouchStart={(e) => handleDragStart(e, support)} className={'inventory-item w-10 h-10 flex flex-col items-center justify-center border-2 cursor-pointer ' + (isSelected ? 'border-white selected' : 'border-transparent hover:border-gray-500')} style={{ background: 'linear-gradient(135deg, ' + support.color + '80 0%, ' + support.color + '40 100%)', color: support.color, boxShadow: isSelected ? '0 0 15px ' + support.color : 'none', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} title={support.name + '\nS' + support.tier + '\n' + supportInfo.icon + ' ' + supportInfo.name}>
+                      <span className="text-sm">{supportInfo.icon}</span>
+                      <span className="text-xs font-black text-white drop-shadow">S{support.tier}</span>
+                    </div>
+                  );
+                }
+                return <div key={'support-empty-' + i} className="w-10 h-10 border border-gray-700/50 bg-gray-800/30" style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} />;
+              })}
+            </div>
+            {/* 서포트 조합 버튼 */}
+            <div className="flex gap-2 mt-2">
+              <button type="button" onClick={combineSupports} disabled={selectedSupportInventory.length !== 3 || selectedSupportInventory[0]?.tier >= 3} className="flex-1 btn-neon px-2 py-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400/30 text-xs">⚡ 조합</button>
+              <button type="button" onClick={combineAllSupports} disabled={TowerSystem.getSupportCombinableCount(supportInventory) === 0} className="flex-1 btn-neon px-2 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-amber-400/30 text-xs">🔄 전체 ({TowerSystem.getSupportCombinableCount(supportInventory)})</button>
+            </div>
+          </div>
+
+          {/* 맵 서포트 타워 조합/판매 */}
+          {selectedSupportTowers.length > 0 && (
+            <div className="flex gap-2">
+              <button type="button" onClick={combineSupportTowers} disabled={!canCombineSupportTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400/30 text-sm">🔮 서포트 조합 ({selectedSupportTowers.length}/3)</button>
+              <button type="button" onClick={sellSelectedSupportTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm">💰 판매 (+{totalSupportSellPrice}G)</button>
+            </div>
+          )}
+
           {/* 선택된 타워 정보 */}
           {selectedTowers.length > 0 && (
             <div className="bg-gray-900/80 rounded-lg p-3 border border-emerald-500/50">
@@ -664,15 +839,37 @@ const NeonDefense = () => {
               <p className="text-xs text-gray-500 mt-1">판매 시 {totalSellPrice}G 환급</p>
             </div>
           )}
+
+          {/* 선택된 서포트 타워 정보 */}
+          {selectedSupportTowers.length > 0 && (
+            <div className="bg-gray-900/80 rounded-lg p-3 border border-orange-500/50">
+              <h3 className="text-sm font-bold mb-2 text-orange-400">🛡️ 선택된 서포트 ({selectedSupportTowers.length}개)</h3>
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-6 h-6 flex items-center justify-center" style={{ background: 'linear-gradient(135deg, ' + selectedSupportTowers[0].color + ' 0%, ' + selectedSupportTowers[0].color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
+                  <span className="text-xs">{SUPPORT_UI[selectedSupportTowers[0].supportType].icon}</span>
+                </div>
+                <span className="text-gray-300">{selectedSupportTowers[0].name}</span>
+                <span className="text-gray-500">S{selectedSupportTowers[0].tier}</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">{SUPPORT_UI[selectedSupportTowers[0].supportType].icon} {SUPPORT_UI[selectedSupportTowers[0].supportType].name} 버프 +{Math.round(selectedSupportTowers[0].buffValue * 100)}%</p>
+              <p className="text-xs text-gray-500 mt-1">판매 시 {totalSupportSellPrice}G 환급</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* 드래그 프리뷰 */}
       {draggingNeon && isDragging && (
         <div className="fixed pointer-events-none z-50" style={{ left: dragPosition.x - 20, top: dragPosition.y - 20, width: 40, height: 40 }}>
-          <div className="w-full h-full rounded-lg flex items-center justify-center neon-glow" style={{ background: 'radial-gradient(circle, ' + draggingNeon.color + ' 0%, ' + draggingNeon.color + '80 50%, transparent 70%)', color: draggingNeon.color }}>
-            <span className="text-sm font-black text-white drop-shadow-lg">{getElementInfo(draggingNeon.element).icon}</span>
-          </div>
+          {draggingNeon.isSupport ? (
+            <div className="w-full h-full flex items-center justify-center support-glow" style={{ background: 'linear-gradient(135deg, ' + draggingNeon.color + ' 0%, ' + draggingNeon.color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
+              <span className="text-sm">{SUPPORT_UI[draggingNeon.supportType].icon}</span>
+            </div>
+          ) : (
+            <div className="w-full h-full rounded-lg flex items-center justify-center neon-glow" style={{ background: 'radial-gradient(circle, ' + draggingNeon.color + ' 0%, ' + draggingNeon.color + '80 50%, transparent 70%)', color: draggingNeon.color }}>
+              <span className="text-sm font-black text-white drop-shadow-lg">{getElementInfo(draggingNeon.element).icon}</span>
+            </div>
+          )}
         </div>
       )}
 

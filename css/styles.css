@@ -168,3 +168,65 @@ body {
 .knockback-effect {
   animation: knockback 0.2s ease-out forwards;
 }
+
+/* Support Tower Glow Animation */
+.support-glow {
+  animation: supportPulse 2s ease-in-out infinite;
+}
+
+@keyframes supportPulse {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 8px currentColor); }
+  50% { filter: brightness(1.2) drop-shadow(0 0 15px currentColor); }
+}
+
+/* Support Range (Dashed) */
+.support-range {
+  animation: supportRangePulse 2.5s ease-in-out infinite;
+}
+
+@keyframes supportRangePulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.6; }
+}
+
+/* Heal Effect */
+@keyframes heal {
+  0% { transform: scale(0.5); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.heal-effect {
+  animation: heal 0.5s ease-out forwards;
+}
+
+/* Split Effect */
+@keyframes split {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.6; }
+  100% { transform: scale(2) rotate(180deg); opacity: 0; }
+}
+
+.split-effect {
+  animation: split 0.4s ease-out forwards;
+}
+
+/* Healer Glow */
+.healer-glow {
+  animation: healerPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes healerPulse {
+  0%, 100% { box-shadow: 0 0 8px #22c55e; }
+  50% { box-shadow: 0 0 20px #22c55e, 0 0 30px #22c55e; }
+}
+
+/* Splitter Glow */
+.splitter-glow {
+  animation: splitterPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes splitterPulse {
+  0%, 100% { box-shadow: 0 0 8px #84cc16; }
+  50% { box-shadow: 0 0 15px #84cc16, 0 0 25px #84cc16; }
+}

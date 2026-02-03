@@ -138,29 +138,181 @@ const TowerSystem = {
     };
   },
 
-  // 타워 공격 처리 (디버프 계산 포함)
-  processAttack(tower, enemies, now, gameSpeed) {
+  // 타워 공격 처리 (디버프 + 서포트 버프 계산 포함)
+  processAttack(tower, enemies, supportTowers, now, gameSpeed) {
     const { speedDebuff, damageDebuff } = this.calcDebuffs(tower, enemies);
+    const { attackBuff, speedBuff, rangeBuff } = this.calcSupportBuffs(tower, supportTowers || []);
     const isDebuffed = speedDebuff < 1 || damageDebuff < 1;
+    const isBuffed = attackBuff > 0 || speedBuff > 0 || rangeBuff > 0;
 
-    // 쿨다운 체크
-    const effectiveSpeed = tower.speed / speedDebuff;
+    // 쿨다운 체크 (서포트 공속 버프 적용)
+    const effectiveSpeed = tower.speed / speedDebuff / (1 + speedBuff);
     if (now - tower.lastShot < effectiveSpeed / gameSpeed) {
-      return { tower: { ...tower, isDebuffed }, projectile: null };
+      return { tower: { ...tower, isDebuffed, isBuffed }, projectile: null };
     }
 
-    // 타겟 찾기
-    const target = this.findTarget(tower, enemies);
+    // 타겟 찾기 (서포트 사거리 버프 적용)
+    const effectiveRange = tower.range * (1 + rangeBuff);
+    const target = this.findTargetWithRange(tower, enemies, effectiveRange);
     if (!target) {
-      return { tower: { ...tower, isDebuffed }, projectile: null };
+      return { tower: { ...tower, isDebuffed, isBuffed }, projectile: null };
     }
 
-    const effectiveDamage = Math.floor(tower.damage * damageDebuff);
+    // 데미지 계산 (디버프 * 서포트 공격력 버프)
+    const effectiveDamage = Math.floor(tower.damage * damageDebuff * (1 + attackBuff));
     const projectile = this.createProjectile(tower, target, effectiveDamage, gameSpeed);
 
     return {
-      tower: { ...tower, lastShot: now, isDebuffed },
+      tower: { ...tower, lastShot: now, isDebuffed, isBuffed, effectiveRange },
       projectile,
     };
+  },
+
+  // 사거리를 지정하여 타겟 찾기
+  findTargetWithRange(tower, enemies, range) {
+    let nearestEnemy = null;
+    let nearestDist = Infinity;
+
+    enemies.forEach(enemy => {
+      const dist = calcDistance(tower.x, tower.y, enemy.x, enemy.y);
+      if (dist <= range && dist < nearestDist) {
+        nearestDist = dist;
+        nearestEnemy = enemy;
+      }
+    });
+
+    return nearestEnemy;
+  },
+
+  // ===== 서포트 타워 시스템 =====
+
+  // 서포트 타워 생성
+  createSupport(tier, supportType) {
+    const config = SUPPORT_CONFIG[tier];
+    return {
+      id: Date.now() + Math.random(),
+      tier,
+      supportType,
+      color: config.colors[supportType],
+      name: config.names[supportType],
+      range: config.range,
+      buffValue: config.values[supportType],
+      isSupport: true,
+    };
+  },
+
+  // 서포트 타워 맵에 배치
+  placeSupportOnGrid(support, gridX, gridY) {
+    return {
+      ...support,
+      id: Date.now() + Math.random(),
+      gridX,
+      gridY,
+      x: gridX * TILE_SIZE + TILE_SIZE / 2,
+      y: gridY * TILE_SIZE + TILE_SIZE / 2,
+    };
+  },
+
+  // 서포트 타워 3합 조합 (최대 T3)
+  combineSupport(items) {
+    if (items.length !== 3) return null;
+    const baseTier = items[0].tier;
+    const baseSupportType = items[0].supportType;
+    const allSame = items.every(t =>
+      t.tier === baseTier &&
+      t.supportType === baseSupportType &&
+      t.isSupport
+    );
+    if (!allSame || baseTier >= 3) return null; // 최대 T3
+    return this.createSupport(baseTier + 1, baseSupportType);
+  },
+
+  // 서포트 전체 자동 조합
+  combineAllSupport(inventory) {
+    let current = [...inventory];
+    let combined = true;
+    let totalCombines = 0;
+
+    while (combined) {
+      combined = false;
+      for (let tier = 1; tier <= 2; tier++) { // T3까지만
+        for (let supportType = 0; supportType < 4; supportType++) {
+          const matching = current.filter(s => s.tier === tier && s.supportType === supportType);
+          while (matching.length >= 3) {
+            const toRemove = matching.splice(0, 3);
+            const idsToRemove = toRemove.map(s => s.id);
+            const newSupport = this.createSupport(tier + 1, supportType);
+            newSupport.id = Date.now() + Math.random() + totalCombines;
+            current = current.filter(s => !idsToRemove.includes(s.id));
+            current.push(newSupport);
+            combined = true;
+            totalCombines++;
+          }
+        }
+      }
+    }
+    return current;
+  },
+
+  // 서포트 조합 가능 세트 수
+  getSupportCombinableCount(inventory) {
+    let count = 0;
+    for (let tier = 1; tier <= 2; tier++) { // T3까지만
+      for (let supportType = 0; supportType < 4; supportType++) {
+        const matching = inventory.filter(s => s.tier === tier && s.supportType === supportType);
+        count += Math.floor(matching.length / 3);
+      }
+    }
+    return count;
+  },
+
+  // 공격 타워에 적용되는 서포트 버프 계산
+  calcSupportBuffs(tower, supportTowers) {
+    let attackBuff = 0;
+    let speedBuff = 0;
+    let rangeBuff = 0;
+
+    supportTowers.forEach(support => {
+      const dist = calcDistance(tower.x, tower.y, support.x, support.y);
+      if (dist > support.range) return;
+
+      switch (support.supportType) {
+        case SUPPORT_TYPES.ATTACK:
+          attackBuff += support.buffValue;
+          break;
+        case SUPPORT_TYPES.SPEED:
+          speedBuff += support.buffValue;
+          break;
+        case SUPPORT_TYPES.RANGE:
+          rangeBuff += support.buffValue;
+          break;
+      }
+    });
+
+    return {
+      attackBuff: Math.min(attackBuff, SUPPORT_CAPS.attack),
+      speedBuff: Math.min(speedBuff, SUPPORT_CAPS.speed),
+      rangeBuff: Math.min(rangeBuff, SUPPORT_CAPS.range),
+    };
+  },
+
+  // 적에게 적용되는 방어력 감소 (취약도) 계산
+  calcEnemyVulnerability(enemy, supportTowers) {
+    let vulnerability = 0;
+
+    supportTowers.forEach(support => {
+      if (support.supportType !== SUPPORT_TYPES.DEFENSE) return;
+      const dist = calcDistance(enemy.x, enemy.y, support.x, support.y);
+      if (dist <= support.range) {
+        vulnerability += support.buffValue;
+      }
+    });
+
+    return Math.min(vulnerability, SUPPORT_CAPS.defense);
+  },
+
+  // 서포트 판매 가격 계산
+  getSupportSellPrice(tier) {
+    return Math.floor((ECONOMY.supportBaseValues[tier] || 40) * ECONOMY.sellRefundRate);
   },
 };

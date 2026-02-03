@@ -72,6 +72,76 @@ const EnemySystem = {
       burnTickTime: 0,
       slowEndTime: 0,
       slowPercent: 0,
+      // 힐러 전용
+      lastHealTime: 0,
+    };
+  },
+
+  // 분열체가 죽을 때 작은 적 생성
+  createSplitEnemies(parent) {
+    const config = ENEMY_CONFIG.splitter;
+    const splitEnemies = [];
+
+    for (let i = 0; i < config.splitCount; i++) {
+      // 부모 경로의 현재 위치부터 시작
+      const splitEnemy = {
+        id: Date.now() + Math.random() + i,
+        type: 'normal', // 분열된 적은 일반 타입
+        health: Math.floor(parent.maxHealth * config.splitHealthMult),
+        maxHealth: Math.floor(parent.maxHealth * config.splitHealthMult),
+        pathIndex: parent.pathIndex,
+        pathId: parent.pathId,
+        pathTiles: parent.pathTiles,
+        baseSpeed: parent.baseSpeed * config.splitSpeedMult,
+        speed: parent.baseSpeed * config.splitSpeedMult,
+        debuffRange: 0,
+        goldReward: Math.floor(ENEMY_CONFIG.normal.goldReward / 2),
+        // 약간 퍼지게 위치 조정
+        x: parent.x + (Math.random() - 0.5) * 20,
+        y: parent.y + (Math.random() - 0.5) * 20,
+        // 상태이상 초기화
+        burnDamage: 0,
+        burnEndTime: 0,
+        burnTickTime: 0,
+        slowEndTime: 0,
+        slowPercent: 0,
+        lastHealTime: 0,
+        isSplitChild: true, // 분열 자식 표시 (재분열 방지)
+      };
+      splitEnemies.push(splitEnemy);
+    }
+
+    return splitEnemies;
+  },
+
+  // 힐러의 주변 적 치유 처리
+  processHealerHeal(healer, allEnemies, now) {
+    const config = ENEMY_CONFIG.healer;
+
+    // 쿨다운 체크
+    if (now - healer.lastHealTime < config.healInterval) {
+      return { updatedHealer: healer, healedEnemies: [] };
+    }
+
+    const healedEnemies = [];
+    const healRange = config.healRange;
+    const healAmount = config.healAmount;
+
+    allEnemies.forEach(enemy => {
+      if (enemy.id === healer.id) return; // 자기 자신 제외
+      if (enemy.health >= enemy.maxHealth) return; // 풀피인 적 제외
+
+      const dist = calcDistance(healer.x, healer.y, enemy.x, enemy.y);
+      if (dist <= healRange) {
+        const healValue = Math.floor(enemy.maxHealth * healAmount);
+        const newHealth = Math.min(enemy.maxHealth, enemy.health + healValue);
+        healedEnemies.push({ id: enemy.id, newHealth });
+      }
+    });
+
+    return {
+      updatedHealer: { ...healer, lastHealTime: now },
+      healedEnemies,
     };
   },
 
@@ -171,5 +241,15 @@ const EnemySystem = {
   // 디버프 적인지 확인
   isDebuffer(enemy) {
     return enemy.type === 'jammer' || enemy.type === 'suppressor';
+  },
+
+  // 힐러인지 확인
+  isHealer(enemy) {
+    return enemy.type === 'healer';
+  },
+
+  // 분열체인지 확인 (재분열 방지를 위해 isSplitChild 체크)
+  isSplitter(enemy) {
+    return enemy.type === 'splitter' && !enemy.isSplitChild;
   },
 };
