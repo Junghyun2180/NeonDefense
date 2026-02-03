@@ -139,21 +139,45 @@ const ENEMY_CONFIG = {
 };
 
 // ===== 스폰 규칙 (우선순위 순 — 첫 매칭 타입 사용) =====
+// ===== 스폰 규칙 (우선순위 순 — 첫 매칭 타입 사용) =====
 const SPAWN_RULES = [
-  { type: 'boss', condition: (idx, total) => idx === total - 1 },
-  { type: 'healer', condition: (idx, total, wave, stage) => stage >= 2 && wave >= 3, chanceBase: 0.08, chancePerStage: 0.03 },
-  { type: 'splitter', condition: (idx, total, wave, stage) => stage >= 2, chanceBase: 0.1, chancePerStage: 0.03 },
-  { type: 'elite', condition: (idx, total, wave, stage, progress) => wave >= 2 && progress > 0.5, chanceBase: 0.15, chancePerWave: 0.08 },
-  { type: 'jammer', condition: (idx, total, wave, stage) => wave >= 2, chanceBase: 0.12, chancePerStage: 0.03 },
-  { type: 'suppressor', condition: (idx, total, wave, stage) => wave >= 3, chanceBase: 0.10, chancePerStage: 0.03 },
-  { type: 'fast', condition: () => true, chanceBase: 0.25, chancePerWave: 0.06 },
+  // 1. 보스 (매 5 웨이브 마지막)
+  { type: 'boss', condition: (idx, total, wave) => wave === 5 && idx === total - 1 },
+
+  // 2. Stage 6~10 고난이도 패턴 (우선순위 높음)
+  { type: 'fast', condition: (idx, total, wave, stage) => stage === 6 && wave % 2 === 1, chanceBase: 0.8 }, // Stage 6: 러너 러시
+  { type: 'elite', condition: (idx, total, wave, stage) => stage === 7, chanceBase: 0.4 }, // Stage 7: 탱커 강화
+  { type: 'splitter', condition: (idx, total, wave, stage) => stage === 8, chanceBase: 0.3 }, // Stage 8: 분산 스폰 강화
+
+  // 3. Stage 1: 기본 + 엘리트 조금 (난이도 하향)
+  // Elite: Wave 3이상, 10번째마다 100% 등장
+  { type: 'elite', condition: (idx, total, wave, stage) => stage === 1 && wave >= 3 && idx % 10 === 0, chance: 1.0 },
+  // Stage 1은 나머지는 Fast(30%)/Normal(70%)만 등장
+
+  // 4. Stage 2: 특수 기믹 (힐러, 디버퍼) 등장 시작
+  { type: 'healer', condition: (idx, total, wave, stage) => stage === 2 && wave >= 2, chanceBase: 0.15 },
+  { type: 'jammer', condition: (idx, total, wave, stage) => stage === 2 && wave >= 3, chanceBase: 0.15 },
+  { type: 'suppressor', condition: (idx, total, wave, stage) => stage === 2 && wave >= 4, chanceBase: 0.1 },
+  { type: 'splitter', condition: (idx, total, wave, stage) => stage === 2 && wave >= 2, chanceBase: 0.1 },
+
+  // 5. Stage 3 이상: 모든 타입 + 물량 + 확률 증가 (chancePerStage 사용)
+  // 기본 확률 0.1로 시작하려면: base(0.04) + perStage(0.02) * 3 = 0.1
+  { type: 'healer', condition: (idx, total, wave, stage) => stage >= 3, chanceBase: 0.04, chancePerStage: 0.02 },
+  { type: 'jammer', condition: (idx, total, wave, stage) => stage >= 3, chanceBase: 0.04, chancePerStage: 0.02 },
+  { type: 'suppressor', condition: (idx, total, wave, stage) => stage >= 3, chanceBase: 0.04, chancePerStage: 0.02 },
+  { type: 'splitter', condition: (idx, total, wave, stage) => stage >= 3, chanceBase: 0.09, chancePerStage: 0.02 }, // 0.09 + 0.06 = 0.15
+  { type: 'elite', condition: (idx, total, wave, stage) => stage >= 3 && wave >= 2, chanceBase: 0.05, chancePerStage: 0.05 }, // 0.05 + 0.15 = 0.2
+
+  // 공통 기본 (나머지)
+  { type: 'fast', condition: () => true, chanceBase: 0.3 },
   { type: 'normal', condition: () => true, chance: 1.0 },
 ];
 
-// ===== 체력 스케일링 =====
+
+// ===== 체력 스케일링 (난이도 하향 조정) =====
 const HEALTH_SCALING = {
-  base: 40,
-  stageGrowth: 0.65,
+  base: 30, // 40 -> 30 하향
+  stageGrowth: 0.45, // 0.65 -> 0.45 하향 (초반 급상승 방지)
   waveGrowth: 0.35,
   lateWaveThreshold: 4,
   lateWaveBonus: 1.5,
@@ -190,9 +214,21 @@ const COMBAT = {
 };
 
 // ===== 스폰 설정 =====
+// ===== 스폰 설정 (물량 및 딜레이 조정) =====
 const SPAWN = {
-  enemiesPerWave: (stage, wave) => Math.floor(15 + wave * 4 + stage * 3),
-  spawnDelay: (stage, wave) => Math.max(250, 500 - wave * 30 - stage * 20),
+  enemiesPerWave: (stage, wave) => {
+    // Stage 1: 적게 (12~20)
+    if (stage === 1) return 10 + wave * 2;
+    // Stage 2: 보통 (18~30)
+    if (stage === 2) return 15 + wave * 3;
+    // Stage 3+: 급격히 증가 (25~...)
+    return Math.floor(25 + wave * 5 + (stage - 3) * 8);
+  },
+  spawnDelay: (stage, wave) => {
+    // 스테이지가 갈수록 딜레이 감소 (빨라짐)
+    let base = 600 - (stage * 50) - (wave * 20);
+    return Math.max(100, base); // 최소 100ms
+  },
   wavesPerStage: 5,
 };
 
