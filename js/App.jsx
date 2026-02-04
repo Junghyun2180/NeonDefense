@@ -60,6 +60,22 @@ const NeonDefense = () => {
 
   const getElementInfo = (element) => ELEMENT_EFFECTS[element] || ELEMENT_EFFECTS[ELEMENT_TYPES.VOID];
 
+  // 캐리오버용 인벤토리 참조 업데이트
+  useEffect(() => {
+    gameState.updateInventoryRefs(inventoryState.inventory, inventoryState.supportInventory);
+  }, [inventoryState.inventory, inventoryState.supportInventory]);
+
+  // 버프 선택 래퍼 (캐리오버 타워 인벤토리 추가)
+  const handleSelectBuff = (buffId) => {
+    const carryover = gameState.selectBuff(buffId);
+    if (carryover) {
+      // 캐리오버 타워를 인벤토리에 추가
+      inventoryState.addCarryoverTowers(carryover.towers, carryover.supports);
+    }
+    // 기존 인벤토리 비우기 (캐리오버 제외)
+    inventoryState.clearInventoryForNewStage();
+  };
+
   // 통합 리셋 (인벤토리 + 드래그 상태 포함)
   const handleResetGame = () => {
     gameState.resetGame();
@@ -199,12 +215,28 @@ const NeonDefense = () => {
         handleKeyDown={cheatState.handleKeyDown}
       />
 
+      {/* 타워 캐리오버 선택 모달 */}
+      <CarryoverModal
+        isOpen={gameState.showCarryoverSelection}
+        candidates={gameState.carryoverCandidates}
+        selectedIds={gameState.selectedCarryover}
+        onToggleTower={gameState.toggleCarryoverTower}
+        onToggleSupport={gameState.toggleCarryoverSupport}
+        onConfirm={gameState.confirmCarryover}
+        allTowers={{
+          towers: gameState.towers,
+          supports: gameState.supportTowers,
+          inventory: inventoryState.inventory,
+          supportInventory: inventoryState.supportInventory,
+        }}
+      />
+
       {/* 영구 버프 선택 모달 */}
       <BuffSelectionModal
         isOpen={gameState.showBuffSelection}
         buffChoices={gameState.buffChoices}
         currentBuffs={gameState.permanentBuffs}
-        onSelectBuff={gameState.selectBuff}
+        onSelectBuff={handleSelectBuff}
       />
 
       {/* 게임 클리어 모달 */}

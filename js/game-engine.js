@@ -109,12 +109,10 @@ const GameEngine = {
     const chainDamagesAll = new Map();
 
     // 영구 버프 계산
-    const permBurnMult = typeof PermanentBuffManager !== 'undefined'
-      ? PermanentBuffManager.getBurnDurationMultiplier(permanentBuffs) : 1;
-    const permSlowMult = typeof PermanentBuffManager !== 'undefined'
-      ? PermanentBuffManager.getSlowPowerMultiplier(permanentBuffs) : 1;
-    const permChainBonus = typeof PermanentBuffManager !== 'undefined'
-      ? PermanentBuffManager.getChainBonus(permanentBuffs) : 0;
+    // 영구 버프 계산 (BuffHelper 사용)
+    const permBurnMult = BuffHelper.getBurnDurationMultiplier(permanentBuffs);
+    const permSlowMult = BuffHelper.getSlowPowerMultiplier(permanentBuffs);
+    const permChainBonus = BuffHelper.getChainBonus(permanentBuffs);
 
     hits.forEach(hit => {
       let finalDamage = hit.damage;
@@ -481,9 +479,10 @@ const GameEngine = {
     }
 
     // 2단계: 타워 공격 → 투사체 생성 (서포트 버프 + 영구 버프 적용)
+    const attackContext = { enemies: movedEnemies, supportTowers, now, gameSpeed, permanentBuffs };
     const newProjectiles = [];
     const updatedTowers = towers.map(tower => {
-      const result = TowerSystem.processAttack(tower, movedEnemies, supportTowers || [], now, gameSpeed, permanentBuffs);
+      const result = TowerSystem.processAttack(tower, attackContext);
       if (result.projectile) {
         newProjectiles.push(result.projectile);
         if (Math.random() < COMBAT.shootSoundChance) {

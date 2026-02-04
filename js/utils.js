@@ -208,3 +208,138 @@ const generateMultiplePaths = (seed, stage = 1) => {
 
   return { paths, startPoints, endPoints };
 };
+
+// ===== 버프 매니저 안전 접근 헬퍼 =====
+// PermanentBuffManager가 로드되지 않았을 때 기본값 반환
+
+const BuffHelper = {
+  // 버프 매니저 참조 (로드 후 캐싱)
+  _manager: null,
+
+  getManager() {
+    if (!this._manager && typeof PermanentBuffManager !== 'undefined') {
+      this._manager = PermanentBuffManager;
+    }
+    return this._manager;
+  },
+
+  // 배율 조회 (기본값 1)
+  getDamageMultiplier(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getDamageMultiplier(buffs) : 1;
+  },
+
+  getAttackSpeedMultiplier(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getAttackSpeedMultiplier(buffs) : 1;
+  },
+
+  getRangeMultiplier(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getRangeMultiplier(buffs) : 1;
+  },
+
+  getGoldMultiplier(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getGoldMultiplier(buffs) : 1;
+  },
+
+  getDrawDiscount(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getDrawDiscount(buffs) : 0;
+  },
+
+  getInterestRate(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getInterestRate(buffs) : 0;
+  },
+
+  getCritInfo(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getCritInfo(buffs) : { chance: 0, multiplier: 1 };
+  },
+
+  getBurnDurationMultiplier(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getBurnDurationMultiplier(buffs) : 1;
+  },
+
+  getSlowPowerMultiplier(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getSlowPowerMultiplier(buffs) : 1;
+  },
+
+  getChainBonus(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getChainBonus(buffs) : 0;
+  },
+
+  getActiveBuffsList(buffs) {
+    const pm = this.getManager();
+    return pm ? pm.getActiveBuffsList(buffs) : [];
+  },
+};
+
+window.BuffHelper = BuffHelper;
+
+// ===== 캐리오버 시스템 유틸리티 =====
+
+// 타워 점수 계산 (티어 기반, 정렬용)
+// T4 = 81점, T3 = 27점, T2 = 9점, T1 = 3점 (3^tier)
+const calculateTowerScore = (tower) => {
+  return Math.pow(3, tower.tier);
+};
+
+// 캐리오버 후보 생성
+// 맵 + 인벤토리 통합, 티어 순 정렬, 상위 N개 반환
+const generateCarryoverCandidates = (towers, supportTowers, inventory, supportInventory) => {
+  // 공격 타워: T2 이상만 후보
+  const allTowers = [...towers, ...inventory]
+    .filter(t => t.tier >= CARRYOVER.minTowerTier)
+    .sort((a, b) => calculateTowerScore(b) - calculateTowerScore(a));
+
+  // 서포트 타워: S2 이상만 후보
+  const allSupports = [...supportTowers, ...supportInventory]
+    .filter(s => s.tier >= CARRYOVER.minSupportTier)
+    .sort((a, b) => b.tier - a.tier);
+
+  return {
+    towers: allTowers.slice(0, 10),  // 최대 10개 후보
+    supports: allSupports.slice(0, 6), // 최대 6개 후보
+  };
+};
+
+// 캐리오버 환급 계산
+// 모든 타워(맵+인벤토리)에서 선택된 것을 제외한 나머지 환급
+const calculateCarryoverRefund = (towers, supportTowers, inventory, supportInventory, selectedIds) => {
+  let refund = 0;
+
+  // 모든 공격 타워 (맵 + 인벤토리)
+  const allTowers = [...towers, ...inventory];
+  allTowers.forEach(t => {
+    if (!selectedIds.towers.includes(t.id)) {
+      refund += getTowerSellPrice(t.tier);
+    }
+  });
+
+  // 모든 서포트 타워 (맵 + 인벤토리)
+  const allSupports = [...supportTowers, ...supportInventory];
+  allSupports.forEach(s => {
+    if (!selectedIds.supports.includes(s.id)) {
+      refund += Math.floor((ECONOMY.supportBaseValues[s.tier] || 40) * ECONOMY.sellRefundRate);
+    }
+  });
+
+  return refund;
+};
+
+// 캐리오버용 타워 복사 (위치 정보 제거)
+const prepareCarryoverTower = (tower) => {
+  const { gridX, gridY, x, y, lastShot, ...rest } = tower;
+  return { ...rest, lastShot: 0 };
+};
+
+window.calculateTowerScore = calculateTowerScore;
+window.generateCarryoverCandidates = generateCarryoverCandidates;
+window.calculateCarryoverRefund = calculateCarryoverRefund;
+window.prepareCarryoverTower = prepareCarryoverTower;

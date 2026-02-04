@@ -201,6 +201,14 @@ const ECONOMY = {
   supportBaseValues: { 1: 40, 2: 120, 3: 360 },
 };
 
+// ===== 캐리오버 설정 =====
+const CARRYOVER = {
+  maxTowers: 5,        // 다음 스테이지로 가져갈 수 있는 최대 공격 타워 수
+  maxSupports: 3,      // 다음 스테이지로 가져갈 수 있는 최대 서포트 타워 수
+  minTowerTier: 2,     // 캐리오버 후보 최소 타워 티어 (T2 이상)
+  minSupportTier: 2,   // 캐리오버 후보 최소 서포트 티어 (S2 이상)
+};
+
 // ===== 전투 설정 =====
 const COMBAT = {
   projectileBaseSpeed: 10,

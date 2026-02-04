@@ -44,14 +44,16 @@ const useInventory = (gameState) => {
         return available;
     }, [inventory]);
 
-    // ===== 공용 선택 토글 =====
-    const toggleSelect = useCallback((item, setSelected, setOther, maxCount = 3) => {
-        setOther([]);
+    // ===== 공용 선택 토글 (통합) =====
+    // matchKey: 같은 타입 검증용 키 ('colorIndex' | 'supportType')
+    const toggleSelect = useCallback((item, setSelected, clearOthers, matchKey = 'colorIndex', maxCount = 3) => {
+        clearOthers.forEach(setter => setter([]));
         setSelected(prev => {
             const isSelected = prev.some(n => n.id === item.id);
             if (isSelected) return prev.filter(n => n.id !== item.id);
             if (prev.length >= maxCount) return prev;
-            if (prev.length > 0 && (prev[0].tier !== item.tier || prev[0].colorIndex !== item.colorIndex)) return prev;
+            // 같은 티어, 같은 타입(속성 or 서포트 종류)만 선택 가능
+            if (prev.length > 0 && (prev[0].tier !== item.tier || prev[0][matchKey] !== item[matchKey])) return prev;
             return [...prev, item];
         });
     }, []);
@@ -63,53 +65,33 @@ const useInventory = (gameState) => {
         setSelectedSupportTowers([]);
     }, []);
 
+    // 일반 타워 선택 (인벤토리)
     const toggleInventorySelect = useCallback((neon) => {
-        setSelectedSupportInventory([]);
-        setSelectedSupportTowers([]);
-        toggleSelect(neon, setSelectedInventory, setSelectedTowers);
+        toggleSelect(neon, setSelectedInventory, [setSelectedTowers, setSelectedSupportInventory, setSelectedSupportTowers], 'colorIndex');
     }, [toggleSelect]);
 
+    // 일반 타워 선택 (맵)
     const toggleTowerSelect = useCallback((tower) => {
-        setSelectedSupportInventory([]);
-        setSelectedSupportTowers([]);
-        toggleSelect(tower, setSelectedTowers, setSelectedInventory);
+        toggleSelect(tower, setSelectedTowers, [setSelectedInventory, setSelectedSupportInventory, setSelectedSupportTowers], 'colorIndex');
     }, [toggleSelect]);
 
+    // 서포트 타워 선택 (인벤토리)
     const toggleSupportInventorySelect = useCallback((support) => {
-        setSelectedInventory([]);
-        setSelectedTowers([]);
-        setSelectedSupportTowers([]);
-        setSelectedSupportInventory(prev => {
-            const isSelected = prev.some(s => s.id === support.id);
-            if (isSelected) return prev.filter(s => s.id !== support.id);
-            if (prev.length >= 3) return prev;
-            if (prev.length > 0 && (prev[0].tier !== support.tier || prev[0].supportType !== support.supportType)) return prev;
-            return [...prev, support];
-        });
-    }, []);
+        toggleSelect(support, setSelectedSupportInventory, [setSelectedInventory, setSelectedTowers, setSelectedSupportTowers], 'supportType');
+    }, [toggleSelect]);
 
+    // 서포트 타워 선택 (맵)
     const toggleSupportTowerSelect = useCallback((support) => {
-        setSelectedInventory([]);
-        setSelectedTowers([]);
-        setSelectedSupportInventory([]);
-        setSelectedSupportTowers(prev => {
-            const isSelected = prev.some(s => s.id === support.id);
-            if (isSelected) return prev.filter(s => s.id !== support.id);
-            if (prev.length >= 3) return prev;
-            if (prev.length > 0 && (prev[0].tier !== support.tier || prev[0].supportType !== support.supportType)) return prev;
-            return [...prev, support];
-        });
-    }, []);
+        toggleSelect(support, setSelectedSupportTowers, [setSelectedInventory, setSelectedTowers, setSelectedSupportInventory], 'supportType');
+    }, [toggleSelect]);
 
     // ===== 뽑기 =====
-    // 영구 버프 할인 적용
-    const drawDiscount = typeof PermanentBuffManager !== 'undefined'
-        ? PermanentBuffManager.getDrawDiscount(permanentBuffs) : 0;
+    // 영구 버프 할인 적용 (BuffHelper 사용)
+    const drawDiscount = BuffHelper.getDrawDiscount(permanentBuffs);
     const effectiveDrawCost = Math.max(1, ECONOMY.drawCost - drawDiscount);
 
     const drawRandomNeon = useCallback(() => {
-        const cost = Math.max(1, ECONOMY.drawCost - (typeof PermanentBuffManager !== 'undefined'
-            ? PermanentBuffManager.getDrawDiscount(permanentBuffs) : 0));
+        const cost = Math.max(1, ECONOMY.drawCost - BuffHelper.getDrawDiscount(permanentBuffs));
         if (gold < cost || inventory.length >= ECONOMY.maxInventory) return;
         const colorIndex = Math.floor(Math.random() * 6);
         const newNeon = TowerSystem.create(1, colorIndex);
@@ -312,6 +294,29 @@ const useInventory = (gameState) => {
         setPendingT4Choice(null);
     }, []);
 
+    // ===== 캐리오버 관련 =====
+
+    // 캐리오버 타워를 인벤토리에 추가
+    const addCarryoverTowers = useCallback((carriedTowers, carriedSupports) => {
+        if (carriedTowers && carriedTowers.length > 0) {
+            setInventory(carriedTowers);
+        }
+        if (carriedSupports && carriedSupports.length > 0) {
+            setSupportInventory(carriedSupports);
+        }
+    }, []);
+
+    // 새 스테이지용 인벤토리 클리어 (캐리오버 타워 제외, addCarryoverTowers에서 이미 처리)
+    const clearInventoryForNewStage = useCallback(() => {
+        // 캐리오버 타워는 이미 addCarryoverTowers에서 설정됨
+        // 선택 상태만 초기화
+        setSelectedInventory([]);
+        setSelectedTowers([]);
+        setSelectedSupportInventory([]);
+        setSelectedSupportTowers([]);
+        setPendingT4Choice(null);
+    }, []);
+
     return {
         // 일반 타워
         inventory, setInventory,
@@ -357,6 +362,9 @@ const useInventory = (gameState) => {
         addTowerToInventory,
         addSupportToInventory,
         resetInventory,
+        // 캐리오버
+        addCarryoverTowers,
+        clearInventoryForNewStage,
         // 영구 버프 적용 비용
         effectiveDrawCost,
     };

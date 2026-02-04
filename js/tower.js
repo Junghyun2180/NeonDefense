@@ -195,21 +195,20 @@ const TowerSystem = {
   },
 
   // 타워 공격 처리 (디버프 + 서포트 버프 + 영구 버프 계산 포함)
-  processAttack(tower, enemies, supportTowers, now, gameSpeed, permanentBuffs = {}) {
+  // context = { enemies, supportTowers, now, gameSpeed, permanentBuffs }
+  processAttack(tower, context) {
+    const { enemies, supportTowers = [], now, gameSpeed, permanentBuffs = {} } = context;
+
     const { speedDebuff, damageDebuff } = this.calcDebuffs(tower, enemies);
-    const { attackBuff, speedBuff, rangeBuff } = this.calcSupportBuffs(tower, supportTowers || []);
+    const { attackBuff, speedBuff, rangeBuff } = this.calcSupportBuffs(tower, supportTowers);
     const isDebuffed = speedDebuff < 1 || damageDebuff < 1;
     const isBuffed = attackBuff > 0 || speedBuff > 0 || rangeBuff > 0;
 
-    // 영구 버프 계산
-    const permDamageMult = typeof PermanentBuffManager !== 'undefined'
-      ? PermanentBuffManager.getDamageMultiplier(permanentBuffs) : 1;
-    const permSpeedMult = typeof PermanentBuffManager !== 'undefined'
-      ? PermanentBuffManager.getAttackSpeedMultiplier(permanentBuffs) : 1;
-    const permRangeMult = typeof PermanentBuffManager !== 'undefined'
-      ? PermanentBuffManager.getRangeMultiplier(permanentBuffs) : 1;
-    const critInfo = typeof PermanentBuffManager !== 'undefined'
-      ? PermanentBuffManager.getCritInfo(permanentBuffs) : { chance: 0, multiplier: 1 };
+    // 영구 버프 계산 (BuffHelper 사용)
+    const permDamageMult = BuffHelper.getDamageMultiplier(permanentBuffs);
+    const permSpeedMult = BuffHelper.getAttackSpeedMultiplier(permanentBuffs);
+    const permRangeMult = BuffHelper.getRangeMultiplier(permanentBuffs);
+    const critInfo = BuffHelper.getCritInfo(permanentBuffs);
 
     // 쿨다운 체크 (서포트 공속 버프 + 영구 공속 버프 적용)
     const effectiveSpeed = tower.speed / speedDebuff / (1 + speedBuff) / permSpeedMult;

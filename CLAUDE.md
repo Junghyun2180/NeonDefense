@@ -38,6 +38,7 @@ NeonDefense/
 - `GameEngine` — 게임 틱 오케스트레이터
 - `PermanentBuffManager` — 영구 버프 관리
 - `GameStats` — 게임 통계 추적/요약
+- `BuffHelper` — 영구 버프 안전 접근 래퍼 (utils.js)
 
 ### 주요 시스템
 - **공격 타워** (6속성 × 4티어): 화염/냉기/전격/질풍/공허/광휘

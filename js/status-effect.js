@@ -684,64 +684,47 @@ const StatusEffects = {
 
 // ===== 하위 호환을 위한 래퍼 (기존 코드 지원) =====
 const StatusEffectSystem = {
+  // 효과 타입별 파라미터 매핑 (동적 팩토리 호출용)
+  _effectParamMap: {
+    burn: (e) => [e.damage, e.duration],
+    slow: (e) => [e.percent, e.duration],
+    freeze: (e) => [e.duration],
+    stun: (e) => [e.duration],
+    knockback: (e) => [e.distance],
+    pull: (e) => [e.targetX, e.targetY, e.distance],
+    vulnerability: (e) => [e.percent, e.sourceId],
+    regeneration: (e) => [e.healPercent, e.duration],
+    attackBuff: (e) => [e.percent, e.sourceId],
+    attackSpeedBuff: (e) => [e.percent, e.sourceId],
+    rangeBuff: (e) => [e.percent, e.sourceId],
+    attackSpeedDebuff: (e) => [e.percent, e.duration],
+    damageDebuff: (e) => [e.percent, e.duration],
+  },
+
+  // 효과 객체 생성 (통합 팩토리)
+  _createEffect(effectData) {
+    const factory = StatusEffects[effectData.type];
+    const paramMapper = this._effectParamMap[effectData.type];
+
+    if (!factory || !paramMapper) {
+      console.warn(`Unknown effect type: ${effectData.type}`);
+      return null;
+    }
+
+    return factory(...paramMapper(effectData));
+  },
+
   // 기존 인터페이스 호환 (적 디버프)
   apply(enemy, effect, now) {
-    let statusEffect;
-    switch (effect.type) {
-      case 'burn':
-        statusEffect = StatusEffects.burn(effect.damage, effect.duration);
-        break;
-      case 'slow':
-        statusEffect = StatusEffects.slow(effect.percent, effect.duration);
-        break;
-      case 'freeze':
-        statusEffect = StatusEffects.freeze(effect.duration);
-        break;
-      case 'stun':
-        statusEffect = StatusEffects.stun(effect.duration);
-        break;
-      case 'knockback':
-        statusEffect = StatusEffects.knockback(effect.distance);
-        break;
-      case 'pull':
-        statusEffect = StatusEffects.pull(effect.targetX, effect.targetY, effect.distance);
-        break;
-      case 'vulnerability':
-        statusEffect = StatusEffects.vulnerability(effect.percent, effect.sourceId);
-        break;
-      case 'regeneration':
-        statusEffect = StatusEffects.regeneration(effect.healPercent, effect.duration);
-        break;
-      default:
-        console.warn(`Unknown effect type: ${effect.type}`);
-        return enemy;
-    }
+    const statusEffect = this._createEffect(effect);
+    if (!statusEffect) return enemy;
     return StatusEffectManager.addEffect(enemy, statusEffect, now);
   },
 
   // 타워에 버프/디버프 적용
   applyToTower(tower, effect, now) {
-    let statusEffect;
-    switch (effect.type) {
-      case 'attackBuff':
-        statusEffect = StatusEffects.attackBuff(effect.percent, effect.sourceId);
-        break;
-      case 'attackSpeedBuff':
-        statusEffect = StatusEffects.attackSpeedBuff(effect.percent, effect.sourceId);
-        break;
-      case 'rangeBuff':
-        statusEffect = StatusEffects.rangeBuff(effect.percent, effect.sourceId);
-        break;
-      case 'attackSpeedDebuff':
-        statusEffect = StatusEffects.attackSpeedDebuff(effect.percent, effect.duration);
-        break;
-      case 'damageDebuff':
-        statusEffect = StatusEffects.damageDebuff(effect.percent, effect.duration);
-        break;
-      default:
-        console.warn(`Unknown tower effect type: ${effect.type}`);
-        return tower;
-    }
+    const statusEffect = this._createEffect(effect);
+    if (!statusEffect) return tower;
     return StatusEffectManager.addEffect(tower, statusEffect, now);
   },
 

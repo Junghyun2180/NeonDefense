@@ -27,6 +27,15 @@ const useGameState = () => {
     const [buffChoices, setBuffChoices] = useState([]);
     const permanentBuffsRef = useRef({});
 
+    // 캐리오버 시스템
+    const [showCarryoverSelection, setShowCarryoverSelection] = useState(false);
+    const [carryoverCandidates, setCarryoverCandidates] = useState({ towers: [], supports: [] });
+    const [selectedCarryover, setSelectedCarryover] = useState({ towers: [], supports: [] });
+    const [pendingCarryover, setPendingCarryover] = useState(null);
+    // 인벤토리 참조 (App.jsx에서 주입)
+    const inventoryRef = useRef([]);
+    const supportInventoryRef = useRef([]);
+
     // 게임 클리어 및 통계
     const [gameCleared, setGameCleared] = useState(false);
     const [gameStats, setGameStats] = useState(() => GameStats.createEmpty());
@@ -41,9 +50,7 @@ const useGameState = () => {
     const gameSpeedRef = useRef(1);
     useEffect(() => { gameSpeedRef.current = gameSpeed; }, [gameSpeed]);
 
-    // Refs
-    const gameLoopRef = useRef(null);
-    const spawnIntervalRef = useRef(null);
+    // Refs (최신 값 참조용)
     const enemiesRef = useRef([]);
     const towersRef = useRef([]);
     const projectilesRef = useRef([]);
@@ -58,99 +65,42 @@ const useGameState = () => {
     useEffect(() => { permanentBuffsRef.current = permanentBuffs; }, [permanentBuffs]);
     useEffect(() => { gameStatsRef.current = gameStats; }, [gameStats]);
 
+    // ===== 게임 루프 (분리된 훅) =====
+    const { clearIntervals } = useGameLoop({
+        isPlaying,
+        gameOver,
+        stage,
+        wave,
+        enemiesRef,
+        towersRef,
+        supportTowersRef,
+        projectilesRef,
+        pathDataRef,
+        gameSpeedRef,
+        permanentBuffsRef,
+        setEnemies,
+        setTowers,
+        setProjectiles,
+        setEffects,
+        setChainLightnings,
+        setGold,
+        setLives,
+        setGameOver,
+        setSpawnedCount,
+        setKilledCount,
+        setGameStats,
+    });
+
     // ===== 웨이브 시작 =====
     const startWave = useCallback(() => {
         if (isPlaying) return;
         setIsPlaying(true);
         setSpawnedCount(0);
         setKilledCount(0);
-        livesAtWaveStart.current = lives;  // 웨이브 시작 시 목숨 저장
+        livesAtWaveStart.current = lives;
         soundManager.playWaveStart();
         soundManager.playBGM();
     }, [isPlaying, lives]);
-
-    // ===== 메인 게임 루프 =====
-    useEffect(() => {
-        if (!isPlaying || gameOver) return;
-        let localSpawnedCount = 0;
-        const totalEnemies = SPAWN.enemiesPerWave(stage, wave);
-        const baseSpawnDelay = SPAWN.spawnDelay(stage, wave);
-
-        // 적 스폰 인터벌
-        spawnIntervalRef.current = setInterval(() => {
-            if (localSpawnedCount >= totalEnemies) return;
-            const paths = pathDataRef.current.paths;
-            const selectedPath = paths[Math.floor(Math.random() * paths.length)];
-            const newEnemy = EnemySystem.create(stage, wave, localSpawnedCount, totalEnemies, selectedPath.tiles, selectedPath.id);
-            setEnemies(prev => [...prev, newEnemy]);
-            localSpawnedCount++;
-            setSpawnedCount(localSpawnedCount);
-        }, baseSpawnDelay);
-
-        // 게임 틱 루프
-        gameLoopRef.current = setInterval(() => {
-            const now = Date.now();
-            const speed = gameSpeedRef.current;
-
-            const result = GameEngine.gameTick({
-                enemies: enemiesRef.current,
-                towers: towersRef.current,
-                supportTowers: supportTowersRef.current,
-                projectiles: projectilesRef.current,
-                gameSpeed: speed,
-                permanentBuffs: permanentBuffsRef.current,
-            }, now);
-
-            setEnemies(result.enemies);
-            setTowers(result.towers);
-            setProjectiles(result.projectiles);
-
-            if (result.killedCount > 0) {
-                setKilledCount(prev => prev + result.killedCount);
-                // 통계: 킬 카운트 업데이트
-                setGameStats(prev => ({ ...prev, totalKills: prev.totalKills + result.killedCount }));
-            }
-            if (result.goldEarned > 0) {
-                // 영구 버프 골드 보너스 적용
-                const goldMult = PermanentBuffManager.getGoldMultiplier(permanentBuffsRef.current);
-                const earnedGold = Math.floor(result.goldEarned * goldMult);
-                setGold(prev => prev + earnedGold);
-                // 통계: 골드 획득
-                setGameStats(prev => ({
-                    ...prev,
-                    totalGoldEarned: prev.totalGoldEarned + earnedGold,
-                    goldFromKills: prev.goldFromKills + earnedGold,
-                }));
-            }
-            if (result.newEffects.length > 0) setEffects(prev => [...prev, ...result.newEffects]);
-
-            if (result.newChainLightnings.length > 0) {
-                setChainLightnings(prev => [...prev, ...result.newChainLightnings]);
-                const chainIds = result.newChainLightnings.map(c => c.id);
-                setTimeout(() => {
-                    setChainLightnings(prev => prev.filter(c => !chainIds.includes(c.id)));
-                }, COMBAT.chainLightningDisplayTime);
-            }
-
-            result.soundEvents.forEach(evt => {
-                if (soundManager[evt.method]) soundManager[evt.method](...evt.args);
-            });
-
-            if (result.livesLost > 0) {
-                // 통계: 목숨 손실
-                setGameStats(prev => ({ ...prev, livesLost: prev.livesLost + result.livesLost }));
-                setLives(l => {
-                    const newLives = l - result.livesLost;
-                    if (newLives <= 0) { setGameOver(true); soundManager.playGameOver(); soundManager.stopBGM(); }
-                    return Math.max(0, newLives);
-                });
-            }
-
-            setEffects(prev => GameEngine.cleanExpiredEffects(prev, now));
-        }, COMBAT.gameLoopInterval);
-
-        return () => { clearInterval(gameLoopRef.current); clearInterval(spawnIntervalRef.current); };
-    }, [isPlaying, gameOver, wave, stage]);
 
     // ===== 웨이브 클리어 판정 =====
     useEffect(() => {
@@ -208,13 +158,43 @@ const useGameState = () => {
             }
 
             setShowStageTransition(true);
-            // 2초 후 버프 선택 모달 표시
+            // 2초 후 캐리오버 또는 버프 선택 모달 표시
             setTimeout(() => {
                 setShowStageTransition(false);
-                // 버프 선택지 생성
-                const choices = PermanentBuffManager.getRandomBuffChoices(permanentBuffs, 3);
-                setBuffChoices(choices);
-                setShowBuffSelection(true);
+
+                // 캐리오버 후보 생성
+                const candidates = generateCarryoverCandidates(
+                    towersRef.current,
+                    supportTowersRef.current,
+                    inventoryRef.current,
+                    supportInventoryRef.current
+                );
+
+                // 후보가 있으면 캐리오버 선택, 없으면 바로 버프 선택
+                if (candidates.towers.length > 0 || candidates.supports.length > 0) {
+                    setCarryoverCandidates(candidates);
+                    setSelectedCarryover({ towers: [], supports: [] });
+                    setShowCarryoverSelection(true);
+                } else {
+                    // 후보 없음 - 모든 타워 환급 후 버프 선택으로
+                    const refund = calculateCarryoverRefund(
+                        towersRef.current,
+                        supportTowersRef.current,
+                        inventoryRef.current,
+                        supportInventoryRef.current,
+                        { towers: [], supports: [] }
+                    );
+                    if (refund > 0) {
+                        setGold(prev => prev + refund);
+                        setGameStats(prev => ({
+                            ...prev,
+                            totalGoldEarned: prev.totalGoldEarned + refund,
+                        }));
+                    }
+                    const choices = PermanentBuffManager.getRandomBuffChoices(permanentBuffs, 3);
+                    setBuffChoices(choices);
+                    setShowBuffSelection(true);
+                }
             }, 2000);
         } else {
             setWave(prev => prev + 1);
@@ -243,6 +223,11 @@ const useGameState = () => {
         setPermanentBuffs({});
         setShowBuffSelection(false);
         setBuffChoices([]);
+        // 캐리오버 초기화
+        setShowCarryoverSelection(false);
+        setCarryoverCandidates({ towers: [], supports: [] });
+        setSelectedCarryover({ towers: [], supports: [] });
+        setPendingCarryover(null);
         // 게임 클리어 및 통계 초기화
         setGameCleared(false);
         setGameStats(GameStats.createEmpty());
@@ -256,9 +241,8 @@ const useGameState = () => {
         setProjectiles([]);
         setSpawnedCount(0);
         setKilledCount(0);
-        clearInterval(gameLoopRef.current);
-        clearInterval(spawnIntervalRef.current);
-    }, []);
+        clearIntervals();
+    }, [clearIntervals]);
 
     const advanceStage = useCallback((targetStage) => {
         clearWave();
@@ -268,6 +252,82 @@ const useGameState = () => {
         setTowers([]);
         setSupportTowers([]);
     }, [clearWave]);
+
+    // ===== 캐리오버 핸들러 =====
+
+    // 인벤토리 참조 업데이트 함수 (App.jsx에서 호출)
+    const updateInventoryRefs = useCallback((inventory, supportInventory) => {
+        inventoryRef.current = inventory;
+        supportInventoryRef.current = supportInventory;
+    }, []);
+
+    // 캐리오버 타워 토글
+    const toggleCarryoverTower = useCallback((towerId) => {
+        setSelectedCarryover(prev => {
+            const isSelected = prev.towers.includes(towerId);
+            if (isSelected) {
+                return { ...prev, towers: prev.towers.filter(id => id !== towerId) };
+            } else if (prev.towers.length < CARRYOVER.maxTowers) {
+                return { ...prev, towers: [...prev.towers, towerId] };
+            }
+            return prev;
+        });
+    }, []);
+
+    // 캐리오버 서포트 토글
+    const toggleCarryoverSupport = useCallback((supportId) => {
+        setSelectedCarryover(prev => {
+            const isSelected = prev.supports.includes(supportId);
+            if (isSelected) {
+                return { ...prev, supports: prev.supports.filter(id => id !== supportId) };
+            } else if (prev.supports.length < CARRYOVER.maxSupports) {
+                return { ...prev, supports: [...prev.supports, supportId] };
+            }
+            return prev;
+        });
+    }, []);
+
+    // 캐리오버 확정
+    const confirmCarryover = useCallback(() => {
+        // 선택된 타워들 준비 (위치 정보 제거)
+        const carriedTowers = carryoverCandidates.towers
+            .filter(t => selectedCarryover.towers.includes(t.id))
+            .map(prepareCarryoverTower);
+
+        const carriedSupports = carryoverCandidates.supports
+            .filter(s => selectedCarryover.supports.includes(s.id))
+            .map(prepareCarryoverTower);
+
+        // 미선택 타워 환급 계산
+        const refund = calculateCarryoverRefund(
+            towersRef.current,
+            supportTowersRef.current,
+            inventoryRef.current,
+            supportInventoryRef.current,
+            selectedCarryover
+        );
+
+        // 환급 적용
+        if (refund > 0) {
+            setGold(prev => prev + refund);
+            setGameStats(prev => ({
+                ...prev,
+                totalGoldEarned: prev.totalGoldEarned + refund,
+            }));
+        }
+
+        // 캐리오버 타워 저장 (버프 선택 후 인벤토리에 추가)
+        setPendingCarryover({
+            towers: carriedTowers,
+            supports: carriedSupports,
+        });
+
+        // 캐리오버 모달 닫고 버프 선택으로
+        setShowCarryoverSelection(false);
+        const choices = PermanentBuffManager.getRandomBuffChoices(permanentBuffs, 3);
+        setBuffChoices(choices);
+        setShowBuffSelection(true);
+    }, [carryoverCandidates, selectedCarryover, permanentBuffs]);
 
     // 버프 선택 핸들러
     const selectBuff = useCallback((buffId) => {
@@ -303,7 +363,12 @@ const useGameState = () => {
         if (bonusLives > 0 && lives < ECONOMY.startLives + bonusLives) {
             setLives(ECONOMY.startLives + bonusLives);
         }
-    }, [stage, permanentBuffs, lives]);
+
+        // 캐리오버 타워 반환 (App.jsx에서 인벤토리에 추가)
+        const carryover = pendingCarryover;
+        setPendingCarryover(null);
+        return carryover;
+    }, [stage, permanentBuffs, lives, pendingCarryover]);
 
     return {
         // 상태
@@ -329,6 +394,14 @@ const useGameState = () => {
         showBuffSelection,
         buffChoices,
         selectBuff,
+        // 캐리오버 시스템
+        showCarryoverSelection,
+        carryoverCandidates,
+        selectedCarryover,
+        toggleCarryoverTower,
+        toggleCarryoverSupport,
+        confirmCarryover,
+        updateInventoryRefs,
         // 게임 클리어 및 통계
         gameCleared,
         gameStats, setGameStats,
