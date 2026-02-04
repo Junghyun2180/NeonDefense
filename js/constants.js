@@ -41,10 +41,14 @@ const ELEMENT_EFFECTS = {
     knockbackDistance: { 1: 15, 2: 20, 3: 25, 4: 35 },
   },
   [ELEMENT_TYPES.VOID]: {
-    name: '공허', icon: '🌀', desc: '균형잡힌 공격',
+    name: '공허', icon: '🌀', desc: '관통 공격',
+    pierceCount: { 1: 1, 2: 2, 3: 2, 4: 3 },        // 관통 대상 수
+    pierceDamageDecay: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 0.8 }, // 관통 데미지 감쇠
   },
   [ELEMENT_TYPES.LIGHT]: {
-    name: '광휘', icon: '💎', desc: '균형잡힌 공격',
+    name: '광휘', icon: '💎', desc: '정밀 타격',
+    executeThreshold: { 1: 0.2, 2: 0.25, 3: 0.3, 4: 0.35 }, // 처형 HP 임계값
+    executeBonus: { 1: 1.5, 2: 1.8, 3: 2.0, 4: 2.5 },       // 처형 보너스 배율
   },
 };
 

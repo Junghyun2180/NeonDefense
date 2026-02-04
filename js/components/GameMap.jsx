@@ -194,6 +194,8 @@ const GameMap = ({
                         if (effect.type === 'knockback') effectClass = 'knockback-effect';
                         if (effect.type === 'heal') effectClass = 'heal-effect';
                         if (effect.type === 'split') effectClass = 'split-effect';
+                        if (effect.type === 'pierce') effectClass = 'pierce-effect';
+                        if (effect.type === 'execute') effectClass = 'execute-effect';
 
                         // T4 특수 이펙트 - 더 크고 화려하게
                         let size = 30;

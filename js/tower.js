@@ -218,7 +218,10 @@ const TowerSystem = {
 
     // 타겟 찾기 (서포트 사거리 버프 + 영구 사거리 버프 적용)
     const effectiveRange = tower.range * (1 + rangeBuff) * permRangeMult;
-    const target = this.findTargetWithRange(tower, enemies, effectiveRange);
+    // 광휘 타워: HP 낮은 적 우선 타겟팅
+    const target = tower.element === ELEMENT_TYPES.LIGHT
+      ? this.findLowestHpTarget(tower, enemies, effectiveRange)
+      : this.findTargetWithRange(tower, enemies, effectiveRange);
     if (!target) {
       return { tower: { ...tower, isDebuffed, isBuffed }, projectile: null };
     }
@@ -255,6 +258,25 @@ const TowerSystem = {
     });
 
     return nearestEnemy;
+  },
+
+  // HP가 가장 낮은 적 찾기 (광휘 타워 전용)
+  findLowestHpTarget(tower, enemies, range) {
+    let lowestHpEnemy = null;
+    let lowestHpRatio = Infinity;
+
+    enemies.forEach(enemy => {
+      const dist = calcDistance(tower.x, tower.y, enemy.x, enemy.y);
+      if (dist <= range) {
+        const hpRatio = enemy.hp / enemy.maxHp;
+        if (hpRatio < lowestHpRatio) {
+          lowestHpRatio = hpRatio;
+          lowestHpEnemy = enemy;
+        }
+      }
+    });
+
+    return lowestHpEnemy;
   },
 
   // ===== 서포트 타워 시스템 =====

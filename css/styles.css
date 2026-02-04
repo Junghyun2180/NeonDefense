@@ -222,6 +222,27 @@ body {
   animation: split 0.4s ease-out forwards;
 }
 
+/* Pierce Effect (Void) */
+@keyframes pierce {
+  0% { transform: scale(0.8) translateX(0); opacity: 1; }
+  100% { transform: scale(0.3) translateX(20px); opacity: 0; }
+}
+
+.pierce-effect {
+  animation: pierce 0.25s ease-out forwards;
+}
+
+/* Execute Effect (Light) */
+@keyframes execute {
+  0% { transform: scale(0.5); opacity: 1; }
+  30% { transform: scale(1.8); opacity: 1; }
+  100% { transform: scale(0.2); opacity: 0; }
+}
+
+.execute-effect {
+  animation: execute 0.35s ease-out forwards;
+}
+
 /* Healer Glow */
 .healer-glow {
   animation: healerPulse 1.5s ease-in-out infinite;

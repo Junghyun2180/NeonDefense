@@ -315,11 +315,13 @@ const GameEngine = {
         }
 
         case ELEMENT_TYPES.VOID: {
+          const ve = ELEMENT_EFFECTS[ELEMENT_TYPES.VOID];
+
           // T4 공허: 시너지 촉매형 - 주변 타워 버프 (별도 시스템 필요)
           if (isT4 && special.synergyBuff) {
             visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-void-synergy', color: '#8A2BE2' });
           }
-          // T4 공허: 차원 파열형 - 관통 (뒤에 있는 적도 피해)
+          // T4 공허: 차원 파열형 - 강화된 관통
           else if (isT4 && special.piercing) {
             let pierceCount = special.pierceCount || 3;
             let pierced = 0;
@@ -337,14 +339,52 @@ const GameEngine = {
             });
             visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-void-pierce', color: '#4B0082' });
           }
-          // T4 공허: 균형 딜러형 - 기본
+          // T4 공허: 균형 딜러형 - 기본 (관통 포함)
           else if (isT4) {
+            // T4 기본형도 관통 적용
+            const pierceCount = ve.pierceCount[4];
+            const pierceDamageDecay = ve.pierceDamageDecay[4];
+            let pierced = 0;
+            const sortedEnemies = currentEnemies
+              .filter(e => e.id !== hit.enemyId)
+              .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
+              .filter(e => e.dist <= 100)
+              .sort((a, b) => a.dist - b.dist);
+
+            sortedEnemies.forEach(({ enemy }) => {
+              if (pierced >= pierceCount) return;
+              const pierceDmg = Math.floor(finalDamage * pierceDamageDecay);
+              damageMap.set(enemy.id, (damageMap.get(enemy.id) || 0) + pierceDmg);
+              pierced++;
+            });
             visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-void-balance', color: '#9932CC' });
+          }
+          // T1~T3 공허: 관통 공격
+          else {
+            const pierceCount = ve.pierceCount[hit.tier];
+            const pierceDamageDecay = ve.pierceDamageDecay[hit.tier];
+            let pierced = 0;
+            const sortedEnemies = currentEnemies
+              .filter(e => e.id !== hit.enemyId)
+              .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
+              .filter(e => e.dist <= 80)
+              .sort((a, b) => a.dist - b.dist);
+
+            sortedEnemies.forEach(({ enemy }) => {
+              if (pierced >= pierceCount) return;
+              const pierceDmg = Math.floor(finalDamage * pierceDamageDecay);
+              damageMap.set(enemy.id, (damageMap.get(enemy.id) || 0) + pierceDmg);
+              visualEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'pierce', color: '#DDA0DD' });
+              pierced++;
+            });
           }
           break;
         }
 
         case ELEMENT_TYPES.LIGHT: {
+          const le = ELEMENT_EFFECTS[ELEMENT_TYPES.LIGHT];
+          const target = currentEnemies.find(e => e.id === hit.enemyId);
+
           // T4 광휘: 파쇄 타격형 - 크리티컬
           if (isT4 && special.critChance) {
             if (Math.random() < special.critChance) {
@@ -371,13 +411,35 @@ const GameEngine = {
           }
           // T4 광휘: 러시 차단형 - 빠른 적 보너스
           else if (isT4 && special.fastEnemyBonus) {
-            const target = currentEnemies.find(e => e.id === hit.enemyId);
             if (target && target.baseSpeed > 0.6) {
               finalDamage = Math.floor(finalDamage * (1 + special.fastEnemyBonus));
               visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-fast', color: '#FF69B4' });
             }
-          } else if (isT4) {
-            visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-hit', color: '#FFFACD' });
+          }
+          // T4 기본 (정밀 타격 포함)
+          else if (isT4) {
+            // 처형 보너스: HP가 임계값 이하면 추가 피해
+            if (target) {
+              const hpRatio = target.hp / target.maxHp;
+              const threshold = le.executeThreshold[4];
+              if (hpRatio <= threshold) {
+                finalDamage = Math.floor(finalDamage * le.executeBonus[4]);
+                visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'execute', color: '#FFD700' });
+              } else {
+                visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-hit', color: '#FFFACD' });
+              }
+            }
+          }
+          // T1~T3 광휘: 정밀 타격 (HP 낮은 적 처형 보너스)
+          else {
+            if (target) {
+              const hpRatio = target.hp / target.maxHp;
+              const threshold = le.executeThreshold[hit.tier];
+              if (hpRatio <= threshold) {
+                finalDamage = Math.floor(finalDamage * le.executeBonus[hit.tier]);
+                visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'execute', color: '#FFD700' });
+              }
+            }
           }
           break;
         }
