@@ -558,10 +558,10 @@ const GameEngine = {
     const allProjectiles = [...projectiles, ...newProjectiles];
     const { updatedProjectiles, hits } = this.processProjectiles(allProjectiles, movedEnemies, gameSpeed);
 
-    // 4단계: 충돌 효과 해석
+    // 4단계: 충돌 효과 해석 (AbilitySystem 사용)
     let newChainLightnings = [];
     if (hits.length > 0) {
-      const resolved = this.resolveHits(hits, movedEnemies, permanentBuffs);
+      const resolved = AbilitySystem.resolveAllHits(hits, movedEnemies, permanentBuffs);
       newEffects.push(...resolved.visualEffects);
       newChainLightnings = resolved.chainLightnings;
 

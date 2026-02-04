@@ -52,7 +52,7 @@ const EnemySystem = {
       ? ECONOMY.bossGoldReward(stage, wave)
       : config.goldReward;
 
-    return {
+    const enemy = {
       id: Date.now() + Math.random(),
       type,
       health,
@@ -71,6 +71,8 @@ const EnemySystem = {
       // 힐러 전용
       lastHealTime: 0,
     };
+    // Ability 할당
+    return EnemyAbilitySystem.assignAbility(enemy);
   },
 
   // 분열체가 죽을 때 작은 적 생성
@@ -100,7 +102,8 @@ const EnemySystem = {
         lastHealTime: 0,
         isSplitChild: true, // 분열 자식 표시 (재분열 방지)
       };
-      splitEnemies.push(splitEnemy);
+      // Ability 할당
+      splitEnemies.push(EnemyAbilitySystem.assignAbility(splitEnemy));
     }
 
     return splitEnemies;

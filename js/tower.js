@@ -5,7 +5,7 @@ const TowerSystem = {
   // 타워/네온 생성 팩토리 (단일 진실의 원천)
   create(tier, colorIndex) {
     const neonData = NEON_TYPES[tier];
-    return {
+    const tower = {
       id: Date.now() + Math.random(),
       tier,
       colorIndex,
@@ -18,6 +18,8 @@ const TowerSystem = {
       lastShot: 0,
       isDebuffed: false,
     };
+    // Ability 할당
+    return AbilitySystem.assignAbility(tower);
   },
 
   // 맵에 배치 (그리드 좌표 추가)
@@ -64,7 +66,7 @@ const TowerSystem = {
     const baseData = NEON_TYPES[4];
     const statMod = selectedRole.statMod;
 
-    return {
+    const tower = {
       id: Date.now() + Math.random(),
       tier: 4,
       colorIndex,
@@ -82,6 +84,8 @@ const TowerSystem = {
       roleIcon: selectedRole.icon,
       special: selectedRole.special || {},
     };
+    // Ability 할당
+    return AbilitySystem.assignAbility(tower);
   },
 
   // 전체 자동 조합 (인벤토리 전용)
@@ -284,7 +288,7 @@ const TowerSystem = {
   // 서포트 타워 생성
   createSupport(tier, supportType) {
     const config = SUPPORT_CONFIG[tier];
-    return {
+    const support = {
       id: Date.now() + Math.random(),
       tier,
       supportType,
@@ -294,6 +298,8 @@ const TowerSystem = {
       buffValue: config.values[supportType],
       isSupport: true,
     };
+    // Ability 할당
+    return SupportAbilitySystem.assignAbility(support);
   },
 
   // 서포트 타워 맵에 배치
