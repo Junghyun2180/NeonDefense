@@ -1,11 +1,25 @@
+---
+name: tower-designer
+description: >
+  타워 설계 및 구현 전문 스킬. 공격 타워/서포트 타워의 새로운 속성이나 타입을 추가하거나
+  기존 타워를 수정할 때 사용. (1) 속성/타입 정의, (2) Ability 클래스 구현,
+  (3) AbilitySystem 매핑, (4) 밸런싱 조정.
+  트리거 키워드 - 타워, 공격타워, 서포트타워, 속성, 버프, 뽑기, DPS, 사거리
+---
+
 # TowerDesigner - 타워 설계 스킬
 
 ## 개요
 Neon Defense 게임의 공격 타워 및 서포트 타워를 설계하고 구현하는 워크플로우.
+**모든 타워 능력은 Ability 클래스로 구현한다.**
+
+## 관련 스킬
+- **Ability 시스템**: → `AbilityDesigner/SKILL.md`
+- **StatusEffect 시스템**: → `StatusEffectDesigner/SKILL.md`
 
 ## 적용 범위
-- 새로운 타워 속성/타입 추가
-- 서포트 타워 효과 설계
+- 새로운 타워 속성/타입 추가 (공격 Ability)
+- 서포트 타워 효과 설계 (서포트 Ability)
 - 타워 밸런싱 조정
 - 시너지 시스템 설계
 
@@ -95,39 +109,97 @@ knockbackDistance: { 1: 15, 2: 20, 3: 25, 4: 35 },
 ### Phase 2: 구현
 
 #### 공격 타워 새 속성 추가
+
+**1. constants.js 수정**
 ```javascript
-// constants.js - ELEMENT_TYPES에 추가
+// ELEMENT_TYPES에 추가
 const ELEMENT_TYPES = {
   ...existing,
   NEW_TYPE: 6,
 };
 
-// constants.js - ELEMENT_EFFECTS에 효과 정의
+// ELEMENT_EFFECTS에 효과 정의
 [ELEMENT_TYPES.NEW_TYPE]: {
   name: '이름', icon: '🆕', desc: '설명',
   // 효과별 수치...
 },
 
-// constants.js - NEON_TYPES 각 티어에 색상/이름 추가
+// NEON_TYPES 각 티어에 색상/이름 추가
 colors: [...existing, '#XXXXXX'],
 names: [...existing, '새 타워 이름'],
 ```
 
-#### 서포트 타워 새 타입 추가
+**2. abilities/new-ability.js 생성 (Ability 시스템)**
 ```javascript
-// constants.js - SUPPORT_TYPES에 추가
+// 기본 Ability
+class NewAbility extends Ability {
+  static TYPE = 'new';
+
+  constructor(tier) {
+    super(tier, ELEMENT_EFFECTS[ELEMENT_TYPES.NEW_TYPE]);
+    this.type = NewAbility.TYPE;
+  }
+
+  onHit(context) {
+    const { hit, target, enemies, permanentBuffs } = context;
+    return {
+      damageModifier: 1.0,
+      statusEffects: [],  // StatusEffect 연동
+      visualEffects: [],
+      // ...
+    };
+  }
+}
+
+// T4 역할별 Ability
+class NewT4AAbility extends Ability { ... }
+class NewT4BAbility extends Ability { ... }
+```
+
+**3. ability-system.js 매핑 추가**
+```javascript
+AbilitySystem._baseAbilities[ELEMENT_TYPES.NEW_TYPE] = NewAbility;
+AbilitySystem._t4Abilities['new-A'] = NewT4AAbility;
+AbilitySystem._t4Abilities['new-B'] = NewT4BAbility;
+```
+
+**4. index.html 스크립트 추가**
+```html
+<script src="js/abilities/new-ability.js"></script>
+```
+
+#### 서포트 타워 새 타입 추가
+
+**1. constants.js 수정**
+```javascript
+// SUPPORT_TYPES에 추가
 const SUPPORT_TYPES = {
   ...existing,
   NEW_BUFF: 4,
 };
 
-// constants.js - SUPPORT_CONFIG 각 티어에 값 추가
-values: [...existing, 0.XX], // 새 버프 수치
+// SUPPORT_CONFIG 각 티어에 값 추가
+values: [...existing, 0.XX],
+```
 
-// tower.js - calcSupportBuffs()에 처리 추가
-case SUPPORT_TYPES.NEW_BUFF:
-  newBuff += support.buffValue;
-  break;
+**2. abilities/support-ability.js 추가 (Ability 시스템)**
+```javascript
+class NewBuffSupportAbility extends SupportAbility {
+  static TYPE = 'newBuffSupport';
+
+  constructor(tier) {
+    super(tier, SUPPORT_TYPES.NEW_BUFF);
+    this.type = NewBuffSupportAbility.TYPE;
+  }
+
+  onTick(context) {
+    const { support, targets } = context;
+    // 버프 로직...
+  }
+}
+
+// 매핑 추가
+SupportAbilitySystem._abilities[SUPPORT_TYPES.NEW_BUFF] = NewBuffSupportAbility;
 ```
 
 ### Phase 3: 테스트
@@ -167,7 +239,10 @@ case SUPPORT_TYPES.NEW_BUFF:
 - [ ] `ELEMENT_TYPES`에 새 타입 ID 추가
 - [ ] `ELEMENT_EFFECTS`에 효과 정의
 - [ ] `NEON_TYPES` 각 티어에 색상/이름 추가
-- [ ] `game-engine.js`의 `resolveHits()`에 효과 처리 추가
+- [ ] **`abilities/xxx-ability.js` 파일 생성 (Ability 클래스)**
+- [ ] **`AbilitySystem._baseAbilities`에 매핑 추가**
+- [ ] **`AbilitySystem._t4Abilities`에 T4 역할 매핑 추가**
+- [ ] **`index.html`에 스크립트 추가**
 - [ ] CSS 애니메이션 추가 (필요시)
 
 ### 서포트 타워 추가 시
@@ -175,4 +250,11 @@ case SUPPORT_TYPES.NEW_BUFF:
 - [ ] `SUPPORT_CONFIG` 각 티어에 수치 추가
 - [ ] `SUPPORT_UI`에 아이콘/색상 추가
 - [ ] `SUPPORT_CAPS`에 상한선 추가
-- [ ] `TowerSystem.calcSupportBuffs()` 또는 관련 함수 수정
+- [ ] **`abilities/support-ability.js`에 SupportAbility 클래스 추가**
+- [ ] **`SupportAbilitySystem._abilities`에 매핑 추가**
+
+## 참조
+- **Ability 시스템**: → `AbilityDesigner/SKILL.md`
+- **StatusEffect 시스템**: → `StatusEffectDesigner/SKILL.md`
+- **몬스터 설계**: → `MonsterDesigner/SKILL.md`
+- **밸런스 설계**: → `BalanceDesigner/SKILL.md`

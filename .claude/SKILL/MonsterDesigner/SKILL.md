@@ -1,13 +1,26 @@
+---
+name: monster-designer
+description: >
+  몬스터 설계 및 구현 전문 스킬. 새로운 적 타입을 추가하거나 기존 적을 수정할 때 사용.
+  (1) 역할/수치 설계, (2) EnemyAbility 클래스 구현, (3) 스폰 규칙 설정, (4) 카운터플레이 검증.
+  트리거 키워드 - 몬스터, 적, 보스, 엘리트, 디버퍼, 힐러, 분열체, 스폰
+---
+
 # MonsterDesigner - 몬스터 디자인 스킬
 
 ## 개요
 Neon Defense 게임의 새로운 몬스터 타입을 설계하고 구현하는 체계적인 워크플로우.
+**모든 적 능력은 EnemyAbility 클래스로 구현한다.**
+
+## 관련 스킬
+- **Ability 시스템**: → `AbilityDesigner/SKILL.md`
+- **StatusEffect 시스템**: → `StatusEffectDesigner/SKILL.md`
 
 ## 적용 범위
 - 새로운 적 타입 추가
 - 기존 적 타입 밸런싱
 - 스폰 규칙 조정
-- 특수 능력 구현
+- 특수 능력 구현 (EnemyAbility)
 
 ---
 
@@ -81,25 +94,55 @@ newType: {
 { type: 'newType', condition: (idx, total, wave, stage) => stage >= X && wave >= Y, chanceBase: 0.1, chancePerStage: 0.02 },
 ```
 
-#### 2.2 `enemy.js` 수정
+#### 2.2 `abilities/enemy-ability.js` 수정 (Ability 시스템)
 ```javascript
-// 특수 능력이 있다면 처리 함수 추가
-processNewTypeAbility(enemy, allEnemies, now) {
-  // 능력 로직
-  return { updatedEnemy, affectedEnemies };
-},
+// 새로운 EnemyAbility 클래스 추가
+class NewTypeEnemyAbility extends EnemyAbility {
+  static TYPE = 'newTypeEnemy';
 
-// 타입 체크 헬퍼 (필요시)
-isNewType(enemy) {
-  return enemy.type === 'newType';
-},
+  constructor() {
+    super('newType');
+    this.type = NewTypeEnemyAbility.TYPE;
+  }
+
+  // 매 틱마다 호출 (디버프, 힐 등)
+  onTick(context) {
+    const { enemy, towers, enemies, now } = context;
+    return {
+      towerDebuffs: [],    // 타워 디버프
+      enemyHeals: [],      // 적 힐
+      visualEffects: [],
+      spawnEnemies: [],
+    };
+  }
+
+  // 사망 시 호출 (분열 등)
+  onDeath(context) {
+    const { enemy } = context;
+    return {
+      spawnEnemies: [],
+      visualEffects: [],
+    };
+  }
+}
+
+// EnemyAbilitySystem에 매핑 추가
+EnemyAbilitySystem._abilities['newType'] = NewTypeEnemyAbility;
 ```
 
-#### 2.3 `game-engine.js` 수정
-`gameTick()` 내에서 적절한 타이밍에 능력 처리 호출:
-- 이동 후 처리: 1단계 이후
-- 피격 시 처리: 4단계 데미지 적용 시
-- 사망 시 처리: 체력 0 이하 확인 후
+#### 2.3 `enemy.js` 수정
+적 생성 시 자동으로 Ability가 할당됨:
+```javascript
+// EnemySystem.create() 내부에서 자동 호출
+return EnemyAbilitySystem.assignAbility(enemy);
+// → enemy.ability, enemy.abilityType 자동 부여
+```
+
+#### 2.4 `game-engine.js` (필요시)
+EnemyAbilitySystem의 처리 함수 호출:
+- 타워 디버프: `EnemyAbilitySystem.calculateTowerDebuffs(enemies, towers)`
+- 힐러 힐: `EnemyAbilitySystem.processHealerHeals(enemies, now)`
+- 분열 사망: `EnemyAbilitySystem.processSplitterDeath(enemy)`
 
 #### 2.4 `styles.css` 수정 (필요시)
 ```css
@@ -189,8 +232,14 @@ isNewType(enemy) {
 새 몬스터 추가 시 확인:
 - [ ] `ENEMY_CONFIG`에 타입 정의 추가
 - [ ] `SPAWN_RULES`에 스폰 규칙 추가 (우선순위 확인!)
-- [ ] `EnemySystem`에 능력 처리 함수 추가 (필요시)
+- [ ] **`abilities/enemy-ability.js`에 EnemyAbility 클래스 추가**
+- [ ] **`EnemyAbilitySystem._abilities`에 매핑 추가**
 - [ ] `GameEngine.gameTick()`에 능력 호출 통합 (필요시)
 - [ ] CSS 애니메이션 추가 (필요시)
 - [ ] 치트 콘솔로 테스트
 - [ ] `CLAUDE.md` 문서 업데이트
+
+## 참조
+- **Ability 시스템**: → `AbilityDesigner/SKILL.md`
+- **StatusEffect 시스템**: → `StatusEffectDesigner/SKILL.md`
+- **타워 설계**: → `TowerDesigner/SKILL.md`

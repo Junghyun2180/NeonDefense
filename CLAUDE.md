@@ -19,6 +19,17 @@ NeonDefense/
 │   ├── status-effect.js # StatusEffectSystem (상태이상 처리)
 │   ├── permanent-buff.js # 영구 버프 시스템 (로그라이크)
 │   ├── game-stats.js   # 게임 통계 추적
+│   ├── ability.js      # Ability 기본 클래스 + 팩토리
+│   ├── ability-system.js # AbilitySystem (공격 타워 라우터)
+│   ├── abilities/      # Ability 모듈
+│   │   ├── fire-ability.js     # 화염 계열 (4개 클래스)
+│   │   ├── water-ability.js    # 냉기 계열 (4개 클래스)
+│   │   ├── electric-ability.js # 전격 계열 (4개 클래스)
+│   │   ├── wind-ability.js     # 질풍 계열 (4개 클래스)
+│   │   ├── void-ability.js     # 공허 계열 (4개 클래스)
+│   │   ├── light-ability.js    # 광휘 계열 (4개 클래스)
+│   │   ├── support-ability.js  # 서포트 타워 (4개 클래스)
+│   │   └── enemy-ability.js    # 적 (8개 클래스)
 │   ├── enemy.js        # EnemySystem (적 생성/이동)
 │   ├── game-engine.js  # GameEngine (게임 틱)
 │   ├── sound.js        # SoundManager
@@ -33,6 +44,9 @@ NeonDefense/
 
 ### 네임스페이스 (글로벌 객체)
 - `StatusEffectSystem` — 상태이상 정의/적용/틱 처리
+- `AbilitySystem` — 공격 타워 Ability 라우터
+- `SupportAbilitySystem` — 서포트 타워 Ability 라우터
+- `EnemyAbilitySystem` — 적 Ability 라우터
 - `EnemySystem` — 적 생성/이동 (StatusEffectSystem에 위임)
 - `TowerSystem` — 타워/서포트 생성/조합/공격
 - `GameEngine` — 게임 틱 오케스트레이터
@@ -112,6 +126,48 @@ switch (effect.type) {
 2. **자기 완결적 객체** - 객체가 자신의 로직을 캡슐화
 3. **다형성 활용** - 공통 인터페이스로 일관된 처리
 
+## Ability 시스템
+
+### 개요
+모든 타워/적의 능력을 Ability 클래스로 모듈화. StatusEffect와 연동하여 효과 적용.
+
+### Ability 분류
+| 시스템 | 파일 | 클래스 예시 |
+|--------|------|-------------|
+| 공격 타워 | `abilities/*-ability.js` | `BurnAbility`, `SlowAbility`, `ChainLightningAbility` |
+| 서포트 타워 | `abilities/support-ability.js` | `AttackBuffSupportAbility`, `SpeedBuffSupportAbility` |
+| 적 | `abilities/enemy-ability.js` | `JammerEnemyAbility`, `HealerEnemyAbility` |
+
+### 사용법
+```javascript
+// 공격 타워 - 자동 할당
+const tower = TowerSystem.create(tier, colorIndex);
+// → tower.ability, tower.abilityType 자동 부여
+
+// 공격 처리
+const resolved = AbilitySystem.resolveAllHits(hits, enemies, permanentBuffs);
+
+// 서포트 타워 - 자동 할당
+const support = TowerSystem.createSupport(tier, supportType);
+// → support.ability, support.abilityType 자동 부여
+
+// 적 - 자동 할당
+const enemy = EnemySystem.create(stage, wave, ...);
+// → enemy.ability, enemy.abilityType 자동 부여
+```
+
+### Ability → StatusEffect 연동
+```javascript
+// Ability에서 상태이상 반환
+result.statusEffects.push({
+  enemyId: hit.enemyId,
+  type: 'burn',  // StatusEffect TYPE
+  damage: burnDamage,
+  duration: burnDuration,
+});
+// → StatusEffectSystem이 자동으로 BurnEffect 인스턴스 생성
+```
+
 ## StatusEffect 통합 시스템
 
 ### 효과 분류
@@ -169,10 +225,12 @@ const vulnMult = StatusEffectManager.getVulnerabilityMultiplier(target, now);
 
 | 스킬 | 용도 |
 |------|------|
+| `AbilityDesigner` | **Ability 시스템 설계 및 구현 (핵심)** |
+| `StatusEffectDesigner` | **StatusEffect 설계 및 구현** |
 | `BugFixer` | 6단계 버그 수정 워크플로우 |
 | `BalanceDesigner` | 경제/전투/메타 밸런스 설계 |
-| `MonsterDesigner` | 몬스터 설계 및 구현 워크플로우 |
-| `TowerDesigner` | 타워/서포트 타워 설계 및 구현 |
+| `MonsterDesigner` | 몬스터 설계 및 구현 (EnemyAbility) |
+| `TowerDesigner` | 타워/서포트 타워 설계 및 구현 (Ability) |
 | `UIRefactor` | App.jsx 모듈화 가이드 (토큰 최적화) |
 
 ## 주요 수치
