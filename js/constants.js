@@ -88,19 +88,19 @@ const END_COLORS = ['#FF6B6B', '#FFD93D'];
 const ENEMY_CONFIG = {
   normal: {
     healthMult: 1.2, speedRange: [0.5, 0.7], speedWaveBonus: 0.04,
-    goldReward: 2, livesLost: 1, // 4 → 2 (경제 긴축 강화)
+    goldReward: 4, livesLost: 1,
     color: 'bg-purple-600', shadow: '0 0 8px #9333ea', size: 'w-6 h-6',
     icon: null, explosionColor: '#9333ea',
   },
   fast: {
     healthMult: 0.7, speedRange: [0.9, 1.3], speedWaveBonus: 0.02,
-    goldReward: 2, livesLost: 1, // 3 → 2 (유지)
+    goldReward: 3, livesLost: 1,
     color: 'bg-cyan-400', shadow: '0 0 8px #00ffff', size: 'w-5 h-5',
     icon: null, explosionColor: '#00ffff',
   },
   elite: {
     healthMult: 3.5, speedRange: [0.45, 0.55], speedWaveBonus: 0.02,
-    goldReward: 7, livesLost: 2, // 10 → 7 (경제 긴축 강화)
+    goldReward: 10, livesLost: 2,
     color: 'bg-orange-500', shadow: '0 0 12px #ff6600', size: 'w-7 h-7',
     icon: '⭐', explosionColor: '#ff6600',
   },
@@ -112,14 +112,14 @@ const ENEMY_CONFIG = {
   },
   jammer: {
     healthMult: 2.2, speedRange: [0.4, 0.5], speedWaveBonus: 0.01,
-    goldReward: 8, livesLost: 1, // 12 → 8 (경제 긴축 강화)
+    goldReward: 12, livesLost: 1,
     color: 'bg-violet-500', shadow: '0 0 15px #8b5cf6, 0 0 30px #8b5cf6', size: 'w-7 h-7',
     icon: '📡', explosionColor: '#8b5cf6',
     debuffType: 'speed', debuffFactor: 0.4, debuffRange: 100,
   },
   suppressor: {
     healthMult: 2.5, speedRange: [0.35, 0.45], speedWaveBonus: 0.01,
-    goldReward: 10, livesLost: 1, // 14 → 10 (경제 긴축 강화)
+    goldReward: 14, livesLost: 1,
     color: 'bg-pink-500', shadow: '0 0 15px #ec4899, 0 0 30px #ec4899', size: 'w-7 h-7',
     icon: '🛡️', explosionColor: '#ec4899',
     debuffType: 'damage', debuffFactor: 0.5, debuffRange: 100,
@@ -127,7 +127,7 @@ const ENEMY_CONFIG = {
   // 새로운 적 타입: 힐러 - 주변 적 회복
   healer: {
     healthMult: 1.5, speedRange: [0.35, 0.45], speedWaveBonus: 0,
-    goldReward: 10, livesLost: 1, // 15 → 10 (경제 긴축 강화)
+    goldReward: 15, livesLost: 1,
     color: 'bg-green-500', shadow: '0 0 15px #22c55e, 0 0 30px #22c55e', size: 'w-7 h-7',
     icon: '💚', explosionColor: '#22c55e',
     healRange: 80, healAmount: 0.05, healInterval: 1000,
@@ -135,7 +135,7 @@ const ENEMY_CONFIG = {
   // 새로운 적 타입: 분열체 - 죽으면 작은 적 2마리로 분열
   splitter: {
     healthMult: 2.0, speedRange: [0.4, 0.5], speedWaveBonus: 0,
-    goldReward: 5, livesLost: 1, // 8 → 5 (경제 긴축 강화)
+    goldReward: 8, livesLost: 1,
     color: 'bg-lime-500', shadow: '0 0 12px #84cc16, 0 0 25px #84cc16', size: 'w-7 h-7',
     icon: '💠', explosionColor: '#84cc16',
     splitCount: 2, splitHealthMult: 0.4, splitSpeedMult: 1.3,
@@ -148,10 +148,10 @@ const SPAWN_RULES = [
   // 1. 보스 (매 5 웨이브 마지막)
   { type: 'boss', condition: (idx, total, wave) => wave === 5 && idx === total - 1 },
 
-  // 2. Stage 6~8 고난이도 패턴 (PLAN 2 - 확률 하향)
-  { type: 'fast', condition: (idx, total, wave, stage) => stage === 6 && wave % 2 === 1, chanceBase: 0.6 }, // Stage 6: 러너 러시 (0.8 -> 0.6)
-  { type: 'elite', condition: (idx, total, wave, stage) => stage === 7, chanceBase: 0.35 }, // Stage 7: 탱커 강화 (0.4 -> 0.35)
-  { type: 'splitter', condition: (idx, total, wave, stage) => stage === 8, chanceBase: 0.25 }, // Stage 8: 분산 스폰 강화 (0.3 -> 0.25)
+  // 2. Stage 6~10 고난이도 패턴 (우선순위 높음)
+  { type: 'fast', condition: (idx, total, wave, stage) => stage === 6 && wave % 2 === 1, chanceBase: 0.8 }, // Stage 6: 러너 러시
+  { type: 'elite', condition: (idx, total, wave, stage) => stage === 7, chanceBase: 0.4 }, // Stage 7: 탱커 강화
+  { type: 'splitter', condition: (idx, total, wave, stage) => stage === 8, chanceBase: 0.3 }, // Stage 8: 분산 스폰 강화
 
   // 3. Stage 1: 기본 + 엘리트 조금 (난이도 하향)
   // Elite: Wave 3이상, 10번째마다 100% 등장
@@ -178,31 +178,27 @@ const SPAWN_RULES = [
 ];
 
 
-// ===== 체력 스케일링 (난이도 재조정 - 밸런스 패치) =====
+// ===== 체력 스케일링 (난이도 하향 조정) =====
 const HEALTH_SCALING = {
-  base: 35, // 30 -> 35 상향 (긴장감 증가)
-  stageGrowth: 0.42, // 0.38 -> 0.42 상향 (후반 체력 증가)
-  waveGrowth: 0.32, // 0.30 -> 0.32 상향
+  base: 30, // 40 -> 30 하향
+  stageGrowth: 0.45, // 0.65 -> 0.45 하향 (초반 급상승 방지)
+  waveGrowth: 0.35,
   lateWaveThreshold: 4,
-  lateWaveBonus: 1.4, // 1.3 -> 1.4 상향 (보스 웨이브 강화)
-  bossFormula: (stage) => 12 + stage * 1.5, // 10 -> 12, 1.3 -> 1.5 상향 (보스 20% 강화)
+  lateWaveBonus: 1.5,
+  bossFormula: (stage) => 12 + stage * 1.5,
 };
 
-// ===== 경제 설정 (밸런스 패치 - 경제 긴축) =====
+// ===== 경제 설정 =====
 const ECONOMY = {
-  startGold: 100, // 120 -> 100 (초기 자원 감소)
+  startGold: 100,
   startLives: 20,
   drawCost: 20,
   maxInventory: 30, // 5행 x 6열
   sellRefundRate: 0.5,
   towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
-  waveReward: (wave) => 18 + wave * 4 + (wave === 5 ? 18 : 0), // 25->18, 6->4, 25->18 (30% 감소)
-  stageClearBonus: (stage) => {
-    // Stage 1~3: +15% 보상 (기존 +30%에서 하향)
-    if (stage <= 3) return Math.floor((35 + stage * 7) * 1.15);
-    return 35 + stage * 7; // 50->35, 10->7 (30% 감소)
-  },
-  bossGoldReward: (stage, wave) => 20 + stage * 8 + wave * 4, // 35->20, 12->8, 6->4 (30% 감소)
+  waveReward: (wave) => 20 + wave * 5 + (wave === 5 ? 20 : 0),
+  stageClearBonus: (stage) => 50 + stage * 10,
+  bossGoldReward: (stage, wave) => 30 + stage * 10 + wave * 5,
   // 서포트 타워 경제
   supportDrawCost: 40,
   maxSupportInventory: 15, // 3열 x 5행
@@ -217,17 +213,6 @@ const CARRYOVER = {
   minSupportTier: 2,   // 캐리오버 후보 최소 서포트 티어 (S2 이상)
 };
 
-// ===== 타워 뽑기 설정 (밸런스 패치 - 고티어 스폰 확률) =====
-const TOWER_DRAW = {
-  // 스테이지별 고티어 스폰 확률 (조합 부담 완화)
-  tierChance: (stage) => {
-    if (stage <= 2) return { t1: 1.0, t2: 0, t3: 0 }; // Stage 1-2: T1만
-    if (stage <= 4) return { t1: 0.85, t2: 0.15, t3: 0 }; // Stage 3-4: T2 15%
-    if (stage <= 6) return { t1: 0.70, t2: 0.25, t3: 0.05 }; // Stage 5-6: T2 25%, T3 5%
-    return { t1: 0.60, t2: 0.30, t3: 0.10 }; // Stage 7-8: T2 30%, T3 10%
-  },
-};
-
 // ===== 전투 설정 =====
 const COMBAT = {
   projectileBaseSpeed: 10,
@@ -240,24 +225,24 @@ const COMBAT = {
   shootSoundChance: 0.3,
 };
 
-// ===== 스폰 설정 (PLAN 2 - 물량 감소 + 속도 증가) =====
+// ===== 스폰 설정 =====
+// ===== 스폰 설정 (물량 및 딜레이 조정) =====
 const SPAWN = {
   enemiesPerWave: (stage, wave) => {
-    // 기존 대비 80% 수준 (플레이 타임 단축)
-    // Stage 1: 적게 (8~16)
-    if (stage === 1) return Math.floor(8 + wave * 1.6);
-    // Stage 2: 보통 (12~24)
-    if (stage === 2) return Math.floor(12 + wave * 2.4);
-    // Stage 3+: 증가 (20~...)
-    return Math.floor(20 + wave * 4 + (stage - 3) * 6);
+    // Stage 1: 적게 (12~20)
+    if (stage === 1) return 10 + wave * 2;
+    // Stage 2: 보통 (18~30)
+    if (stage === 2) return 15 + wave * 3;
+    // Stage 3+: 급격히 증가 (25~...)
+    return Math.floor(25 + wave * 5 + (stage - 3) * 8);
   },
   spawnDelay: (stage, wave) => {
-    // 더 빠른 스폰 (밀도 유지하며 시간 단축)
-    let base = 500 - (stage * 40) - (wave * 15);
-    return Math.max(80, base); // 최소 80ms
+    // 스테이지가 갈수록 딜레이 감소 (빨라짐)
+    let base = 600 - (stage * 50) - (wave * 20);
+    return Math.max(100, base); // 최소 100ms
   },
   wavesPerStage: 5,
-  maxStage: 8,  // 10 -> 8 스테이지 (플레이 타임 단축)
+  maxStage: 10,  // 최종 스테이지
 };
 
 // ===== 모바일 배치 UI 속성 데이터 =====
@@ -449,6 +434,3 @@ const T4_ROLES = {
     },
   ],
 };
-
-// ===== 전역 노출 =====
-window.TOWER_DRAW = TOWER_DRAW;

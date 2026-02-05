@@ -47,6 +47,47 @@ const NeonDefense = () => {
   const toggleBgm = () => setBgmEnabled(soundManager.toggleBGM());
   const toggleSfx = () => setSfxEnabled(soundManager.toggleSFX());
 
+  // ===== 밸런스 로거 - 진행도 추적 =====
+  useEffect(() => {
+    if (typeof BalanceLogger !== 'undefined') {
+      BalanceLogger.updateProgress(gameState.stage);
+    }
+  }, [gameState.stage]);
+
+  // ===== 밸런스 로거 - 게임 클리어 시 로그 기록 =====
+  useEffect(() => {
+    if (gameState.gameCleared && typeof BalanceLogger !== 'undefined') {
+      // 로그 기록
+      BalanceLogger.logGameEnd('clear', {
+        towers: gameState.towers,
+        supportTowers: gameState.supportTowers,
+        gold: gameState.gold,
+        lives: gameState.lives,
+        stage: gameState.stage,
+        wave: gameState.wave,
+        gameStats: gameState.gameStats,
+        permanentBuffs: gameState.permanentBuffs,
+      });
+    }
+  }, [gameState.gameCleared]);
+
+  // ===== 밸런스 로거 - 게임오버 시 로그 기록 =====
+  useEffect(() => {
+    if (gameState.gameOver && typeof BalanceLogger !== 'undefined') {
+      // 로그 기록
+      BalanceLogger.logGameEnd('gameover', {
+        towers: gameState.towers,
+        supportTowers: gameState.supportTowers,
+        gold: gameState.gold,
+        lives: gameState.lives,
+        stage: gameState.stage,
+        wave: gameState.wave,
+        gameStats: gameState.gameStats,
+        permanentBuffs: gameState.permanentBuffs,
+      });
+    }
+  }, [gameState.gameOver]);
+
   // 경로 꺾임 지점에 방향 화살표 사전 계산 (여러 경로 겹침 지원)
   const pathArrows = useMemo(() => {
     const arrows = {};
@@ -152,6 +193,11 @@ const NeonDefense = () => {
     gameState.resetGame();
     inventoryState.resetInventory();
     dragState.resetDragState();
+
+    // 밸런스 로거 세션 시작
+    if (typeof BalanceLogger !== 'undefined') {
+      BalanceLogger.startSession();
+    }
   };
 
   // ===== 렌더링 =====

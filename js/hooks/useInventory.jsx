@@ -93,23 +93,8 @@ const useInventory = (gameState) => {
     const drawRandomNeon = useCallback(() => {
         const cost = Math.max(1, ECONOMY.drawCost - BuffHelper.getDrawDiscount(permanentBuffs));
         if (gold < cost || inventory.length >= ECONOMY.maxInventory) return;
-
-        // 스테이지별 티어 확률 적용 (TOWER_DRAW 시스템)
-        const stage = gameState.stage || 1;
-        const chances = TOWER_DRAW.tierChance(stage);
-        const rand = Math.random();
-
-        let tier = 1;
-        if (rand < chances.t3) {
-            tier = 3;
-        } else if (rand < chances.t3 + chances.t2) {
-            tier = 2;
-        } else {
-            tier = 1;
-        }
-
         const colorIndex = Math.floor(Math.random() * 6);
-        const newNeon = TowerSystem.create(tier, colorIndex);
+        const newNeon = TowerSystem.create(1, colorIndex);
         setInventory(prev => [...prev, newNeon]);
         setGold(prev => prev - cost);
         // 통계: 타워 뽑기, 골드 사용
@@ -119,7 +104,7 @@ const useInventory = (gameState) => {
             totalGoldSpent: prev.totalGoldSpent + cost,
         }));
         soundManager.playDraw();
-    }, [gold, inventory.length, setGold, permanentBuffs, updateStats, gameState.stage]);
+    }, [gold, inventory.length, setGold, permanentBuffs, updateStats]);
 
     const drawRandomSupport = useCallback(() => {
         if (gold < ECONOMY.supportDrawCost || supportInventory.length >= ECONOMY.maxSupportInventory) return;

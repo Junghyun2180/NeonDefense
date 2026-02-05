@@ -74,33 +74,7 @@ const useGameLoop = (config) => {
             // 킬 카운트 및 통계
             if (result.killedCount > 0) {
                 setKilledCount(prev => prev + result.killedCount);
-
-                // 적 타입별 킬 통계 추적
-                if (result.killedEnemies && result.killedEnemies.length > 0) {
-                    setGameStats(prev => {
-                        let updated = { ...prev, totalKills: prev.totalKills + result.killedCount };
-                        result.killedEnemies.forEach(enemy => {
-                            switch (enemy.type) {
-                                case 'boss':
-                                    updated.bossKills = (updated.bossKills || 0) + 1;
-                                    break;
-                                case 'elite':
-                                    updated.eliteKills = (updated.eliteKills || 0) + 1;
-                                    break;
-                                case 'healer':
-                                    updated.healerKills = (updated.healerKills || 0) + 1;
-                                    break;
-                                case 'splitter':
-                                    updated.splitterKills = (updated.splitterKills || 0) + 1;
-                                    break;
-                            }
-                        });
-                        return updated;
-                    });
-                } else {
-                    // fallback (킬 정보가 없으면 totalKills만 증가)
-                    setGameStats(prev => ({ ...prev, totalKills: prev.totalKills + result.killedCount }));
-                }
+                setGameStats(prev => ({ ...prev, totalKills: prev.totalKills + result.killedCount }));
             }
 
             // 골드 획득 (영구 버프 적용)
