@@ -339,9 +339,9 @@ const calculateCarryoverRefund = (towers, supportTowers, inventory, supportInven
   return refund;
 };
 
-// 캐리오버용 타워 복사 (위치 정보 제거)
+// 캐리오버용 타워 복사 (위치 정보 및 임시 상태 제거)
 const prepareCarryoverTower = (tower) => {
-  const { gridX, gridY, x, y, lastShot, ...rest } = tower;
+  const { gridX, gridY, x, y, lastShot, isBuffed, isDebuffed, effectiveRange, ...rest } = tower;
   return { ...rest, lastShot: 0 };
 };
 

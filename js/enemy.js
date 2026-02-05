@@ -26,8 +26,21 @@ const EnemySystem = {
 
   // 적 생성 팩토리 (단일 진실의 원천)
   create(stage, wave, enemyIndex, totalEnemies, pathTiles, pathId) {
-    const type = this.determineType(enemyIndex, totalEnemies, wave, stage);
-    const config = ENEMY_CONFIG[type];
+    let type = this.determineType(enemyIndex, totalEnemies, wave, stage);
+    let config = ENEMY_CONFIG[type];
+
+    // 타입이 유효하지 않으면 'normal'로 fallback
+    if (!config) {
+      console.error(`[EnemySystem.create] Unknown enemy type: ${type}. Using 'normal' as fallback.`);
+      type = 'normal';
+      config = ENEMY_CONFIG['normal'];
+
+      // 그래도 없으면 심각한 오류
+      if (!config) {
+        console.error('[EnemySystem.create] ENEMY_CONFIG["normal"] is missing! Game is broken.');
+        return null;
+      }
+    }
     const baseHealth = this.calcBaseHealth(stage, wave);
 
     // 체력 계산
@@ -178,6 +191,10 @@ const EnemySystem = {
     const path = enemy.pathTiles;
     if (!path || enemy.pathIndex >= path.length - 1) {
       const config = ENEMY_CONFIG[enemy.type];
+      if (!config) {
+        console.warn(`[EnemySystem.move] Unknown enemy type: ${enemy.type}`, enemy);
+        return { enemy: null, livesLost: 1 }; // 기본값
+      }
       return { enemy: null, livesLost: config.livesLost };
     }
 

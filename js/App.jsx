@@ -132,12 +132,16 @@ const NeonDefense = () => {
 
     // 타워 복원
     const restoredTowers = data.towers.map(tData => {
-      const tower = TowerSystem.create(tData.tier, tData.colorIndex);
+      // T4 타워이고 role이 있으면 createT4WithRole 사용, 아니면 일반 create
+      let tower;
+      if (tData.tier === 4 && tData.role) {
+        tower = TowerSystem.createT4WithRole(tData.colorIndex, tData.role);
+      } else {
+        tower = TowerSystem.create(tData.tier, tData.colorIndex);
+      }
       tower.id = tData.id;
       tower.x = tData.x;
       tower.y = tData.y;
-      tower.abilityType = tData.abilityType;
-      tower.role = tData.role || null;
       tower.lastShot = Date.now();
       return tower;
     });
@@ -242,6 +246,8 @@ const NeonDefense = () => {
           chainLightnings={gameState.chainLightnings}
           dropPreview={dragState.dropPreview}
           placementMode={dragState.placementMode}
+          selectedTowerForPlacement={dragState.selectedTowerForPlacement}
+          cancelPlacementMode={dragState.cancelPlacementMode}
           selectedTowers={inventoryState.selectedTowers}
           selectedSupportTowers={inventoryState.selectedSupportTowers}
           gameSpeed={gameState.gameSpeed}
@@ -268,7 +274,8 @@ const NeonDefense = () => {
           isSupportInventoryFull={inventoryState.isSupportInventoryFull}
           inventory={inventoryState.inventory}
           selectedInventory={inventoryState.selectedInventory}
-          handleDragStart={dragState.handleDragStart}
+          selectedTowerForPlacement={dragState.selectedTowerForPlacement}
+          handleInventoryClick={dragState.handleInventoryClick}
           toggleInventorySelect={inventoryState.toggleInventorySelect}
           getElementInfo={getElementInfo}
           combineNeons={inventoryState.combineNeons}
@@ -291,14 +298,6 @@ const NeonDefense = () => {
           effectiveDrawCost={inventoryState.effectiveDrawCost}
         />
       </div>
-
-      {/* 드래그 프리뷰 */}
-      <DragPreview
-        draggingNeon={dragState.draggingNeon}
-        isDragging={dragState.isDragging}
-        dragPosition={dragState.dragPosition}
-        getElementInfo={getElementInfo}
-      />
 
       {/* 모바일 배치 UI */}
       <PlacementUI

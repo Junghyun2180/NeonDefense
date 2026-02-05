@@ -61,18 +61,13 @@ const GameEngine = {
     const collisionThresholdSq = collisionThreshold * collisionThreshold;
 
     const updatedProjectiles = projectiles.map(proj => {
-      // 타겟 찾기 (기존 타겟 또는 가장 가까운 적)
-      let target = enemies.find(e => e.id === proj.targetId);
-      if (!target) {
-        let nearestDistSq = Infinity;
-        enemies.forEach(enemy => {
-          const distSq = calcDistanceSq(proj.x, proj.y, enemy.x, enemy.y);
-          if (distSq < nearestDistSq) { nearestDistSq = distSq; target = enemy; }
-        });
-      }
+      // 타겟 찾기 (원래 타겟만 추적, 없으면 제거)
+      const target = enemies.find(e => e.id === proj.targetId);
       if (!target) return null;
 
-      const distSq = calcDistanceSq(proj.x, proj.y, target.x, target.y);
+      const dx = target.x - proj.x, dy = target.y - proj.y;
+      const distSq = dx * dx + dy * dy;
+      const dist = Math.sqrt(distSq);
 
       // 충돌 감지 (overshoot 방지, 거리 제곱 비교)
       if (distSq <= collisionThresholdSq) {
@@ -95,7 +90,6 @@ const GameEngine = {
 
       // 이동 (overshoot 방지)
       const moveStep = Math.min(proj.speed, dist);
-      const dx = target.x - proj.x, dy = target.y - proj.y;
       return { ...proj, x: proj.x + (dx / dist) * moveStep, y: proj.y + (dy / dist) * moveStep };
     }).filter(Boolean);
 
@@ -478,6 +472,12 @@ const GameEngine = {
     // 1단계: 적 이동 + 화상 처리
     const burnDamages = new Map();
     let movedEnemies = enemies.map(enemy => {
+      // 유효성 검사
+      if (!enemy || !enemy.type) {
+        console.warn('[GameEngine] Invalid enemy detected, removing:', enemy);
+        return null;
+      }
+
       const moveResult = EnemySystem.move(enemy, gameSpeed, now);
       if (!moveResult.enemy) {
         totalLivesLost += moveResult.livesLost;

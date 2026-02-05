@@ -146,7 +146,15 @@ const TowerSystem = {
     let damageDebuff = 1;
 
     enemies.forEach(enemy => {
+      if (!enemy || !enemy.type) {
+        console.warn(`[TowerSystem] Invalid enemy object:`, enemy);
+        return;
+      }
       const config = ENEMY_CONFIG[enemy.type];
+      if (!config) {
+        console.warn(`[TowerSystem] Unknown enemy type: ${enemy.type}`, enemy);
+        return;
+      }
       if (!config.debuffRange) return;
 
       const dist = calcDistance(tower.x, tower.y, enemy.x, enemy.y);
@@ -275,7 +283,7 @@ const TowerSystem = {
     enemies.forEach(enemy => {
       const distSq = calcDistanceSq(tower.x, tower.y, enemy.x, enemy.y);
       if (distSq <= rangeSq) {
-        const hpRatio = enemy.hp / enemy.maxHp;
+        const hpRatio = enemy.health / enemy.maxHealth;
         if (hpRatio < lowestHpRatio) {
           lowestHpRatio = hpRatio;
           lowestHpEnemy = enemy;

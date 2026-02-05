@@ -70,20 +70,92 @@ const useInventory = (gameState) => {
         toggleSelect(neon, setSelectedInventory, [setSelectedTowers, setSelectedSupportInventory, setSelectedSupportTowers], 'colorIndex');
     }, [toggleSelect]);
 
-    // 일반 타워 선택 (맵)
+    // 일반 타워 선택 (맵) - 인벤토리 자동 선택 기능 추가
     const toggleTowerSelect = useCallback((tower) => {
-        toggleSelect(tower, setSelectedTowers, [setSelectedInventory, setSelectedSupportInventory, setSelectedSupportTowers], 'colorIndex');
-    }, [toggleSelect]);
+        // 다른 타입 선택 초기화
+        setSelectedSupportInventory([]);
+        setSelectedSupportTowers([]);
+
+        setSelectedTowers(prev => {
+            const isDeselecting = prev.some(t => t.id === tower.id);
+
+            if (isDeselecting) {
+                // 선택 해제
+                setSelectedInventory([]);
+                return prev.filter(t => t.id !== tower.id);
+            }
+
+            // 새로 선택하는 경우
+            if (prev.length >= 3) return prev; // 최대 3개
+
+            // 같은 티어, 같은 속성만 선택 가능
+            if (prev.length > 0 && (prev[0].tier !== tower.tier || prev[0].colorIndex !== tower.colorIndex)) {
+                return prev;
+            }
+
+            const newSelected = [...prev, tower];
+            const needCount = 3 - newSelected.length; // 조합에 필요한 타워 수
+
+            if (needCount > 0) {
+                // 인벤토리에서 같은 티어/속성 타워 자동 선택
+                const matchingInventory = inventory.filter(
+                    n => n.tier === tower.tier && n.colorIndex === tower.colorIndex
+                );
+
+                // 필요한 만큼만 선택
+                const toSelect = matchingInventory.slice(0, needCount);
+                setSelectedInventory(toSelect);
+            }
+
+            return newSelected;
+        });
+    }, [inventory]);
 
     // 서포트 타워 선택 (인벤토리)
     const toggleSupportInventorySelect = useCallback((support) => {
         toggleSelect(support, setSelectedSupportInventory, [setSelectedInventory, setSelectedTowers, setSelectedSupportTowers], 'supportType');
     }, [toggleSelect]);
 
-    // 서포트 타워 선택 (맵)
+    // 서포트 타워 선택 (맵) - 인벤토리 자동 선택 기능 추가
     const toggleSupportTowerSelect = useCallback((support) => {
-        toggleSelect(support, setSelectedSupportTowers, [setSelectedInventory, setSelectedTowers, setSelectedSupportInventory], 'supportType');
-    }, [toggleSelect]);
+        // 다른 타입 선택 초기화
+        setSelectedInventory([]);
+        setSelectedTowers([]);
+
+        setSelectedSupportTowers(prev => {
+            const isDeselecting = prev.some(t => t.id === support.id);
+
+            if (isDeselecting) {
+                // 선택 해제
+                setSelectedSupportInventory([]);
+                return prev.filter(t => t.id !== support.id);
+            }
+
+            // 새로 선택하는 경우
+            if (prev.length >= 3) return prev; // 최대 3개
+
+            // 같은 티어, 같은 타입만 선택 가능
+            if (prev.length > 0 && (prev[0].tier !== support.tier || prev[0].supportType !== support.supportType)) {
+                return prev;
+            }
+
+            const newSelected = [...prev, support];
+            const needCount = 3 - newSelected.length; // 조합에 필요한 타워 수
+
+            if (needCount > 0) {
+                // 인벤토리에서 같은 티어/타입 서포트 타워 자동 선택
+                const matchingInventory = supportInventory.filter(
+                    s => s.tier === support.tier && s.supportType === support.supportType
+                );
+
+                // 필요한 만큼만 선택
+                const toSelect = matchingInventory.slice(0, needCount);
+                setSelectedSupportInventory(toSelect);
+            }
+
+            return newSelected;
+        });
+    }, [supportInventory]);
 
     // ===== 뽑기 =====
     // 영구 버프 할인 적용 (BuffHelper 사용)
@@ -150,8 +222,12 @@ const useInventory = (gameState) => {
     }, []);
 
     const combineTowers = useCallback(() => {
-        if (selectedTowers.length !== 3) return;
-        const result = TowerSystem.combine(selectedTowers);
+        const totalSelected = selectedTowers.length + selectedInventory.length;
+        if (totalSelected !== 3 || selectedTowers.length === 0) return;
+
+        // 맵 타워 + 인벤토리 타워 합치기
+        const allItems = [...selectedTowers, ...selectedInventory];
+        const result = TowerSystem.combine(allItems);
         if (!result) return;
 
         // T3 → T4 조합 시 역할 선택 모달 표시
@@ -160,7 +236,7 @@ const useInventory = (gameState) => {
             setPendingT4Choice({
                 ...result,
                 source: 'map',
-                itemIds: selectedTowers.map(t => t.id),
+                itemIds: allItems.map(t => t.id),
                 gridX: firstTower.gridX,
                 gridY: firstTower.gridY,
             });
@@ -169,12 +245,23 @@ const useInventory = (gameState) => {
 
         const firstTower = selectedTowers[0];
         const placedTower = TowerSystem.placeOnGrid(result, firstTower.gridX, firstTower.gridY);
-        const idsToRemove = selectedTowers.map(t => t.id);
-        setTowers(prev => [...prev.filter(t => !idsToRemove.includes(t.id)), placedTower]);
+
+        // 맵 타워 제거
+        const towerIdsToRemove = selectedTowers.map(t => t.id);
+        setTowers(prev => prev.filter(t => !towerIdsToRemove.includes(t.id)));
+
+        // 인벤토리 타워 제거
+        const inventoryIdsToRemove = selectedInventory.map(t => t.id);
+        setInventory(prev => prev.filter(t => !inventoryIdsToRemove.includes(t.id)));
+
+        // 새 타워 추가
+        setTowers(prev => [...prev, placedTower]);
+
         setSelectedTowers([]);
+        setSelectedInventory([]);
         setEffects(prev => [...prev, { id: Date.now(), x: firstTower.x, y: firstTower.y, type: 'explosion', color: result.color }]);
         soundManager.playCombine();
-    }, [selectedTowers, setTowers, setEffects]);
+    }, [selectedTowers, selectedInventory, setTowers, setInventory, setEffects]);
 
     // T4 역할 선택 완료 핸들러
     const confirmT4Role = useCallback((roleId) => {
@@ -191,8 +278,13 @@ const useInventory = (gameState) => {
             setSelectedInventory([]);
         } else if (pendingT4Choice.source === 'map') {
             const placedTower = TowerSystem.placeOnGrid(t4Tower, pendingT4Choice.gridX, pendingT4Choice.gridY);
-            setTowers(prev => [...prev.filter(t => !pendingT4Choice.itemIds.includes(t.id)), placedTower]);
+            // 맵 타워와 인벤토리 타워 모두 제거
+            setTowers(prev => prev.filter(t => !pendingT4Choice.itemIds.includes(t.id)));
+            setInventory(prev => prev.filter(n => !pendingT4Choice.itemIds.includes(n.id)));
+            // 새 타워 배치
+            setTowers(prev => [...prev, placedTower]);
             setSelectedTowers([]);
+            setSelectedInventory([]);
             setEffects(prev => [...prev, {
                 id: Date.now(),
                 x: pendingT4Choice.gridX * TILE_SIZE + TILE_SIZE / 2,
@@ -265,7 +357,10 @@ const useInventory = (gameState) => {
         [selectedTowers]
     );
 
-    const canCombineTowers = selectedTowers.length === 3 && selectedTowers[0]?.tier < 4;
+    const canCombineTowers = useMemo(() => {
+        const totalSelected = selectedTowers.length + selectedInventory.length;
+        return totalSelected === 3 && selectedTowers.length > 0 && selectedTowers[0]?.tier < 4;
+    }, [selectedTowers, selectedInventory]);
 
     const totalSupportSellPrice = useMemo(() =>
         selectedSupportTowers.reduce((sum, t) => sum + TowerSystem.getSupportSellPrice(t.tier), 0),

@@ -84,10 +84,10 @@ class BurnEffect extends StatusEffect {
     this.lastTickTime = 0;
   }
 
-  tick(enemy, now, gameSpeed) {
+  tick(target, now, gameSpeed) {
     if (this.isExpired(now)) {
       this.expired = true;
-      return { enemy };
+      return { target };
     }
 
     // 틱 간격마다 데미지
@@ -95,12 +95,12 @@ class BurnEffect extends StatusEffect {
     if (now - this.lastTickTime >= adjustedInterval) {
       this.lastTickTime = now;
       return {
-        enemy,
+        target,
         damage: this.damage,
-        visualEffect: { type: 'burn-tick', color: '#FF6B6B', x: enemy.x, y: enemy.y },
+        visualEffect: { type: 'burn-tick', color: '#FF6B6B', x: target.x, y: target.y },
       };
     }
-    return { enemy };
+    return { target };
   }
 
   canStack(other) {
@@ -108,7 +108,7 @@ class BurnEffect extends StatusEffect {
     return other instanceof BurnEffect && other.damage > this.damage;
   }
 
-  getVisualEffect(enemy) {
+  getVisualEffect(target) {
     return { type: 'burning', color: '#FF6B6B' };
   }
 }
@@ -184,31 +184,31 @@ class KnockbackEffect extends StatusEffect {
     this.applied = false;
   }
 
-  onAttach(enemy, now) {
-    super.onAttach(enemy, now);
+  onAttach(target, now) {
+    super.onAttach(target, now);
     // 즉시 적용
     this.applied = true;
     this.expired = true;
   }
 
   // 넉백은 즉시 적용이므로 별도 처리
-  applyKnockback(enemy) {
-    const path = enemy.pathTiles;
-    if (!path) return enemy;
+  applyKnockback(target) {
+    const path = target.pathTiles;
+    if (!path) return target;
 
     const knockbackTiles = Math.floor(this.distance / TILE_SIZE);
-    const newPathIndex = Math.max(0, enemy.pathIndex - knockbackTiles);
+    const newPathIndex = Math.max(0, target.pathIndex - knockbackTiles);
 
-    if (newPathIndex < enemy.pathIndex && path[newPathIndex]) {
+    if (newPathIndex < target.pathIndex && path[newPathIndex]) {
       const newTile = path[newPathIndex];
       return {
-        ...enemy,
+        ...target,
         pathIndex: newPathIndex,
         x: newTile.x * TILE_SIZE + TILE_SIZE / 2,
         y: newTile.y * TILE_SIZE + TILE_SIZE / 2,
       };
     }
-    return enemy;
+    return target;
   }
 }
 
@@ -225,26 +225,26 @@ class PullEffect extends StatusEffect {
     this.applied = false;
   }
 
-  onAttach(enemy, now) {
-    super.onAttach(enemy, now);
+  onAttach(target, now) {
+    super.onAttach(target, now);
     this.applied = true;
     this.expired = true;
   }
 
-  applyPull(enemy) {
-    const dx = this.targetX - enemy.x;
-    const dy = this.targetY - enemy.y;
+  applyPull(target) {
+    const dx = this.targetX - target.x;
+    const dy = this.targetY - target.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist > 0) {
       const pullDist = Math.min(this.distance, dist - 10);
       return {
-        ...enemy,
-        x: enemy.x + (dx / dist) * pullDist,
-        y: enemy.y + (dy / dist) * pullDist,
+        ...target,
+        x: target.x + (dx / dist) * pullDist,
+        y: target.y + (dy / dist) * pullDist,
       };
     }
-    return enemy;
+    return target;
   }
 }
 

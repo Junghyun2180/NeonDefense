@@ -88,19 +88,19 @@ const END_COLORS = ['#FF6B6B', '#FFD93D'];
 const ENEMY_CONFIG = {
   normal: {
     healthMult: 1.2, speedRange: [0.5, 0.7], speedWaveBonus: 0.04,
-    goldReward: 4, livesLost: 1,
+    goldReward: 1, livesLost: 1, // 4 -> 1 (P0-A 경제 긴축)
     color: 'bg-purple-600', shadow: '0 0 8px #9333ea', size: 'w-6 h-6',
     icon: null, explosionColor: '#9333ea',
   },
   fast: {
     healthMult: 0.7, speedRange: [0.9, 1.3], speedWaveBonus: 0.02,
-    goldReward: 3, livesLost: 1,
+    goldReward: 1, livesLost: 1, // 3 -> 1 (P0-A 경제 긴축)
     color: 'bg-cyan-400', shadow: '0 0 8px #00ffff', size: 'w-5 h-5',
     icon: null, explosionColor: '#00ffff',
   },
   elite: {
     healthMult: 3.5, speedRange: [0.45, 0.55], speedWaveBonus: 0.02,
-    goldReward: 10, livesLost: 2,
+    goldReward: 3, livesLost: 2, // 10 -> 3 (P0-A 경제 긴축)
     color: 'bg-orange-500', shadow: '0 0 12px #ff6600', size: 'w-7 h-7',
     icon: '⭐', explosionColor: '#ff6600',
   },
@@ -112,14 +112,14 @@ const ENEMY_CONFIG = {
   },
   jammer: {
     healthMult: 2.2, speedRange: [0.4, 0.5], speedWaveBonus: 0.01,
-    goldReward: 12, livesLost: 1,
+    goldReward: 4, livesLost: 1, // 12 -> 4 (P0-A 경제 긴축)
     color: 'bg-violet-500', shadow: '0 0 15px #8b5cf6, 0 0 30px #8b5cf6', size: 'w-7 h-7',
     icon: '📡', explosionColor: '#8b5cf6',
     debuffType: 'speed', debuffFactor: 0.4, debuffRange: 100,
   },
   suppressor: {
     healthMult: 2.5, speedRange: [0.35, 0.45], speedWaveBonus: 0.01,
-    goldReward: 14, livesLost: 1,
+    goldReward: 5, livesLost: 1, // 14 -> 5 (P0-A 경제 긴축)
     color: 'bg-pink-500', shadow: '0 0 15px #ec4899, 0 0 30px #ec4899', size: 'w-7 h-7',
     icon: '🛡️', explosionColor: '#ec4899',
     debuffType: 'damage', debuffFactor: 0.5, debuffRange: 100,
@@ -127,7 +127,7 @@ const ENEMY_CONFIG = {
   // 새로운 적 타입: 힐러 - 주변 적 회복
   healer: {
     healthMult: 1.5, speedRange: [0.35, 0.45], speedWaveBonus: 0,
-    goldReward: 15, livesLost: 1,
+    goldReward: 5, livesLost: 1, // 15 -> 5 (P0-A 경제 긴축)
     color: 'bg-green-500', shadow: '0 0 15px #22c55e, 0 0 30px #22c55e', size: 'w-7 h-7',
     icon: '💚', explosionColor: '#22c55e',
     healRange: 80, healAmount: 0.05, healInterval: 1000,
@@ -135,7 +135,7 @@ const ENEMY_CONFIG = {
   // 새로운 적 타입: 분열체 - 죽으면 작은 적 2마리로 분열
   splitter: {
     healthMult: 2.0, speedRange: [0.4, 0.5], speedWaveBonus: 0,
-    goldReward: 8, livesLost: 1,
+    goldReward: 3, livesLost: 1, // 8 -> 3 (P0-A 경제 긴축)
     color: 'bg-lime-500', shadow: '0 0 12px #84cc16, 0 0 25px #84cc16', size: 'w-7 h-7',
     icon: '💠', explosionColor: '#84cc16',
     splitCount: 2, splitHealthMult: 0.4, splitSpeedMult: 1.3,
@@ -180,12 +180,12 @@ const SPAWN_RULES = [
 
 // ===== 체력 스케일링 (난이도 하향 조정) =====
 const HEALTH_SCALING = {
-  base: 30, // 40 -> 30 하향
-  stageGrowth: 0.45, // 0.65 -> 0.45 하향 (초반 급상승 방지)
-  waveGrowth: 0.35,
+  base: 40, // P0-B: 30 -> 40 (+33%)
+  stageGrowth: 0.55, // P0-B: 0.45 -> 0.55 (+22%)
+  waveGrowth: 0.42, // P0-B: 0.35 -> 0.42 (+20%)
   lateWaveThreshold: 4,
-  lateWaveBonus: 1.5,
-  bossFormula: (stage) => 12 + stage * 1.5,
+  lateWaveBonus: 1.8, // P0-B: 1.5 -> 1.8 (+20%)
+  bossFormula: (stage) => 15 + stage * 2.0, // P0-B: 12+1.5x -> 15+2.0x (+40%)
 };
 
 // ===== 경제 설정 =====
@@ -196,9 +196,9 @@ const ECONOMY = {
   maxInventory: 30, // 5행 x 6열
   sellRefundRate: 0.5,
   towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
-  waveReward: (wave) => 20 + wave * 5 + (wave === 5 ? 20 : 0),
-  stageClearBonus: (stage) => 50 + stage * 10,
-  bossGoldReward: (stage, wave) => 30 + stage * 10 + wave * 5,
+  waveReward: (wave) => 15 + wave * 4 + (wave === 5 ? 15 : 0), // P0-A: 20+5x+20 -> 15+4x+15 (-25%)
+  stageClearBonus: (stage) => 40 + stage * 8, // P0-A: 50+10x -> 40+8x (-20%)
+  bossGoldReward: (stage, wave) => 20 + stage * 7 + wave * 3, // P0-A: 30+10x+5y -> 20+7x+3y (-35%)
   // 서포트 타워 경제
   supportDrawCost: 40,
   maxSupportInventory: 15, // 3열 x 5행

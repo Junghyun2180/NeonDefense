@@ -27,12 +27,12 @@ const useSaveLoad = (gameState) => {
     if (!gameStarted) return;
 
     // showSaveLoadModal이 true일 때 = 스테이지 클리어 시
-    if (showSaveLoadModal && modalMode === 'stageClear') {
+    if (showSaveLoadModal && saveLoadMode === 'stageClear') {
       const getGameState = () => gameState;
       SaveSystem.save(getGameState());
       console.log('[SaveLoad] 스테이지 클리어 - 저장 완료');
     }
-  }, [gameStarted, showSaveLoadModal, modalMode, gameState]);
+  }, [gameStarted, showSaveLoadModal, saveLoadMode, gameState]);
 
   // ===== 새 게임 시작 =====
   const handleNewGame = useCallback(() => {

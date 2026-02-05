@@ -11,7 +11,8 @@ const ControlPanel = ({
     // 인벤토리
     inventory,
     selectedInventory,
-    handleDragStart,
+    selectedTowerForPlacement,
+    handleInventoryClick,
     toggleInventorySelect,
     getElementInfo,
     // 조합
@@ -52,13 +53,17 @@ const ControlPanel = ({
 
             {/* 일반 타워 조합 */}
             <div className="flex gap-2">
-                <button type="button" onClick={combineNeons} disabled={selectedInventory.length !== 3 || selectedInventory[0]?.tier >= 4} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400/30 text-sm">⚡ 선택 조합</button>
+                <button type="button" onClick={combineNeons} disabled={selectedInventory.length !== 3 || selectedInventory[0]?.tier >= 4} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400/30 text-sm">
+                    {selectedInventory.length === 3 && selectedInventory[0]?.tier >= 4 ? '⚡ 조합 (최대 티어)' : '⚡ 선택 조합'}
+                </button>
                 <button type="button" onClick={combineAllNeons} disabled={TowerSystem.getCombinableCount(inventory) === 0} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-amber-400/30 text-sm">🔄 전체 조합 ({TowerSystem.getCombinableCount(inventory)})</button>
             </div>
 
             {/* 맵 타워 조합/판매 */}
             <div className="flex gap-2">
-                <button type="button" onClick={combineTowers} disabled={!canCombineTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-400/30 text-sm">🔮 타워 조합 ({selectedTowers.length}/3)</button>
+                <button type="button" onClick={combineTowers} disabled={!canCombineTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-emerald-400/30 text-sm">
+                    {selectedTowers.length > 0 && selectedTowers[0]?.tier >= 4 ? '🔮 조합 (최대 티어)' : `🔮 타워 조합 (${selectedTowers.length + selectedInventory.length}/3)`}
+                </button>
                 <button type="button" onClick={sellSelectedTowers} disabled={selectedTowers.length === 0} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm">💰 판매 (+{totalSellPrice}G)</button>
             </div>
 
@@ -70,9 +75,21 @@ const ControlPanel = ({
                         const neon = inventory[i];
                         if (neon) {
                             const isSelected = selectedInventory.some(n => n.id === neon.id);
+                            const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === neon.id;
                             const elementInfo = getElementInfo(neon.element);
+
+                            let borderClass = 'border-transparent hover:border-gray-500';
+                            let boxShadow = 'none';
+                            if (isInPlacementMode) {
+                                borderClass = 'border-yellow-400';
+                                boxShadow = '0 0 15px #facc15';
+                            } else if (isSelected) {
+                                borderClass = 'border-white selected';
+                                boxShadow = '0 0 15px ' + neon.color;
+                            }
+
                             return (
-                                <div key={neon.id} onMouseDown={(e) => handleDragStart(e, neon)} onTouchStart={(e) => handleDragStart(e, neon)} className={'inventory-item w-10 h-10 rounded-lg flex flex-col items-center justify-center border-2 cursor-pointer ' + (isSelected ? 'border-white selected' : 'border-transparent hover:border-gray-500')} style={{ background: 'radial-gradient(circle, ' + neon.color + '80 0%, ' + neon.color + '40 70%)', color: neon.color, boxShadow: isSelected ? '0 0 15px ' + neon.color : 'none' }} title={neon.name + '\nTier ' + neon.tier + '\n' + elementInfo.icon + ' ' + elementInfo.name + ': ' + elementInfo.desc}>
+                                <div key={neon.id} onClick={(e) => { e.stopPropagation(); handleInventoryClick(neon); }} className={'inventory-item w-10 h-10 rounded-lg flex flex-col items-center justify-center border-2 cursor-pointer ' + borderClass} style={{ background: 'radial-gradient(circle, ' + neon.color + '80 0%, ' + neon.color + '40 70%)', color: neon.color, boxShadow }} title={neon.name + '\nTier ' + neon.tier + '\n' + elementInfo.icon + ' ' + elementInfo.name + ': ' + elementInfo.desc}>
                                     <span className="text-sm">{elementInfo.icon}</span>
                                     <span className="text-xs font-black text-white drop-shadow">T{neon.tier}</span>
                                 </div>
@@ -91,9 +108,21 @@ const ControlPanel = ({
                         const support = supportInventory[i];
                         if (support) {
                             const isSelected = selectedSupportInventory.some(s => s.id === support.id);
+                            const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === support.id;
                             const supportInfo = SUPPORT_UI[support.supportType];
+
+                            let borderClass = 'border-transparent hover:border-gray-500';
+                            let boxShadow = 'none';
+                            if (isInPlacementMode) {
+                                borderClass = 'border-yellow-400';
+                                boxShadow = '0 0 15px #facc15';
+                            } else if (isSelected) {
+                                borderClass = 'border-white selected';
+                                boxShadow = '0 0 15px ' + support.color;
+                            }
+
                             return (
-                                <div key={support.id} onMouseDown={(e) => handleDragStart(e, support)} onTouchStart={(e) => handleDragStart(e, support)} className={'inventory-item w-10 h-10 flex flex-col items-center justify-center border-2 cursor-pointer ' + (isSelected ? 'border-white selected' : 'border-transparent hover:border-gray-500')} style={{ background: 'linear-gradient(135deg, ' + support.color + '80 0%, ' + support.color + '40 100%)', color: support.color, boxShadow: isSelected ? '0 0 15px ' + support.color : 'none', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} title={support.name + '\nS' + support.tier + '\n' + supportInfo.icon + ' ' + supportInfo.name}>
+                                <div key={support.id} onClick={(e) => { e.stopPropagation(); handleInventoryClick(support); }} className={'inventory-item w-10 h-10 flex flex-col items-center justify-center border-2 cursor-pointer ' + borderClass} style={{ background: 'linear-gradient(135deg, ' + support.color + '80 0%, ' + support.color + '40 100%)', color: support.color, boxShadow, clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} title={support.name + '\nS' + support.tier + '\n' + supportInfo.icon + ' ' + supportInfo.name}>
                                     <span className="text-sm">{supportInfo.icon}</span>
                                     <span className="text-xs font-black text-white drop-shadow">S{support.tier}</span>
                                 </div>
@@ -104,7 +133,9 @@ const ControlPanel = ({
                 </div>
                 {/* 서포트 조합 버튼 */}
                 <div className="flex gap-2 mt-2">
-                    <button type="button" onClick={combineSupports} disabled={selectedSupportInventory.length !== 3 || selectedSupportInventory[0]?.tier >= 3} className="flex-1 btn-neon px-2 py-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400/30 text-xs">⚡ 조합</button>
+                    <button type="button" onClick={combineSupports} disabled={selectedSupportInventory.length !== 3 || selectedSupportInventory[0]?.tier >= 3} className="flex-1 btn-neon px-2 py-1 bg-gradient-to-r from-orange-600 to-amber-600 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400/30 text-xs">
+                        {selectedSupportInventory.length === 3 && selectedSupportInventory[0]?.tier >= 3 ? '⚡ 조합 (최대)' : '⚡ 조합'}
+                    </button>
                     <button type="button" onClick={combineAllSupports} disabled={TowerSystem.getSupportCombinableCount(supportInventory) === 0} className="flex-1 btn-neon px-2 py-1 bg-gradient-to-r from-amber-500 to-yellow-500 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-amber-400/30 text-xs">🔄 전체 ({TowerSystem.getSupportCombinableCount(supportInventory)})</button>
                 </div>
             </div>
@@ -112,7 +143,9 @@ const ControlPanel = ({
             {/* 맵 서포트 타워 조합/판매 */}
             {selectedSupportTowers.length > 0 && (
                 <div className="flex gap-2">
-                    <button type="button" onClick={combineSupportTowers} disabled={!canCombineSupportTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400/30 text-sm">🔮 서포트 조합 ({selectedSupportTowers.length}/3)</button>
+                    <button type="button" onClick={combineSupportTowers} disabled={!canCombineSupportTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-orange-600 to-amber-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-orange-400/30 text-sm">
+                        {selectedSupportTowers.length === 3 && selectedSupportTowers[0]?.tier >= 3 ? '🔮 조합 (최대 티어)' : `🔮 서포트 조합 (${selectedSupportTowers.length}/3)`}
+                    </button>
                     <button type="button" onClick={sellSelectedSupportTowers} className="flex-1 btn-neon px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm">💰 판매 (+{totalSupportSellPrice}G)</button>
                 </div>
             )}

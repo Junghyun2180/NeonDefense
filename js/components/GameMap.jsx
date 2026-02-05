@@ -11,6 +11,8 @@ const GameMap = ({
     chainLightnings,
     dropPreview,
     placementMode,
+    selectedTowerForPlacement,
+    cancelPlacementMode,
     selectedTowers,
     selectedSupportTowers,
     gameSpeed,
@@ -75,7 +77,7 @@ const GameMap = ({
                             const endPaths = endPoint && pathData.paths.filter(p => p.endPoint.id === endPoint.id);
 
                             return (
-                                <div key={x + '-' + y} className={'absolute ' + (isPath ? 'path-tile' : 'grass-tile') + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => canPlace && handleTileClick(x, y)}>
+                                <div key={x + '-' + y} className={'absolute ' + (isPath ? 'path-tile' : 'grass-tile') + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => handleTileClick(x, y)}>
                                     {startPoint && startPath && (() => {
                                         // 경로 방향에 따른 화살표 결정
                                         const tiles = startPath.tiles;
@@ -110,6 +112,29 @@ const GameMap = ({
                                             ))}
                                         </div>
                                     )}
+                                    {/* 클릭 배치 모드 타워 프리뷰 */}
+                                    {isDropPreview && selectedTowerForPlacement && (() => {
+                                        const neon = selectedTowerForPlacement;
+                                        if (neon.isSupport) {
+                                            const supportType = SUPPORT_TYPES[neon.supportTypeIndex];
+                                            return (
+                                                <div className="w-full h-full flex flex-col items-center justify-center pointer-events-none relative">
+                                                    <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${supportType.color}40 0%, transparent 70%)`, animation: 'pulse 1s ease-in-out infinite' }} />
+                                                    <span className="text-2xl relative z-10" style={{ filter: `drop-shadow(0 0 8px ${supportType.color})` }}>{supportType.icon}</span>
+                                                    <span className="text-xs font-bold text-white relative z-10" style={{ textShadow: '0 0 4px #000, 1px 1px 0 #000' }}>S{neon.tier}</span>
+                                                </div>
+                                            );
+                                        } else {
+                                            const elementInfo = getElementInfo(neon.colorIndex);
+                                            return (
+                                                <div className="w-full h-full flex flex-col items-center justify-center pointer-events-none relative">
+                                                    <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${elementInfo.color}40 0%, transparent 70%)`, animation: 'pulse 1s ease-in-out infinite' }} />
+                                                    <span className="text-2xl relative z-10" style={{ filter: `drop-shadow(0 0 8px ${elementInfo.color})` }}>{elementInfo.icon}</span>
+                                                    <span className="text-xs font-bold text-white relative z-10" style={{ textShadow: '0 0 4px #000, 1px 1px 0 #000' }}>T{neon.tier}</span>
+                                                </div>
+                                            );
+                                        }
+                                    })()}
                                 </div>
                             );
                         })
@@ -128,14 +153,21 @@ const GameMap = ({
                         const elementInfo = getElementInfo(tower.element);
                         const displayRange = tower.effectiveRange || tower.range;
                         return (
-                            <div key={tower.id} onClick={() => toggleTowerSelect(tower)} style={{ cursor: 'pointer' }}>
-                                <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - displayRange, top: tower.y - displayRange, width: displayRange * 2, height: displayRange * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />
-                                <div className={'absolute neon-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: tower.x - 15, top: tower.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + tower.color + ' 0%, ' + tower.color + '80 50%, transparent 70%)', borderRadius: '50%', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + tower.color : undefined, color: tower.color, opacity: tower.isDebuffed ? 0.6 : 1 }}>
+                            <div key={tower.id}>
+                                {isSelected && <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - displayRange, top: tower.y - displayRange, width: displayRange * 2, height: displayRange * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />}
+                                <div onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedTowerForPlacement) {
+                                        cancelPlacementMode();
+                                    } else {
+                                        toggleTowerSelect(tower);
+                                    }
+                                }} className={'absolute neon-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: tower.x - 15, top: tower.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + tower.color + ' 0%, ' + tower.color + '80 50%, transparent 70%)', borderRadius: '50%', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + tower.color : undefined, color: tower.color, opacity: tower.isDebuffed ? 0.6 : 1, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
                                     <span className="text-xs font-black text-white drop-shadow-lg">{elementInfo.icon}</span>
                                 </div>
-                                <div className="absolute text-xs font-bold text-white" style={{ left: tower.x - 8, top: tower.y + 12, textShadow: '0 0 3px black' }}>T{tower.tier}</div>
-                                {tower.isDebuffed && <div className="absolute text-xs" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬇️</div>}
-                                {tower.isBuffed && <div className="absolute text-xs" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬆️</div>}
+                                <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: tower.x - 8, top: tower.y + 12, textShadow: '0 0 3px black' }}>T{tower.tier}</div>
+                                {tower.isDebuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬇️</div>}
+                                {tower.isBuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬆️</div>}
                             </div>
                         );
                     })}
@@ -145,12 +177,12 @@ const GameMap = ({
                         const isSelected = selectedSupportTowers.some(t => t.id === support.id);
                         const supportInfo = SUPPORT_UI[support.supportType];
                         return (
-                            <div key={support.id} onClick={() => toggleSupportTowerSelect(support)} style={{ cursor: 'pointer' }}>
-                                <div className="absolute rounded-full support-range pointer-events-none" style={{ left: support.x - support.range, top: support.y - support.range, width: support.range * 2, height: support.range * 2, border: '2px dashed ' + (isSelected ? '#ffffff' : support.color) + '60', background: 'radial-gradient(circle, ' + support.color + '15 0%, transparent 70%)' }} />
-                                <div className={'absolute support-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: support.x - 15, top: support.y - 15, width: 30, height: 30, background: 'linear-gradient(135deg, ' + support.color + ' 0%, ' + support.color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + support.color : '0 0 10px ' + support.color }}>
+                            <div key={support.id}>
+                                {isSelected && <div className="absolute rounded-full support-range pointer-events-none" style={{ left: support.x - support.range, top: support.y - support.range, width: support.range * 2, height: support.range * 2, border: '2px dashed ' + (isSelected ? '#ffffff' : support.color) + '60', background: 'radial-gradient(circle, ' + support.color + '15 0%, transparent 70%)' }} />}
+                                <div onClick={(e) => { e.stopPropagation(); if (selectedTowerForPlacement) { cancelPlacementMode(); } else { toggleSupportTowerSelect(support); }}} className={'absolute support-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: support.x - 15, top: support.y - 15, width: 30, height: 30, background: 'linear-gradient(135deg, ' + support.color + ' 0%, ' + support.color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + support.color : '0 0 10px ' + support.color, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
                                     <span className="text-sm">{supportInfo.icon}</span>
                                 </div>
-                                <div className="absolute text-xs font-bold text-white" style={{ left: support.x - 6, top: support.y + 12, textShadow: '0 0 3px black' }}>S{support.tier}</div>
+                                <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: support.x - 6, top: support.y + 12, textShadow: '0 0 3px black' }}>S{support.tier}</div>
                             </div>
                         );
                     })}
@@ -158,6 +190,10 @@ const GameMap = ({
                     {/* 적 렌더링 */}
                     {enemies.map(enemy => {
                         const config = ENEMY_CONFIG[enemy.type];
+                        if (!config) {
+                            console.warn(`[GameMap] Unknown enemy type: ${enemy.type}`, enemy);
+                            return null;
+                        }
                         const now = Date.now();
                         // StatusEffectManager를 통해 상태이상 확인
                         const isBurning = StatusEffectManager.hasEffect(enemy, 'burn', now);
