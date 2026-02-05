@@ -9,6 +9,12 @@ const calcDistance = (x1, y1, x2, y2) => {
   return Math.sqrt(dx * dx + dy * dy);
 };
 
+// 두 점 사이 거리의 제곱 계산 (성능 최적화용 - Math.sqrt 생략)
+const calcDistanceSq = (x1, y1, x2, y2) => {
+  const dx = x2 - x1, dy = y2 - y1;
+  return dx * dx + dy * dy;
+};
+
 // ===== 경제 유틸리티 =====
 
 // 타워 판매 가격 계산

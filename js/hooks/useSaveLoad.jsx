@@ -22,17 +22,17 @@ const useSaveLoad = (gameState) => {
     }
   }, []);
 
-  // ===== 자동 저장 시작 =====
+  // ===== 스테이지 종료 시 저장 =====
   useEffect(() => {
     if (!gameStarted) return;
 
-    const getGameState = () => gameState;
-    SaveSystem.startAutoSave(getGameState);
-
-    return () => {
-      SaveSystem.stopAutoSave();
-    };
-  }, [gameStarted, gameState]);
+    // showSaveLoadModal이 true일 때 = 스테이지 클리어 시
+    if (showSaveLoadModal && modalMode === 'stageClear') {
+      const getGameState = () => gameState;
+      SaveSystem.save(getGameState());
+      console.log('[SaveLoad] 스테이지 클리어 - 저장 완료');
+    }
+  }, [gameStarted, showSaveLoadModal, modalMode, gameState]);
 
   // ===== 새 게임 시작 =====
   const handleNewGame = useCallback(() => {

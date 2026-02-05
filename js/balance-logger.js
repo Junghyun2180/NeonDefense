@@ -28,14 +28,19 @@ const BalanceLogger = {
     }
   },
 
-  // 타워 정보 분석
+  // 타워 정보 분석 (상세 버전)
   analyzeTowers(towers) {
+    const elementNames = ['화염', '냉기', '전격', '질풍', '공허', '광휘'];
+    const roleNames = { A: 'A형', B: 'B형', C: 'C형' };
+
     const analysis = {
       total: towers.length,
       byTier: { 1: 0, 2: 0, 3: 0, 4: 0 },
       byElement: { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
       byRole: {},
       totalValue: 0,
+      // 상세 정보: T4 타워의 속성+역할 조합
+      t4Details: [],
     };
 
     towers.forEach(tower => {
@@ -44,6 +49,13 @@ const BalanceLogger = {
 
       if (tower.tier === 4 && tower.role) {
         analysis.byRole[tower.role] = (analysis.byRole[tower.role] || 0) + 1;
+
+        // T4 타워 상세 정보 수집
+        analysis.t4Details.push({
+          element: elementNames[tower.colorIndex] || `속성${tower.colorIndex}`,
+          role: roleNames[tower.role] || tower.role,
+          position: `(${tower.x}, ${tower.y})`,
+        });
       }
 
       const baseValues = { 1: 20, 2: 60, 3: 180, 4: 540 };
@@ -53,18 +65,29 @@ const BalanceLogger = {
     return analysis;
   },
 
-  // 서포트 타워 정보 분석
+  // 서포트 타워 정보 분석 (상세 버전)
   analyzeSupportTowers(supportTowers) {
+    const supportTypeNames = ['공격력', '공속', '방감', '사거리'];
+
     const analysis = {
       total: supportTowers.length,
       byTier: { 1: 0, 2: 0, 3: 0 },
       byType: { 0: 0, 1: 0, 2: 0, 3: 0 },
       totalValue: 0,
+      // 상세 정보: 서포트 타워의 타입+티어 조합
+      details: [],
     };
 
     supportTowers.forEach(support => {
       analysis.byTier[support.tier] = (analysis.byTier[support.tier] || 0) + 1;
       analysis.byType[support.supportType] = (analysis.byType[support.supportType] || 0) + 1;
+
+      // 서포트 타워 상세 정보 수집
+      analysis.details.push({
+        type: supportTypeNames[support.supportType] || `타입${support.supportType}`,
+        tier: `S${support.tier}`,
+        position: `(${support.x}, ${support.y})`,
+      });
 
       const baseValues = { 1: 40, 2: 120, 3: 360 };
       analysis.totalValue += baseValues[support.tier] || 0;
@@ -73,12 +96,27 @@ const BalanceLogger = {
     return analysis;
   },
 
-  // 영구 버프 정보 수집
+  // 영구 버프 정보 수집 (상세 버전)
   analyzePermanentBuffs(permanentBuffs) {
+    const buffNames = {
+      damageBonus: '공격력 증가',
+      speedBonus: '공격속도 증가',
+      rangeBonus: '사거리 증가',
+      goldBonus: '골드 획득량 증가',
+      drawDiscount: '뽑기 비용 감소',
+      interestRate: '이자 획득',
+      startGoldBonus: '시작 골드 증가',
+      startLivesBonus: '시작 목숨 증가',
+    };
+
     const active = [];
     for (const [key, value] of Object.entries(permanentBuffs || {})) {
       if (value > 0) {
-        active.push({ id: key, stacks: value });
+        active.push({
+          id: key,
+          name: buffNames[key] || key,
+          stacks: value,
+        });
       }
     }
     return active;
@@ -243,16 +281,46 @@ const BalanceLogger = {
     }
   },
 
-  // 로그 콘솔 출력
+  // 로그 콘솔 출력 (상세 버전)
   printLog(log) {
     console.group(`🎮 밸런스 로그 - ${log.result === 'clear' ? '✅ 클리어' : '❌ 게임오버'}`);
     console.log(`📅 ${log.date}`);
     console.log(`⏱️ ${log.playTimeFormatted}`);
     console.log(`🏰 Stage ${log.finalStage}-${log.finalWave}`);
     console.log(`💰 남은 골드: ${log.remainingGold}G | 목숨: ${log.remainingLives}`);
-    console.log(`🏰 타워: ${log.towers.total}개 (T4: ${log.towers.byTier[4]})`);
-    console.log(`🛡️ 서포트: ${log.supportTowers.total}개`);
-    console.log(`👾 총 킬: ${log.stats.totalKills}`);
+
+    // 타워 상세 정보
+    console.group(`🏰 타워 (총 ${log.towers.total}개)`);
+    console.log(`티어별: T1=${log.towers.byTier[1]}, T2=${log.towers.byTier[2]}, T3=${log.towers.byTier[3]}, T4=${log.towers.byTier[4]}`);
+    if (log.towers.t4Details && log.towers.t4Details.length > 0) {
+      console.log(`T4 타워 상세:`);
+      log.towers.t4Details.forEach((t4, idx) => {
+        console.log(`  ${idx + 1}. ${t4.element} ${t4.role} - ${t4.position}`);
+      });
+    }
+    console.groupEnd();
+
+    // 서포트 타워 상세 정보
+    console.group(`🛡️ 서포트 타워 (총 ${log.supportTowers.total}개)`);
+    console.log(`티어별: S1=${log.supportTowers.byTier[1]}, S2=${log.supportTowers.byTier[2]}, S3=${log.supportTowers.byTier[3]}`);
+    if (log.supportTowers.details && log.supportTowers.details.length > 0) {
+      console.log(`상세:`);
+      log.supportTowers.details.forEach((s, idx) => {
+        console.log(`  ${idx + 1}. ${s.type} ${s.tier} - ${s.position}`);
+      });
+    }
+    console.groupEnd();
+
+    // 영구 버프
+    if (log.permanentBuffs && log.permanentBuffs.length > 0) {
+      console.group(`⭐ 영구 버프 (${log.permanentBuffs.length}개)`);
+      log.permanentBuffs.forEach(buff => {
+        console.log(`  - ${buff.name}: ${buff.stacks}스택`);
+      });
+      console.groupEnd();
+    }
+
+    console.log(`👾 총 킬: ${log.stats.totalKills} (보스: ${log.stats.bossKills}, 엘리트: ${log.stats.eliteKills})`);
 
     if (log.warnings.length > 0) {
       console.group('⚠️ 밸런스 경고');

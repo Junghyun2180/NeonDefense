@@ -162,15 +162,16 @@ const TowerSystem = {
     return { speedDebuff, damageDebuff };
   },
 
-  // 가장 가까운 적 찾기
+  // 가장 가까운 적 찾기 (성능 최적화: 거리 제곱 사용)
   findTarget(tower, enemies) {
     let nearestEnemy = null;
-    let nearestDist = Infinity;
+    let nearestDistSq = Infinity;
+    const rangeSq = tower.range * tower.range; // 한번만 계산
 
     enemies.forEach(enemy => {
-      const dist = calcDistance(tower.x, tower.y, enemy.x, enemy.y);
-      if (dist <= tower.range && dist < nearestDist) {
-        nearestDist = dist;
+      const distSq = calcDistanceSq(tower.x, tower.y, enemy.x, enemy.y);
+      if (distSq <= rangeSq && distSq < nearestDistSq) {
+        nearestDistSq = distSq;
         nearestEnemy = enemy;
       }
     });
@@ -248,15 +249,16 @@ const TowerSystem = {
     };
   },
 
-  // 사거리를 지정하여 타겟 찾기
+  // 사거리를 지정하여 타겟 찾기 (성능 최적화: 거리 제곱 사용)
   findTargetWithRange(tower, enemies, range) {
     let nearestEnemy = null;
-    let nearestDist = Infinity;
+    let nearestDistSq = Infinity;
+    const rangeSq = range * range; // 한번만 계산
 
     enemies.forEach(enemy => {
-      const dist = calcDistance(tower.x, tower.y, enemy.x, enemy.y);
-      if (dist <= range && dist < nearestDist) {
-        nearestDist = dist;
+      const distSq = calcDistanceSq(tower.x, tower.y, enemy.x, enemy.y);
+      if (distSq <= rangeSq && distSq < nearestDistSq) {
+        nearestDistSq = distSq;
         nearestEnemy = enemy;
       }
     });
@@ -264,14 +266,15 @@ const TowerSystem = {
     return nearestEnemy;
   },
 
-  // HP가 가장 낮은 적 찾기 (광휘 타워 전용)
+  // HP가 가장 낮은 적 찾기 (광휘 타워 전용, 성능 최적화)
   findLowestHpTarget(tower, enemies, range) {
     let lowestHpEnemy = null;
     let lowestHpRatio = Infinity;
+    const rangeSq = range * range; // 한번만 계산
 
     enemies.forEach(enemy => {
-      const dist = calcDistance(tower.x, tower.y, enemy.x, enemy.y);
-      if (dist <= range) {
+      const distSq = calcDistanceSq(tower.x, tower.y, enemy.x, enemy.y);
+      if (distSq <= rangeSq) {
         const hpRatio = enemy.hp / enemy.maxHp;
         if (hpRatio < lowestHpRatio) {
           lowestHpRatio = hpRatio;

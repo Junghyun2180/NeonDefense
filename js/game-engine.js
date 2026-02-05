@@ -54,26 +54,28 @@ const GameEngine = {
     return { chains, chainDamages };
   },
 
-  // 투사체 이동 + 충돌 처리
+  // 투사체 이동 + 충돌 처리 (성능 최적화: 거리 제곱 사용)
   processProjectiles(projectiles, enemies, gameSpeed) {
     const hits = [];
+    const collisionThreshold = COMBAT.collisionRadius + COMBAT.projectileBaseSpeed * gameSpeed;
+    const collisionThresholdSq = collisionThreshold * collisionThreshold;
 
     const updatedProjectiles = projectiles.map(proj => {
       // 타겟 찾기 (기존 타겟 또는 가장 가까운 적)
       let target = enemies.find(e => e.id === proj.targetId);
       if (!target) {
-        let nearestDist = Infinity;
+        let nearestDistSq = Infinity;
         enemies.forEach(enemy => {
-          const dist = calcDistance(proj.x, proj.y, enemy.x, enemy.y);
-          if (dist < nearestDist) { nearestDist = dist; target = enemy; }
+          const distSq = calcDistanceSq(proj.x, proj.y, enemy.x, enemy.y);
+          if (distSq < nearestDistSq) { nearestDistSq = distSq; target = enemy; }
         });
       }
       if (!target) return null;
 
-      const dist = calcDistance(proj.x, proj.y, target.x, target.y);
+      const distSq = calcDistanceSq(proj.x, proj.y, target.x, target.y);
 
-      // 충돌 감지 (overshoot 방지)
-      if (dist <= COMBAT.collisionRadius + proj.speed) {
+      // 충돌 감지 (overshoot 방지, 거리 제곱 비교)
+      if (distSq <= collisionThresholdSq) {
         hits.push({
           enemyId: target.id,
           damage: proj.damage,
