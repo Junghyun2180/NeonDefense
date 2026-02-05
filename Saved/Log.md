@@ -1,4 +1,4 @@
-##Log
+## Log
 
 balance-logger.js:248 🎮 밸런스 로그 - ❌ 게임오버
 balance-logger.js:249 📅 2026. 2. 5. 오후 11:39:30
@@ -52,7 +52,5 @@ Mi @ react-dom.production.min.js:189
 db @ react-dom.production.min.js:79
 (anonymous) @ react-dom.production.min.js:184Understand this error
 react-dom.production.min.js:79 Uncaught TypeError: gameState.setPermanentBuffs is not a function
-
-
 
 ![alt text](image.png)
