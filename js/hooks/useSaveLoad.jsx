@@ -44,6 +44,11 @@ const useSaveLoad = (gameState) => {
     setGameStarted(true);
     setLoadedData(null);
 
+    // 밸런스 로그 세션 시작
+    if (typeof BalanceLogger !== 'undefined') {
+      BalanceLogger.startSession();
+    }
+
     console.log('[SaveLoad] 새 게임 시작');
   }, []);
 
@@ -68,6 +73,12 @@ const useSaveLoad = (gameState) => {
     setShowMainMenu(false);
     setShowSaveLoadModal(false);
     setGameStarted(true);
+
+    // 밸런스 로그 세션 시작 (이어하기)
+    if (typeof BalanceLogger !== 'undefined') {
+      BalanceLogger.startSession();
+      BalanceLogger.updateProgress(saveData.stage, saveData.wave);
+    }
 
     console.log('[SaveLoad] 게임 불러오기 완료:', saveData.stage, saveData.wave);
   }, [handleNewGame]);
