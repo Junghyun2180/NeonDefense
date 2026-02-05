@@ -78,7 +78,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode }) => {
                 새 게임 시작
               </h2>
               <p className="text-gray-400 text-sm text-center">
-                처음부터 도전하기<br/>
+                처음부터 도전하기<br />
                 Stage 1-1부터 시작
               </p>
 
@@ -178,7 +178,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode }) => {
                   이어하기
                 </h2>
                 <p className="text-gray-500 text-sm text-center">
-                  저장된 게임이 없습니다<br/>
+                  저장된 게임이 없습니다<br />
                   새 게임을 시작해주세요
                 </p>
                 <div className="w-full bg-gray-900/50 rounded-lg p-3 space-y-2 text-sm opacity-50">
@@ -200,11 +200,10 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode }) => {
                 <span className="text-gray-400 text-sm">게임 모드:</span>
                 <div className="flex gap-2">
                   <button
-                    className={`px-4 py-2 rounded-lg font-bold transition-all ${
-                      selectedMode === 'campaign'
+                    className={`px-4 py-2 rounded-lg font-bold transition-all ${selectedMode === 'campaign'
                         ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                    }`}
+                      }`}
                     style={{ fontFamily: 'Orbitron, sans-serif' }}
                   >
                     🏰 캠페인
@@ -251,8 +250,8 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode }) => {
 
           {/* 버전 정보 */}
           <div className="text-center text-gray-600 text-xs">
-            <div>Neon Defense v1.0 (PLAN 2)</div>
-            <div className="mt-1">Made with ❤️ by Claude & junghyun</div>
+            <div>Neon Defense v1.0</div>
+            <div className="mt-1">Made with ❤️ by Junghyun</div>
           </div>
         </div>
       </div>

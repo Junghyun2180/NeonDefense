@@ -10,6 +10,8 @@ const useGameLoop = (config) => {
         gameOver,
         stage,
         wave,
+        gold,
+        lives,
         // Refs (최신 값 참조용)
         enemiesRef,
         towersRef,
@@ -18,6 +20,7 @@ const useGameLoop = (config) => {
         pathDataRef,
         gameSpeedRef,
         permanentBuffsRef,
+        gameStatsRef,
         // Setters
         setEnemies,
         setTowers,
@@ -143,6 +146,20 @@ const useGameLoop = (config) => {
                         setGameOver(true);
                         soundManager.playGameOver();
                         soundManager.stopBGM();
+
+                        // 밸런스 로그 기록 (게임오버)
+                        if (typeof BalanceLogger !== 'undefined') {
+                            BalanceLogger.logGameEnd('gameover', {
+                                towers: towersRef.current,
+                                supportTowers: supportTowersRef.current,
+                                gold: gold,
+                                lives: 0,
+                                stage: stage,
+                                wave: wave,
+                                gameStats: gameStatsRef.current,
+                                permanentBuffs: permanentBuffsRef.current,
+                            });
+                        }
                     }
                     return Math.max(0, newLives);
                 });

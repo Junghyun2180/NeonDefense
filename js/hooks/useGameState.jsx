@@ -71,6 +71,8 @@ const useGameState = () => {
         gameOver,
         stage,
         wave,
+        gold,
+        lives,
         enemiesRef,
         towersRef,
         supportTowersRef,
@@ -78,6 +80,7 @@ const useGameState = () => {
         pathDataRef,
         gameSpeedRef,
         permanentBuffsRef,
+        gameStatsRef,
         setEnemies,
         setTowers,
         setProjectiles,
@@ -90,6 +93,13 @@ const useGameState = () => {
         setKilledCount,
         setGameStats,
     });
+
+    // ===== 밸런스 로그 진행도 추적 =====
+    useEffect(() => {
+        if (typeof BalanceLogger !== 'undefined') {
+            BalanceLogger.updateProgress(stage, wave);
+        }
+    }, [stage, wave]);
 
     // ===== 웨이브 시작 =====
     const startWave = useCallback(() => {
@@ -154,6 +164,21 @@ const useGameState = () => {
                 soundManager.stopBGM();
                 // 승리 사운드 (없으면 웨이브 시작 사운드로 대체)
                 soundManager.playWaveStart();
+
+                // 밸런스 로그 기록 (클리어)
+                if (typeof BalanceLogger !== 'undefined') {
+                    BalanceLogger.logGameEnd('clear', {
+                        towers,
+                        supportTowers,
+                        gold,
+                        lives,
+                        stage,
+                        wave: SPAWN.wavesPerStage,
+                        gameStats: gameStatsRef.current,
+                        permanentBuffs,
+                    });
+                }
+
                 return;
             }
 
