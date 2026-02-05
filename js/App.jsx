@@ -9,6 +9,28 @@ const NeonDefense = () => {
   // ===== 인벤토리 훅 =====
   const inventoryState = useInventory(gameState);
 
+  // ===== 저장/불러오기 훅 =====
+  const saveLoadState = useSaveLoad({
+    stage: gameState.stage,
+    wave: gameState.wave,
+    gold: gameState.gold,
+    lives: gameState.lives,
+    towers: gameState.towers,
+    supportTowers: gameState.supportTowers,
+    inventory: inventoryState.inventory,
+    supportInventory: inventoryState.supportInventory,
+    permanentBuffs: gameState.permanentBuffs,
+    stats: gameState.gameStats,
+    enemies: gameState.enemies,
+    projectiles: gameState.projectiles,
+    effects: gameState.effects,
+    chainLightnings: gameState.chainLightnings,
+    spawnedCount: gameState.spawnedCount,
+    killedCount: gameState.killedCount,
+    isPlaying: gameState.isPlaying,
+    gameOver: gameState.gameOver,
+  });
+
   // ===== 드래그 앤 드롭 훅 =====
   const dragState = useDragAndDrop(gameState, inventoryState);
 
@@ -60,6 +82,55 @@ const NeonDefense = () => {
 
   const getElementInfo = (element) => ELEMENT_EFFECTS[element] || ELEMENT_EFFECTS[ELEMENT_TYPES.VOID];
 
+  // ===== 저장 데이터 복원 =====
+  useEffect(() => {
+    if (!saveLoadState.loadedData) return;
+
+    console.log('[App] 저장 데이터 적용 중...');
+    const data = saveLoadState.loadedData;
+
+    // 타워 복원
+    const restoredTowers = data.towers.map(tData => {
+      const tower = TowerSystem.create(tData.tier, tData.colorIndex);
+      tower.id = tData.id;
+      tower.x = tData.x;
+      tower.y = tData.y;
+      tower.abilityType = tData.abilityType;
+      tower.role = tData.role || null;
+      tower.lastShot = Date.now();
+      return tower;
+    });
+
+    // 서포트 타워 복원
+    const restoredSupports = data.supportTowers.map(sData => {
+      const support = TowerSystem.createSupport(sData.tier, sData.supportType);
+      support.id = sData.id;
+      support.x = sData.x;
+      support.y = sData.y;
+      support.abilityType = sData.abilityType;
+      return support;
+    });
+
+    // 상태 업데이트
+    gameState.setStage(data.stage);
+    gameState.setWave(data.wave);
+    gameState.setGold(data.gold);
+    gameState.setLives(data.lives);
+    gameState.setTowers(restoredTowers);
+    gameState.setSupportTowers(restoredSupports);
+    gameState.setPermanentBuffs(data.permanentBuffs);
+    gameState.setGameStats(data.stats || GameStats.createEmpty());
+
+    // 인벤토리 복원
+    inventoryState.setInventory(data.inventory || []);
+    inventoryState.setSupportInventory(data.supportInventory || []);
+
+    // 경로 재생성
+    gameState.setPathData(generateMultiplePaths(Date.now(), data.stage));
+
+    console.log('[App] 저장 데이터 적용 완료');
+  }, [saveLoadState.loadedData]);
+
   // 캐리오버용 인벤토리 참조 업데이트
   useEffect(() => {
     gameState.updateInventoryRefs(inventoryState.inventory, inventoryState.supportInventory);
@@ -85,9 +156,22 @@ const NeonDefense = () => {
 
   // ===== 렌더링 =====
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-2 sm:p-4 overflow-x-hidden select-none" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-      {/* 상단 정보 바 */}
-      <GameHeader
+    <div className="min-h-screen bg-gray-950 text-white overflow-x-hidden select-none" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+      {/* 메인 메뉴 (게임 시작 전) */}
+      {saveLoadState.showMainMenu && (
+        <MainMenu
+          saveInfo={saveLoadState.saveInfo}
+          onNewGame={saveLoadState.handleNewGame}
+          onLoadGame={saveLoadState.handleLoadGame}
+          onSelectMode={(mode) => console.log('[App] 모드 선택:', mode)}
+        />
+      )}
+
+      {/* 게임 화면 (게임 시작 후) */}
+      {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
+        <div className="p-2 sm:p-4">
+          {/* 상단 정보 바 */}
+          <GameHeader
         stage={gameState.stage}
         wave={gameState.wave}
         gold={gameState.gold}
@@ -248,6 +332,17 @@ const NeonDefense = () => {
         permanentBuffs={gameState.permanentBuffs}
         onRestart={handleResetGame}
       />
+
+      {/* 스테이지 클리어 저장 옵션 모달 (선택사항) */}
+      <SaveLoadModal
+        show={saveLoadState.showSaveLoadModal}
+        mode={saveLoadState.saveLoadMode}
+        onSaveAndQuit={saveLoadState.handleSaveAndQuit}
+        onContinue={saveLoadState.handleContinue}
+        saveInfo={saveLoadState.saveInfo}
+      />
+        </div>
+      )}
     </div>
   );
 };

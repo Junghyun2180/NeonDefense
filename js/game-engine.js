@@ -579,6 +579,7 @@ const GameEngine = {
 
       // 데미지 적용 (서포트 방감 타워 취약도 포함)
       const splitSpawns = []; // 분열체가 죽으면 여기에 새 적 추가
+      const killedEnemies = []; // 죽은 적 추적 (통계용)
       if (resolved.damageMap.size > 0) {
         movedEnemies = movedEnemies.map(enemy => {
           let damage = resolved.damageMap.get(enemy.id);
@@ -592,6 +593,7 @@ const GameEngine = {
           if (newHealth <= 0) {
             totalKilled++;
             totalGoldEarned += enemy.goldReward || 4;
+            killedEnemies.push(enemy); // 통계 추적용
             newEffects.push({
               id: Date.now() + Math.random(), x: enemy.x, y: enemy.y,
               type: 'explosion', color: EnemySystem.getExplosionColor(enemy),
@@ -630,6 +632,7 @@ const GameEngine = {
       goldEarned: totalGoldEarned,
       livesLost: totalLivesLost,
       killedCount: totalKilled,
+      killedEnemies, // 통계용 추가
       soundEvents,
     };
   },
