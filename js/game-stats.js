@@ -178,6 +178,44 @@ const GameStats = {
     return { grade: 'D', color: '#96E6A1', description: '초보 수호자' };
   },
 
+  // 런 모드 등급 계산 (짧은 게임에 맞춘 가중치)
+  calculateRunGrade(stats, runMode = 'standard') {
+    let score = 0;
+
+    // 클리어 보너스
+    if (stats.stagesCleared >= 5) score += 40;
+
+    // 퍼펙트 웨이브
+    score += (stats.perfectWaves || 0) * 3;
+
+    // T4 타워 생성
+    score += (stats.t4TowersCreated || 0) * 5;
+
+    // 보스 킬
+    score += (stats.bossKills || 0) * 3;
+
+    // 시간 보너스
+    const playTimeMin = this.getPlayTime(stats) / 60;
+    if (playTimeMin <= 10) score += 25;
+    else if (playTimeMin <= 15) score += 15;
+    else if (playTimeMin <= 20) score += 5;
+
+    // 킬 수
+    score += Math.min(20, Math.floor((stats.totalKills || 0) / 10));
+
+    // Endless 보너스
+    if (runMode === 'endless') {
+      score = Math.min(100, (stats.stagesCleared || 0) * 8);
+    }
+
+    // 등급 결정
+    if (score >= 100) return { grade: 'S', color: '#FFD700', description: '전설적인 수호자!' };
+    if (score >= 80) return { grade: 'A', color: '#C0C0C0', description: '뛰어난 전략가!' };
+    if (score >= 60) return { grade: 'B', color: '#CD7F32', description: '숙련된 방어자!' };
+    if (score >= 40) return { grade: 'C', color: '#45B7D1', description: '성장하는 수호자' };
+    return { grade: 'D', color: '#96E6A1', description: '초보 수호자' };
+  },
+
   // 통계 요약 생성 (UI 표시용)
   getSummary(stats, remainingLives = 0, remainingGold = 0) {
     const playTime = this.formatPlayTime(stats);

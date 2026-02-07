@@ -1,10 +1,10 @@
 // Neon Defense - 메인 메뉴 화면
 // 게임 시작 전 모드 선택 및 저장 데이터 불러오기
 
-const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode }) => {
+const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress }) => {
   const { useState } = React;
 
-  const [selectedMode, setSelectedMode] = useState('campaign'); // 'campaign', 'run' (미래)
+  const [selectedMode, setSelectedMode] = useState('campaign'); // 'campaign', 'run'
 
   // 시간 포맷팅
   const formatTime = (timestamp) => {
@@ -209,14 +209,23 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode }) => {
                     🏰 캠페인
                   </button>
                   <button
-                    disabled
-                    className="px-4 py-2 rounded-lg font-bold bg-gray-800 text-gray-600 cursor-not-allowed relative"
+                    onClick={() => {
+                      setSelectedMode('run');
+                      onSelectMode && onSelectMode('run');
+                    }}
+                    className={`px-4 py-2 rounded-lg font-bold transition-all relative ${
+                      selectedMode === 'run'
+                        ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/50'
+                        : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    }`}
                     style={{ fontFamily: 'Orbitron, sans-serif' }}
-                    title="추후 업데이트 예정"
                   >
                     🎲 런 모드
-                    <span className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full font-bold">
-                      SOON
+                    {metaProgress && metaProgress.crystals > 0 && (
+                      <span className="ml-2 text-xs text-cyan-300">💎 {metaProgress.crystals}</span>
+                    )}
+                    <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-cyan-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+                      NEW
                     </span>
                   </button>
                 </div>

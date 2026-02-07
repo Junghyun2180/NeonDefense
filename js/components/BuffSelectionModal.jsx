@@ -1,5 +1,5 @@
 // BuffSelectionModal - 스테이지 클리어 시 버프 선택 모달
-const BuffSelectionModal = ({ isOpen, buffChoices, currentBuffs, onSelectBuff }) => {
+const BuffSelectionModal = ({ isOpen, buffChoices, currentBuffs, onSelectBuff, rerollsRemaining = 0, onReroll = null }) => {
   if (!isOpen || !buffChoices || buffChoices.length === 0) return null;
 
   const { useState } = React;
@@ -17,6 +17,14 @@ const BuffSelectionModal = ({ isOpen, buffChoices, currentBuffs, onSelectBuff })
             🎉 스테이지 클리어!
           </h2>
           <p className="text-gray-400">영구 버프를 선택하세요</p>
+          {rerollsRemaining > 0 && onReroll && (
+            <button
+              onClick={onReroll}
+              className="mt-2 px-4 py-1.5 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-bold text-white transition-colors"
+            >
+              🔄 리롤 ({rerollsRemaining}회 남음)
+            </button>
+          )}
         </div>
 
         {/* 버프 카드들 */}

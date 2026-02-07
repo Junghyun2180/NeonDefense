@@ -12,6 +12,8 @@ const useGameLoop = (config) => {
         wave,
         gold,
         lives,
+        // 설정 (런 모드에서 주입, null이면 캠페인 기본값)
+        spawnConfig,
         // Refs (최신 값 참조용)
         enemiesRef,
         towersRef,
@@ -42,8 +44,9 @@ const useGameLoop = (config) => {
         if (!isPlaying || gameOver) return;
 
         let localSpawnedCount = 0;
-        const totalEnemies = SPAWN.enemiesPerWave(stage, wave);
-        const baseSpawnDelay = SPAWN.spawnDelay(stage, wave);
+        const activeSPAWN = spawnConfig || SPAWN;
+        const totalEnemies = activeSPAWN.enemiesPerWave(stage, wave);
+        const baseSpawnDelay = activeSPAWN.spawnDelay(stage, wave);
 
         // 적 스폰 인터벌
         spawnIntervalRef.current = setInterval(() => {

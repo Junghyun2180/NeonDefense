@@ -121,10 +121,12 @@ const useSaveLoad = (gameState) => {
   return {
     // 상태
     showMainMenu,
+    setShowMainMenu,
     showSaveLoadModal,
     saveLoadMode,
     saveInfo,
     gameStarted,
+    setGameStarted,
     loadedData,
 
     // 핸들러

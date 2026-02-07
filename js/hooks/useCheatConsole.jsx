@@ -1,5 +1,5 @@
 // useCheatConsole - 치트 콘솔 훅
-const useCheatConsole = (gameState, inventoryState) => {
+const useCheatConsole = (gameState, inventoryState, runModeState = null) => {
     const { useState, useCallback, useRef, useEffect } = React;
 
     const {
@@ -108,6 +108,22 @@ const useCheatConsole = (gameState, inventoryState) => {
                 }
                 return '❌ 버프 시스템이 로드되지 않았습니다';
 
+            case 'crystal':
+            case 'cr':
+                if (!runModeState) return '❌ 런 모드 시스템 없음';
+                const crAmt = arg || 100;
+                runModeState.setMetaProgress && runModeState.setMetaProgress(prev => {
+                    const updated = { ...prev, crystals: prev.crystals + crAmt };
+                    if (typeof RunSaveSystem !== 'undefined') RunSaveSystem.saveMeta(updated);
+                    return updated;
+                });
+                return '▶ 크리스탈 +' + crAmt;
+
+            case 'runwin':
+                if (!runModeState || !runModeState.runActive) return '❌ 런 모드가 활성화되지 않았습니다';
+                runModeState.endRun(true, gameState.gameStats, gameState.lives);
+                return '▶ 런 즉시 클리어!';
+
             case 'help':
                 return [
                     '── 명령어 목록 ──',
@@ -122,6 +138,8 @@ const useCheatConsole = (gameState, inventoryState) => {
                     '  속성: fire/water/electric/wind/void/light',
                     't3all           모든 속성 T3 × 3 획득',
                     'support [tier]  서포트 획득 (기본 S3)',
+                    'crystal [n]     크리스탈 추가 (기본 100)',
+                    'runwin          런 즉시 클리어',
                     '↑/↓ 방향키     이전/다음 명령어',
                     'help            명령어 목록',
                     '* 스테이지 클리어 시 버프 선택',
@@ -129,7 +147,7 @@ const useCheatConsole = (gameState, inventoryState) => {
             default:
                 return '❌ 알 수 없는 명령어. help 입력';
         }
-    }, [stage, setGold, setLives, clearWave, advanceStage, addTowerToInventory, addSupportToInventory]);
+    }, [stage, setGold, setLives, clearWave, advanceStage, addTowerToInventory, addSupportToInventory, runModeState]);
 
     const handleCheatSubmit = useCallback((e) => {
         e.preventDefault();

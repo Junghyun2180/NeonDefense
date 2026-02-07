@@ -1,9 +1,12 @@
 // GameHeader - 상단 정보 바 컴포넌트
-const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {} }) => {
+const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null }) => {
     // 활성 버프 목록
     const activeBuffs = typeof PermanentBuffManager !== 'undefined'
         ? PermanentBuffManager.getActiveBuffsList(permanentBuffs)
         : [];
+
+    const activeSPAWN = spawnConfig || SPAWN;
+    const isRunMode = !!gameMode;
 
     return (
         <div className="max-w-4xl mx-auto mb-4">
@@ -11,13 +14,20 @@ const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCoun
                 ⚡ NEON DEFENSE ⚡
             </h1>
             <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4 text-sm sm:text-base">
+                {isRunMode && (
+                    <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-2">
+                        <span className="font-bold text-orange-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                            {gameMode === 'endless' ? '♾️ ENDLESS' : gameMode === 'daily' ? '📅 DAILY' : '🎲 RUN'}
+                        </span>
+                    </div>
+                )}
                 <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-emerald-500/50 flex items-center gap-2">
                     <span className="text-emerald-400">🏰</span>
-                    <span className="font-bold text-emerald-300">Stage {stage}/{SPAWN.maxStage}</span>
+                    <span className="font-bold text-emerald-300">Stage {stage}/{gameMode === 'endless' ? '∞' : activeSPAWN.maxStage}</span>
                 </div>
                 <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-cyan-500/50 flex items-center gap-2">
                     <span className="text-cyan-400">🌊</span>
-                    <span className="font-bold text-cyan-300">Wave {wave}/{SPAWN.wavesPerStage}</span>
+                    <span className="font-bold text-cyan-300">Wave {wave}/{activeSPAWN.wavesPerStage}</span>
                 </div>
                 <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-yellow-500/50 flex items-center gap-2">
                     <span className="text-yellow-400">💰</span>
@@ -34,7 +44,7 @@ const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCoun
                 {isPlaying && (
                     <div className="px-3 sm:px-4 py-2 bg-gray-900 rounded-lg border border-purple-500/50 flex items-center gap-2">
                         <span className="text-purple-400">👾</span>
-                        <span className="font-bold text-purple-300">{killedCount}/{SPAWN.enemiesPerWave(stage, wave)}</span>
+                        <span className="font-bold text-purple-300">{killedCount}/{activeSPAWN.enemiesPerWave(stage, wave)}</span>
                     </div>
                 )}
             </div>

@@ -1,10 +1,20 @@
 // useGameState - 게임 핵심 상태 관리 훅
-const useGameState = () => {
-    const { useState, useEffect, useCallback, useRef } = React;
+// configOverride: 런 모드에서 SPAWN/ECONOMY/CARRYOVER를 주입. null이면 캠페인 기본값 사용.
+const useGameState = (configOverride = null) => {
+    const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+    // ===== 설정 해석 (런 모드 / 캠페인 모드) =====
+    const cfg = useMemo(() => ({
+        SPAWN: configOverride?.SPAWN || SPAWN,
+        ECONOMY: configOverride?.ECONOMY || ECONOMY,
+        CARRYOVER: configOverride?.CARRYOVER || CARRYOVER,
+    }), [configOverride]);
+    const cfgRef = useRef(cfg);
+    useEffect(() => { cfgRef.current = cfg; }, [cfg]);
 
     // ===== 게임 상태 =====
-    const [gold, setGold] = useState(ECONOMY.startGold);
-    const [lives, setLives] = useState(ECONOMY.startLives);
+    const [gold, setGold] = useState(cfg.ECONOMY.startGold);
+    const [lives, setLives] = useState(cfg.ECONOMY.startLives);
     const [stage, setStage] = useState(1);
     const [wave, setWave] = useState(1);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -40,7 +50,7 @@ const useGameState = () => {
     const [gameCleared, setGameCleared] = useState(false);
     const [gameStats, setGameStats] = useState(() => GameStats.createEmpty());
     const gameStatsRef = useRef(gameStats);
-    const livesAtWaveStart = useRef(ECONOMY.startLives);
+    const livesAtWaveStart = useRef(cfg.ECONOMY.startLives);
 
     // 다중 경로 시스템
     const [pathData, setPathData] = useState(() => generateMultiplePaths(Date.now(), 1));
@@ -73,6 +83,7 @@ const useGameState = () => {
         wave,
         gold,
         lives,
+        spawnConfig: cfg.SPAWN,
         enemiesRef,
         towersRef,
         supportTowersRef,
@@ -114,7 +125,8 @@ const useGameState = () => {
 
     // ===== 웨이브 클리어 판정 =====
     useEffect(() => {
-        const totalEnemies = SPAWN.enemiesPerWave(stage, wave);
+        const activeCfg = cfgRef.current;
+        const totalEnemies = activeCfg.SPAWN.enemiesPerWave(stage, wave);
         if (spawnedCount < totalEnemies || enemies.length > 0 || !isPlaying || gameOver) return;
 
         setIsPlaying(false);
@@ -129,7 +141,7 @@ const useGameState = () => {
         }));
 
         // 웨이브 보상
-        const waveReward = ECONOMY.waveReward(wave);
+        const waveReward = activeCfg.ECONOMY.waveReward(wave);
         setGold(prev => prev + waveReward);
         setGameStats(prev => ({
             ...prev,
@@ -152,17 +164,16 @@ const useGameState = () => {
             });
         }
 
-        if (wave >= SPAWN.wavesPerStage) {
+        if (wave >= activeCfg.SPAWN.wavesPerStage) {
             // 통계: 스테이지 클리어
             setGameStats(prev => ({ ...prev, stagesCleared: prev.stagesCleared + 1 }));
 
-            // 최종 스테이지 클리어 체크 (10스테이지)
-            if (stage >= SPAWN.maxStage) {
+            // 최종 스테이지 클리어 체크
+            if (stage >= activeCfg.SPAWN.maxStage) {
                 // 게임 클리어!
                 setGameStats(prev => GameStats.finalize(prev));
                 setGameCleared(true);
                 soundManager.stopBGM();
-                // 승리 사운드 (없으면 웨이브 시작 사운드로 대체)
                 soundManager.playWaveStart();
 
                 // 밸런스 로그 기록 (클리어)
@@ -173,7 +184,7 @@ const useGameState = () => {
                         gold,
                         lives,
                         stage,
-                        wave: SPAWN.wavesPerStage,
+                        wave: activeCfg.SPAWN.wavesPerStage,
                         gameStats: gameStatsRef.current,
                         permanentBuffs,
                     });
@@ -228,8 +239,9 @@ const useGameState = () => {
 
     // ===== 리셋 =====
     const resetGame = useCallback(() => {
-        setGold(ECONOMY.startGold);
-        setLives(ECONOMY.startLives);
+        const activeCfg = cfgRef.current;
+        setGold(activeCfg.ECONOMY.startGold);
+        setLives(activeCfg.ECONOMY.startLives);
         setStage(1);
         setWave(1);
         setIsPlaying(false);
@@ -289,10 +301,11 @@ const useGameState = () => {
     // 캐리오버 타워 토글
     const toggleCarryoverTower = useCallback((towerId) => {
         setSelectedCarryover(prev => {
+            const activeCfg = cfgRef.current;
             const isSelected = prev.towers.includes(towerId);
             if (isSelected) {
                 return { ...prev, towers: prev.towers.filter(id => id !== towerId) };
-            } else if (prev.towers.length < CARRYOVER.maxTowers) {
+            } else if (prev.towers.length < activeCfg.CARRYOVER.maxTowers) {
                 return { ...prev, towers: [...prev.towers, towerId] };
             }
             return prev;
@@ -302,10 +315,11 @@ const useGameState = () => {
     // 캐리오버 서포트 토글
     const toggleCarryoverSupport = useCallback((supportId) => {
         setSelectedCarryover(prev => {
+            const activeCfg = cfgRef.current;
             const isSelected = prev.supports.includes(supportId);
             if (isSelected) {
                 return { ...prev, supports: prev.supports.filter(id => id !== supportId) };
-            } else if (prev.supports.length < CARRYOVER.maxSupports) {
+            } else if (prev.supports.length < activeCfg.CARRYOVER.maxSupports) {
                 return { ...prev, supports: [...prev.supports, supportId] };
             }
             return prev;
@@ -356,6 +370,7 @@ const useGameState = () => {
 
     // 버프 선택 핸들러
     const selectBuff = useCallback((buffId) => {
+        const activeCfg = cfgRef.current;
         setPermanentBuffs(prev => PermanentBuffManager.applyBuff(prev, buffId));
         setShowBuffSelection(false);
         setBuffChoices([]);
@@ -375,7 +390,7 @@ const useGameState = () => {
         setSupportTowers([]);
 
         // 스테이지 클리어 보너스
-        const stageBonus = ECONOMY.stageClearBonus(stage);
+        const stageBonus = activeCfg.ECONOMY.stageClearBonus(stage);
         setGold(prev => prev + stageBonus);
         setGameStats(prev => ({
             ...prev,
@@ -385,8 +400,8 @@ const useGameState = () => {
 
         // 최대 목숨 버프 적용
         const bonusLives = PermanentBuffManager.getBonusMaxLives(permanentBuffs);
-        if (bonusLives > 0 && lives < ECONOMY.startLives + bonusLives) {
-            setLives(ECONOMY.startLives + bonusLives);
+        if (bonusLives > 0 && lives < activeCfg.ECONOMY.startLives + bonusLives) {
+            setLives(activeCfg.ECONOMY.startLives + bonusLives);
         }
 
         // 캐리오버 타워 반환 (App.jsx에서 인벤토리에 추가)
@@ -412,12 +427,14 @@ const useGameState = () => {
         effects, setEffects,
         chainLightnings,
         showStageTransition,
-        pathData,
+        pathData, setPathData,
         gameSpeed, setGameSpeed,
+        // 설정 (런 모드에서 참조용)
+        activeConfig: cfg,
         // 영구 버프
-        permanentBuffs,
+        permanentBuffs, setPermanentBuffs,
         showBuffSelection,
-        buffChoices,
+        buffChoices, setBuffChoices,
         selectBuff,
         // 캐리오버 시스템
         showCarryoverSelection,

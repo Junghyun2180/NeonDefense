@@ -1,10 +1,14 @@
 // Neon Defense - 메인 React 컴포넌트
 // 순수 UI + 상태 관리만 담당. 게임 로직은 GameEngine/TowerSystem/EnemySystem에 위임.
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useRef, useCallback } = React;
 
 const NeonDefense = () => {
+  // ===== 런 모드 훅 =====
+  const runModeState = useRunMode();
+  const [showRunMenu, setShowRunMenu] = useState(false);
+
   // ===== 게임 상태 훅 =====
-  const gameState = useGameState();
+  const gameState = useGameState(runModeState.runConfig);
 
   // ===== 인벤토리 훅 =====
   const inventoryState = useInventory(gameState);
@@ -35,7 +39,7 @@ const NeonDefense = () => {
   const dragState = useDragAndDrop(gameState, inventoryState);
 
   // ===== 치트 콘솔 훅 =====
-  const cheatState = useCheatConsole(gameState, inventoryState);
+  const cheatState = useCheatConsole(gameState, inventoryState, runModeState);
 
   // 도움말 모달 상태
   const [showHelp, setShowHelp] = useState(false);
@@ -87,6 +91,120 @@ const NeonDefense = () => {
       });
     }
   }, [gameState.gameOver]);
+
+  // ===== 런 모드: 게임 클리어/오버 감지 =====
+  useEffect(() => {
+    if (runModeState.runActive && gameState.gameCleared) {
+      runModeState.endRun(true, gameState.gameStats, gameState.lives);
+    }
+  }, [gameState.gameCleared]);
+
+  useEffect(() => {
+    if (runModeState.runActive && gameState.gameOver) {
+      runModeState.endRun(false, gameState.gameStats, gameState.lives);
+    }
+  }, [gameState.gameOver]);
+
+  // ===== 런 모드: 런 시작 시 게임 리셋 =====
+  const prevRunActive = useRef(false);
+  const isLoadingRun = useRef(false);
+  useEffect(() => {
+    if (runModeState.runActive && !prevRunActive.current && !isLoadingRun.current) {
+      gameState.resetGame();
+      inventoryState.resetInventory();
+      dragState.resetDragState();
+    }
+    prevRunActive.current = runModeState.runActive;
+    isLoadingRun.current = false;
+  }, [runModeState.runActive]);
+
+  // ===== 런 모드 핸들러 =====
+  const handleSelectMode = useCallback((mode) => {
+    if (mode === 'run') {
+      setShowRunMenu(true);
+    }
+  }, []);
+
+  const handleStartRun = useCallback((mode, modifiers = []) => {
+    runModeState.startRun(mode, modifiers);
+    setShowRunMenu(false);
+    saveLoadState.setShowMainMenu(false);
+    saveLoadState.setGameStarted(true);
+  }, [runModeState, saveLoadState]);
+
+  const handleRunMenuBack = useCallback(() => {
+    setShowRunMenu(false);
+    saveLoadState.setShowMainMenu(true);
+  }, [saveLoadState]);
+
+  const handleRunResultMainMenu = useCallback(() => {
+    runModeState.closeRunResult();
+    gameState.resetGame();
+    inventoryState.resetInventory();
+    saveLoadState.setGameStarted(false);
+    saveLoadState.setShowMainMenu(true);
+  }, [runModeState, gameState, inventoryState, saveLoadState]);
+
+  const handleRunResultRestart = useCallback(() => {
+    const mode = runModeState.runResult?.mode || 'standard';
+    runModeState.closeRunResult();
+    runModeState.startRun(mode);
+    saveLoadState.setShowMainMenu(false);
+    saveLoadState.setGameStarted(true);
+  }, [runModeState, saveLoadState]);
+
+  const handleRunResultUpgrades = useCallback(() => {
+    runModeState.closeRunResult();
+    gameState.resetGame();
+    inventoryState.resetInventory();
+    saveLoadState.setGameStarted(false);
+    setShowRunMenu(true);
+  }, [runModeState, gameState, inventoryState, saveLoadState]);
+
+  const handleLoadRun = useCallback(() => {
+    isLoadingRun.current = true;
+    const data = runModeState.loadRunProgress();
+    if (!data) return;
+    setShowRunMenu(false);
+    saveLoadState.setShowMainMenu(false);
+    saveLoadState.setGameStarted(true);
+
+    // 게임 상태 복원
+    const restoredTowers = (data.towers || []).map(tData => {
+      let tower;
+      if (tData.tier === 4 && tData.role) {
+        tower = TowerSystem.createT4WithRole(tData.colorIndex, tData.role);
+      } else {
+        tower = TowerSystem.create(tData.tier, tData.colorIndex);
+      }
+      tower.id = tData.id;
+      tower.x = tData.x;
+      tower.y = tData.y;
+      tower.lastShot = Date.now();
+      return tower;
+    });
+
+    const restoredSupports = (data.supportTowers || []).map(sData => {
+      const support = TowerSystem.createSupport(sData.tier, sData.supportType);
+      support.id = sData.id;
+      support.x = sData.x;
+      support.y = sData.y;
+      support.abilityType = sData.abilityType;
+      return support;
+    });
+
+    gameState.setStage(data.stage);
+    gameState.setWave(data.wave);
+    gameState.setGold(data.gold);
+    gameState.setLives(data.lives);
+    gameState.setTowers(restoredTowers);
+    gameState.setSupportTowers(restoredSupports);
+    gameState.setPermanentBuffs(data.permanentBuffs || {});
+    gameState.setGameStats(data.stats || GameStats.createEmpty());
+    inventoryState.setInventory(data.inventory || []);
+    inventoryState.setSupportInventory(data.supportInventory || []);
+    gameState.setPathData(generateMultiplePaths(data.seed || Date.now(), data.stage));
+  }, [runModeState, gameState, inventoryState, saveLoadState]);
 
   // 경로 꺾임 지점에 방향 화살표 사전 계산 (여러 경로 겹침 지원)
   const pathArrows = useMemo(() => {
@@ -208,12 +326,31 @@ const NeonDefense = () => {
   return (
     <div className="min-h-screen bg-gray-950 text-white overflow-x-hidden select-none" style={{ fontFamily: "'Orbitron', sans-serif" }}>
       {/* 메인 메뉴 (게임 시작 전) */}
-      {saveLoadState.showMainMenu && (
+      {saveLoadState.showMainMenu && !showRunMenu && (
         <MainMenu
           saveInfo={saveLoadState.saveInfo}
-          onNewGame={saveLoadState.handleNewGame}
+          onNewGame={() => {
+            saveLoadState.handleNewGame();
+            gameState.resetGame();
+            inventoryState.resetInventory();
+            dragState.resetDragState();
+          }}
           onLoadGame={saveLoadState.handleLoadGame}
-          onSelectMode={(mode) => console.log('[App] 모드 선택:', mode)}
+          onSelectMode={handleSelectMode}
+          metaProgress={runModeState.metaProgress}
+        />
+      )}
+
+      {/* 런 모드 메뉴 */}
+      {showRunMenu && !runModeState.runActive && (
+        <RunModeMenu
+          metaProgress={runModeState.metaProgress}
+          neonCrystals={runModeState.neonCrystals}
+          onStartRun={handleStartRun}
+          onPurchaseUpgrade={runModeState.purchaseUpgrade}
+          onBack={handleRunMenuBack}
+          activeRunInfo={runModeState.getActiveRunInfo()}
+          onLoadRun={handleLoadRun}
         />
       )}
 
@@ -230,6 +367,8 @@ const NeonDefense = () => {
         isPlaying={gameState.isPlaying}
         killedCount={gameState.killedCount}
         permanentBuffs={gameState.permanentBuffs}
+        gameMode={runModeState.runMode}
+        spawnConfig={gameState.activeConfig?.SPAWN}
       />
 
       <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
@@ -311,9 +450,9 @@ const NeonDefense = () => {
         getElementInfo={getElementInfo}
       />
 
-      {/* 모달들 */}
+      {/* 모달들 (런 모드에서는 게임오버 모달 숨김) */}
       <GameModals
-        gameOver={gameState.gameOver}
+        gameOver={gameState.gameOver && !runModeState.runMode}
         resetGame={handleResetGame}
         stage={gameState.stage}
         wave={gameState.wave}
@@ -366,16 +505,31 @@ const NeonDefense = () => {
         buffChoices={gameState.buffChoices}
         currentBuffs={gameState.permanentBuffs}
         onSelectBuff={handleSelectBuff}
+        rerollsRemaining={runModeState.runActive ? runModeState.rerollsRemaining : 0}
+        onReroll={runModeState.runActive ? () => runModeState.rerollBuffChoices(gameState.permanentBuffs, gameState.setBuffChoices) : null}
       />
 
-      {/* 게임 클리어 모달 */}
+      {/* 게임 클리어 모달 (캠페인 전용) */}
       <GameClearModal
-        isOpen={gameState.gameCleared}
+        isOpen={gameState.gameCleared && !runModeState.runMode}
         stats={gameState.gameStats}
         lives={gameState.lives}
         gold={gameState.gold}
         permanentBuffs={gameState.permanentBuffs}
         onRestart={handleResetGame}
+      />
+
+      {/* 런 결과 모달 */}
+      <RunResultModal
+        isOpen={!!runModeState.runResult}
+        runResult={runModeState.runResult}
+        gameStats={gameState.gameStats}
+        lives={gameState.lives}
+        gold={gameState.gold}
+        permanentBuffs={gameState.permanentBuffs}
+        onRestart={handleRunResultRestart}
+        onMainMenu={handleRunResultMainMenu}
+        onUpgrades={handleRunResultUpgrades}
       />
 
       {/* 스테이지 클리어 저장 옵션 모달 (선택사항) */}
