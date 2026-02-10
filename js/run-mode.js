@@ -97,7 +97,7 @@ const RunMode = {
     }
   },
 
-  // ===== 크리스탈 보상 계산 =====
+  // ===== 크리스탈 보상 계산 (런 모드) =====
   calculateCrystals(result) {
     let crystals = 0;
 
@@ -131,6 +131,76 @@ const RunMode = {
     crystals += gradeBonus;
 
     return crystals;
+  },
+
+  // ===== 캠페인 크리스탈 보상 계산 =====
+  calculateCampaignCrystals(result) {
+    let crystals = 0;
+    const breakdown = [];
+
+    // 스테이지당 보상 (클리어/실패 공통)
+    const stageReward = (result.stagesCleared || 0) * CRYSTAL_REWARDS.campaignPerStage;
+    if (stageReward > 0) {
+      crystals += stageReward;
+      breakdown.push({
+        label: `스테이지 보상 (${result.stagesCleared}단계)`,
+        amount: stageReward,
+        color: 'text-cyan-300',
+      });
+    }
+
+    if (result.cleared) {
+      // 캠페인 클리어 기본 보상
+      crystals += CRYSTAL_REWARDS.campaignClear;
+      breakdown.push({
+        label: '캠페인 클리어',
+        amount: CRYSTAL_REWARDS.campaignClear,
+        color: 'text-cyan-300',
+      });
+
+      // 퍼펙트 보너스 (목숨 손실 0)
+      if (result.isPerfect) {
+        crystals += CRYSTAL_REWARDS.campaignPerfectBonus;
+        breakdown.push({
+          label: '퍼펙트 클리어',
+          amount: CRYSTAL_REWARDS.campaignPerfectBonus,
+          color: 'text-green-300',
+        });
+      }
+
+      // 스피드 보너스 (30분 이내)
+      if (result.playTimeMs && result.playTimeMs < 30 * 60 * 1000) {
+        crystals += CRYSTAL_REWARDS.campaignSpeedBonus;
+        breakdown.push({
+          label: '스피드 보너스',
+          amount: CRYSTAL_REWARDS.campaignSpeedBonus,
+          color: 'text-yellow-300',
+        });
+      }
+
+      // 최초 클리어 보너스
+      if (result.isFirstClear) {
+        crystals += CRYSTAL_REWARDS.campaignFirstClearBonus;
+        breakdown.push({
+          label: '최초 클리어!',
+          amount: CRYSTAL_REWARDS.campaignFirstClearBonus,
+          color: 'text-orange-300',
+        });
+      }
+    }
+
+    // 등급 보너스
+    const gradeBonus = CRYSTAL_REWARDS.campaignGradeBonus[result.grade] || 0;
+    if (gradeBonus > 0) {
+      crystals += gradeBonus;
+      breakdown.push({
+        label: `등급 보너스 (${result.grade})`,
+        amount: gradeBonus,
+        color: 'text-purple-300',
+      });
+    }
+
+    return { crystals, breakdown };
   },
 
   // ===== 메타 업그레이드 비용 =====

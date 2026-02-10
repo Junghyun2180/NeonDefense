@@ -52,65 +52,75 @@ const RUN_CARRYOVER = {
 
 // ===== 크리스탈 보상 테이블 =====
 const CRYSTAL_REWARDS = {
+  // 런 모드
   standardClear: 50,       // Standard Run 클리어
   dailyClear: 100,         // Daily Challenge 클리어
   perfectBonus: 30,        // 목숨 손실 없이 클리어
   speedBonus: 20,          // 15분 이내 클리어
   perStageBonus: 10,       // 스테이지당 보상 (실패 시)
   gradeBonus: { S: 30, A: 20, B: 10, C: 5, D: 0 },
+
+  // 캠페인 모드
+  campaignClear: 80,            // 캠페인 전체 클리어
+  campaignPerStage: 5,          // 캠페인 스테이지당 보상
+  campaignPerfectBonus: 50,     // 캠페인 퍼펙트 클리어 (목숨 손실 0)
+  campaignSpeedBonus: 30,       // 캠페인 30분 이내 클리어
+  campaignGradeBonus: { S: 40, A: 25, B: 15, C: 8, D: 0 },
+  campaignFirstClearBonus: 100, // 최초 클리어 보너스
 };
 
 // ===== 메타 업그레이드 정의 =====
+// 리텐션 강화: 레벨당 효과 낮추고, 최대 레벨 높이고, 비용 점진 증가
 const META_UPGRADES = {
   startingGold: {
     id: 'startingGold',
     name: '초기 자금 강화',
     icon: '💰',
     desc: '런 시작 시 추가 골드',
-    maxLevel: 10,
-    cost: (level) => 20 + level * 15,
-    effect: (level) => level * 10,        // +10G per level
-    formatEffect: (level) => `+${level * 10}G`,
+    maxLevel: 15,
+    cost: (level) => 20 + level * 12 + Math.floor(level / 5) * 15,
+    effect: (level) => level * 5,          // +5G per level (was +10G)
+    formatEffect: (level) => `+${level * 5}G`,
   },
   startingLives: {
     id: 'startingLives',
     name: '방어선 강화',
     icon: '❤️',
     desc: '런 시작 시 추가 목숨',
-    maxLevel: 5,
-    cost: (level) => 30 + level * 25,
-    effect: (level) => level * 2,         // +2 lives per level
-    formatEffect: (level) => `+${level * 2}`,
+    maxLevel: 8,
+    cost: (level) => 30 + level * 20 + Math.floor(level / 3) * 15,
+    effect: (level) => level,              // +1 life per level (was +2)
+    formatEffect: (level) => `+${level}`,
   },
   baseDamage: {
     id: 'baseDamage',
     name: '기본 화력',
     icon: '⚔️',
     desc: '모든 타워 공격력 증가',
-    maxLevel: 20,
-    cost: (level) => 15 + level * 12,
-    effect: (level) => level * 0.02,      // +2% per level
-    formatEffect: (level) => `+${(level * 2)}%`,
+    maxLevel: 30,
+    cost: (level) => 15 + level * 10 + Math.floor(level / 5) * 10,
+    effect: (level) => level * 0.01,       // +1% per level (was +2%)
+    formatEffect: (level) => `+${level}%`,
   },
   baseAttackSpeed: {
     id: 'baseAttackSpeed',
     name: '기본 공속',
     icon: '⏱️',
     desc: '모든 타워 공격속도 증가',
-    maxLevel: 15,
-    cost: (level) => 20 + level * 15,
-    effect: (level) => level * 0.015,     // +1.5% per level
-    formatEffect: (level) => `+${(level * 1.5).toFixed(1)}%`,
+    maxLevel: 20,
+    cost: (level) => 20 + level * 12 + Math.floor(level / 5) * 10,
+    effect: (level) => level * 0.01,       // +1% per level (was +1.5%)
+    formatEffect: (level) => `+${level}%`,
   },
   goldMultiplier: {
     id: 'goldMultiplier',
     name: '골드 배율',
     icon: '🪙',
     desc: '킬 골드 보상 증가',
-    maxLevel: 10,
-    cost: (level) => 25 + level * 20,
-    effect: (level) => level * 0.05,      // +5% per level
-    formatEffect: (level) => `+${(level * 5)}%`,
+    maxLevel: 15,
+    cost: (level) => 25 + level * 18 + Math.floor(level / 5) * 15,
+    effect: (level) => level * 0.03,       // +3% per level (was +5%)
+    formatEffect: (level) => `+${(level * 3)}%`,
   },
   drawDiscount: {
     id: 'drawDiscount',
@@ -118,8 +128,8 @@ const META_UPGRADES = {
     icon: '🏷️',
     desc: '타워 뽑기 비용 감소',
     maxLevel: 5,
-    cost: (level) => 40 + level * 30,
-    effect: (level) => level * 1,         // -1G per level
+    cost: (level) => 50 + level * 35,
+    effect: (level) => level * 1,          // -1G per level (unchanged)
     formatEffect: (level) => `-${level}G`,
   },
   rerollCount: {
@@ -127,9 +137,9 @@ const META_UPGRADES = {
     name: '버프 리롤',
     icon: '🔄',
     desc: '런당 버프 선택 리롤 횟수',
-    maxLevel: 3,
-    cost: (level) => 60 + level * 40,
-    effect: (level) => level,             // +1 reroll per level
+    maxLevel: 5,
+    cost: (level) => 50 + level * 35,
+    effect: (level) => level,              // +1 reroll per level
     formatEffect: (level) => `${level}회`,
   },
   carryoverSlots: {
@@ -138,8 +148,8 @@ const META_UPGRADES = {
     icon: '📦',
     desc: '다음 스테이지로 가져갈 추가 타워 수',
     maxLevel: 5,
-    cost: (level) => 35 + level * 25,
-    effect: (level) => level,             // +1 slot per level
+    cost: (level) => 40 + level * 30,
+    effect: (level) => level,              // +1 slot per level
     formatEffect: (level) => `+${level}개`,
   },
 };

@@ -101,23 +101,18 @@ const useRunMode = () => {
     });
 
     // 리더보드 업데이트
-    if (typeof Leaderboard !== 'undefined') {
-      Leaderboard.addEntry(runMode, {
-        score: result.stagesCleared,
-        stage: result.stagesCleared,
-        time: playTimeMs,
-        grade,
-        date: Date.now(),
-      });
-    }
+    Leaderboard.addEntry(runMode, {
+      score: result.stagesCleared,
+      stage: result.stagesCleared,
+      time: playTimeMs,
+      grade,
+      date: Date.now(),
+    });
 
     // 업적 체크
-    if (typeof AchievementSystem !== 'undefined') {
-      AchievementSystem.checkAll({
-        ...result,
-        metaStats: metaProgress.stats,
-      });
-    }
+    AchievementSystem.updateFromRun(result);
+    AchievementSystem.updateFromMeta(metaProgress);
+    AchievementSystem.checkAll(AchievementSystem.getStats());
 
     // 런 진행 데이터 삭제
     RunSaveSystem.deleteRun();

@@ -28,6 +28,7 @@ const RunSaveSystem = {
         bestGrade: null,
         fastestClear: null,
         highestEndlessStage: 0,
+        campaignClears: 0,
       },
     };
   },

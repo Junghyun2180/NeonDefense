@@ -1,5 +1,5 @@
-// GameClearModal - 게임 클리어 축하 모달
-const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart, onClose }) => {
+// GameClearModal - 게임 클리어 축하 모달 (캠페인 크리스탈 보상 포함)
+const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart, onClose, crystalResult, newAchievements }) => {
   if (!isOpen || !stats) return null;
 
   const summary = GameStats.getSummary(stats, lives, gold);
@@ -33,6 +33,53 @@ const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart,
             {summary.grade.description}
           </p>
         </div>
+
+        {/* 크리스탈 보상 섹션 */}
+        {crystalResult && crystalResult.crystals > 0 && (
+          <div className="mb-6 bg-gradient-to-r from-cyan-900/40 to-purple-900/40 border border-cyan-500/40 rounded-xl p-4">
+            <h3 className="text-sm font-bold text-cyan-300 mb-3 flex items-center gap-2" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              💎 CRYSTAL REWARDS
+            </h3>
+            <div className="space-y-1 text-sm">
+              {crystalResult.breakdown.map((item, idx) => (
+                <div key={idx} className="flex justify-between">
+                  <span className="text-gray-300">{item.label}</span>
+                  <span className={item.color}>💎 {item.amount}</span>
+                </div>
+              ))}
+              <div className="border-t border-gray-600 my-2"></div>
+              <div className="flex justify-between font-bold">
+                <span className="text-white">총 획득</span>
+                <span className="text-cyan-300 text-lg" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                  💎 {crystalResult.crystals}
+                </span>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-gray-400 text-center">
+              런 모드 메타 업그레이드에 사용할 수 있습니다!
+            </div>
+          </div>
+        )}
+
+        {/* 새로 해금된 업적 */}
+        {newAchievements && newAchievements.length > 0 && (
+          <div className="mb-6 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-500/40 rounded-xl p-4">
+            <h3 className="text-sm font-bold text-yellow-300 mb-3 flex items-center gap-2">
+              🏆 업적 해금!
+            </h3>
+            <div className="space-y-2">
+              {newAchievements.map(ach => (
+                <div key={ach.id} className="flex items-center gap-3 bg-black/30 rounded-lg p-2">
+                  <span className="text-2xl">{ach.icon}</span>
+                  <div>
+                    <div className="text-sm font-bold text-yellow-200">{ach.name}</div>
+                    <div className="text-xs text-gray-400">{ach.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 주요 하이라이트 */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -129,9 +176,9 @@ const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart,
           </button>
         </div>
 
-        {/* 리더보드 안내 (추후 구현) */}
-        <div className="mt-4 text-center text-xs text-gray-500">
-          🏆 리더보드 기능은 곧 추가될 예정입니다!
+        {/* 런 모드 안내 */}
+        <div className="mt-4 text-center text-xs text-gray-400">
+          💎 크리스탈로 런 모드 메타 업그레이드를 구매하세요!
         </div>
       </div>
     </div>

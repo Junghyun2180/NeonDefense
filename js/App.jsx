@@ -92,6 +92,113 @@ const NeonDefense = () => {
     }
   }, [gameState.gameOver]);
 
+  // ===== 캠페인 클리어/게임오버 크리스탈 보상 =====
+  const [campaignCrystalResult, setCampaignCrystalResult] = useState(null);
+  const [newAchievements, setNewAchievements] = useState([]);
+
+  // 캠페인 클리어 시 크리스탈 보상 처리
+  useEffect(() => {
+    if (gameState.gameCleared && !runModeState.runMode) {
+      const playTimeMs = gameState.gameStats.endTime
+        ? gameState.gameStats.endTime - gameState.gameStats.startTime
+        : Date.now() - gameState.gameStats.startTime;
+
+      const grade = GameStats.calculateGrade(gameState.gameStats);
+      const isFirstClear = !(runModeState.metaProgress.stats.campaignClears > 0);
+      const isPerfect = (gameState.gameStats.livesLost || 0) === 0;
+
+      const result = {
+        cleared: true,
+        stagesCleared: gameState.gameStats.stagesCleared,
+        grade: grade.grade,
+        isPerfect,
+        playTimeMs,
+        isFirstClear,
+      };
+
+      const { crystals, breakdown } = RunMode.calculateCampaignCrystals(result);
+      setCampaignCrystalResult({ crystals, breakdown });
+
+      // 메타 진행에 크리스탈 추가
+      runModeState.setMetaProgress(prev => {
+        const updated = {
+          ...prev,
+          crystals: prev.crystals + crystals,
+          stats: {
+            ...prev.stats,
+            campaignClears: (prev.stats.campaignClears || 0) + 1,
+            totalCrystalsEarned: (prev.stats.totalCrystalsEarned || 0) + crystals,
+          },
+        };
+        RunSaveSystem.saveMeta(updated);
+        return updated;
+      });
+
+      // 리더보드 추가
+      Leaderboard.addEntry('campaign', {
+        stage: gameState.gameStats.stagesCleared,
+        time: playTimeMs,
+        grade: grade.grade,
+        lives: gameState.lives,
+      });
+
+      // 업적 체크
+      const stats = AchievementSystem.updateFromCampaign(
+        gameState.gameStats, true, gameState.lives, playTimeMs
+      );
+      AchievementSystem.updateFromMeta(runModeState.metaProgress);
+      const newAchs = AchievementSystem.checkAll(stats);
+      if (newAchs.length > 0) {
+        setNewAchievements(newAchs);
+      }
+
+      console.log(`[Campaign] 클리어 보상: 💎${crystals}`);
+    }
+  }, [gameState.gameCleared]);
+
+  // 캠페인 게임오버 시 크리스탈 보상 처리
+  useEffect(() => {
+    if (gameState.gameOver && !runModeState.runMode) {
+      const playTimeMs = Date.now() - gameState.gameStats.startTime;
+      const grade = GameStats.calculateGrade(gameState.gameStats);
+
+      const result = {
+        cleared: false,
+        stagesCleared: gameState.gameStats.stagesCleared,
+        grade: grade.grade,
+        isPerfect: false,
+        playTimeMs,
+        isFirstClear: false,
+      };
+
+      const { crystals, breakdown } = RunMode.calculateCampaignCrystals(result);
+      if (crystals > 0) {
+        setCampaignCrystalResult({ crystals, breakdown });
+
+        runModeState.setMetaProgress(prev => {
+          const updated = {
+            ...prev,
+            crystals: prev.crystals + crystals,
+            stats: {
+              ...prev.stats,
+              totalCrystalsEarned: (prev.stats.totalCrystalsEarned || 0) + crystals,
+            },
+          };
+          RunSaveSystem.saveMeta(updated);
+          return updated;
+        });
+      }
+
+      // 업적 체크
+      const stats = AchievementSystem.updateFromCampaign(
+        gameState.gameStats, false, gameState.lives, playTimeMs
+      );
+      AchievementSystem.checkAll(stats);
+
+      console.log(`[Campaign] 게임오버 보상: 💎${crystals}`);
+    }
+  }, [gameState.gameOver]);
+
   // ===== 런 모드: 게임 클리어/오버 감지 =====
   useEffect(() => {
     if (runModeState.runActive && gameState.gameCleared) {
@@ -315,6 +422,8 @@ const NeonDefense = () => {
     gameState.resetGame();
     inventoryState.resetInventory();
     dragState.resetDragState();
+    setCampaignCrystalResult(null);
+    setNewAchievements([]);
 
     // 밸런스 로거 세션 시작
     if (typeof BalanceLogger !== 'undefined') {
@@ -461,6 +570,7 @@ const NeonDefense = () => {
         showHelp={showHelp}
         setShowHelp={setShowHelp}
         getElementInfo={getElementInfo}
+        crystalResult={campaignCrystalResult}
       />
 
       {/* T4 역할 선택 모달 */}
@@ -517,6 +627,8 @@ const NeonDefense = () => {
         gold={gameState.gold}
         permanentBuffs={gameState.permanentBuffs}
         onRestart={handleResetGame}
+        crystalResult={campaignCrystalResult}
+        newAchievements={newAchievements}
       />
 
       {/* 런 결과 모달 */}

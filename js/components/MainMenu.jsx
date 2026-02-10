@@ -93,6 +93,10 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress 
                   <span className="font-bold text-blue-300">50~70분</span>
                 </div>
                 <div className="flex items-center justify-between text-gray-300">
+                  <span>💎 크리스탈 보상</span>
+                  <span className="font-bold text-cyan-300">최대 200+</span>
+                </div>
+                <div className="flex items-center justify-between text-gray-300">
                   <span>💾 자동 저장</span>
                   <span className="font-bold text-green-300">30초마다</span>
                 </div>
@@ -257,9 +261,34 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress 
             </div>
           </div>
 
+          {/* 크리스탈 잔액 & 업적 진행도 */}
+          {metaProgress && (
+            <div className="flex items-center justify-center gap-6 bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">💎</span>
+                <div>
+                  <div className="text-xs text-gray-400">보유 크리스탈</div>
+                  <div className="text-cyan-300 font-bold" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    {(metaProgress.crystals || 0).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              <div className="w-px h-8 bg-gray-600"></div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🏆</span>
+                <div>
+                  <div className="text-xs text-gray-400">업적</div>
+                  <div className="text-yellow-300 font-bold text-sm">
+                    {AchievementSystem.getProgress().unlocked}/{AchievementSystem.getProgress().total}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* 버전 정보 */}
           <div className="text-center text-gray-600 text-xs">
-            <div>Neon Defense v1.0</div>
+            <div>Neon Defense v1.1</div>
             <div className="mt-1">Made with ❤️ by Junghyun</div>
           </div>
         </div>
