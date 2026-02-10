@@ -101,13 +101,14 @@ const useRunMode = () => {
     });
 
     // 리더보드 업데이트
-    Leaderboard.addEntry(runMode, {
+    const rank = Leaderboard.addEntry(runMode, {
       score: result.stagesCleared,
       stage: result.stagesCleared,
       time: playTimeMs,
       grade,
       date: Date.now(),
     });
+    result.leaderboardRank = rank;
 
     // 업적 체크
     AchievementSystem.updateFromRun(result);

@@ -94,6 +94,7 @@ const NeonDefense = () => {
 
   // ===== 캠페인 클리어/게임오버 크리스탈 보상 =====
   const [campaignCrystalResult, setCampaignCrystalResult] = useState(null);
+  const [campaignRank, setCampaignRank] = useState(null);
   const [newAchievements, setNewAchievements] = useState([]);
 
   // 캠페인 클리어 시 크리스탈 보상 처리
@@ -135,12 +136,13 @@ const NeonDefense = () => {
       });
 
       // 리더보드 추가
-      Leaderboard.addEntry('campaign', {
+      const rank = Leaderboard.addEntry('campaign', {
         stage: gameState.gameStats.stagesCleared,
         time: playTimeMs,
         grade: grade.grade,
         lives: gameState.lives,
       });
+      setCampaignRank(rank);
 
       // 업적 체크
       const stats = AchievementSystem.updateFromCampaign(
@@ -629,6 +631,7 @@ const NeonDefense = () => {
         onRestart={handleResetGame}
         crystalResult={campaignCrystalResult}
         newAchievements={newAchievements}
+        leaderboardRank={campaignRank}
       />
 
       {/* 런 결과 모달 */}

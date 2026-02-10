@@ -62,6 +62,23 @@ const RunResultModal = ({
             {gradeInfo.grade}
           </div>
           <div className="text-sm text-gray-300 mt-1">{gradeInfo.description}</div>
+
+          {/* 리더보드 순위 */}
+          {runResult.leaderboardRank != null && runResult.leaderboardRank >= 0 && (
+            <div className="mt-3">
+              <div className="inline-block bg-gradient-to-r from-cyan-900/50 to-purple-900/50 border border-cyan-500/40 rounded-lg px-4 py-2">
+                <span className="text-xs text-gray-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                  LEADERBOARD{' '}
+                </span>
+                <span className="text-xl font-black text-cyan-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                  {runResult.leaderboardRank === 0 ? '🥇' :
+                   runResult.leaderboardRank === 1 ? '🥈' :
+                   runResult.leaderboardRank === 2 ? '🥉' : ''}
+                  {' '}{runResult.leaderboardRank + 1}위!
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 주요 통계 */}

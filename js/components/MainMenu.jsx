@@ -5,6 +5,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress 
   const { useState } = React;
 
   const [selectedMode, setSelectedMode] = useState('campaign'); // 'campaign', 'run'
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // 시간 포맷팅
   const formatTime = (timestamp) => {
@@ -237,6 +238,17 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress 
             </div>
           </div>
 
+          {/* 리더보드 버튼 */}
+          <button
+            onClick={() => setShowLeaderboard(true)}
+            className="w-full bg-gray-800/60 backdrop-blur-sm border border-yellow-500/30 hover:border-yellow-400 rounded-lg p-3 text-center transition-all hover:bg-gray-700/60"
+          >
+            <span className="text-lg">🏆</span>
+            <span className="ml-2 text-yellow-300 font-bold text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              LEADERBOARD
+            </span>
+          </button>
+
           {/* 게임 정보 */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             <div className="bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-lg p-3 text-center">
@@ -293,6 +305,27 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress 
           </div>
         </div>
       </div>
+
+      {/* 리더보드 모달 */}
+      {showLeaderboard && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-gradient-to-br from-gray-900 via-purple-900/40 to-gray-900 border-2 border-yellow-500/40 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400"
+                style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                🏆 LEADERBOARD
+              </h2>
+              <button
+                onClick={() => setShowLeaderboard(false)}
+                className="text-gray-400 hover:text-white text-2xl leading-none transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            <LeaderboardTab initialMode="campaign" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 // GameClearModal - 게임 클리어 축하 모달 (캠페인 크리스탈 보상 포함)
-const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart, onClose, crystalResult, newAchievements }) => {
+const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart, onClose, crystalResult, newAchievements, leaderboardRank }) => {
   if (!isOpen || !stats) return null;
 
   const summary = GameStats.getSummary(stats, lives, gold);
@@ -33,6 +33,21 @@ const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart,
             {summary.grade.description}
           </p>
         </div>
+
+        {/* 리더보드 순위 배지 */}
+        {leaderboardRank != null && leaderboardRank >= 0 && (
+          <div className="text-center mb-4">
+            <div className="inline-block bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border border-yellow-500/50 rounded-xl px-6 py-3">
+              <div className="text-xs text-gray-400 mb-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                CAMPAIGN LEADERBOARD
+              </div>
+              <div className="text-3xl font-black text-yellow-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                {leaderboardRank === 0 ? '🥇' : leaderboardRank === 1 ? '🥈' : leaderboardRank === 2 ? '🥉' : ''}
+                {' '}{leaderboardRank + 1}위!
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 크리스탈 보상 섹션 */}
         {crystalResult && crystalResult.crystals > 0 && (
