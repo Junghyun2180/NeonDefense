@@ -27,18 +27,11 @@ const GameMap = ({
     toggleSupportTowerSelect,
     handleTileClick,
     getElementInfo,
-    onMainMenu,
 }) => {
-    const { useMemo, useState } = React;
-    const [showExitConfirm, setShowExitConfirm] = useState(false);
+    const { useMemo } = React;
 
     return (
         <div className="relative">
-            {onMainMenu && (
-                <div className="mb-1 px-1">
-                    <button onClick={() => setShowExitConfirm(true)} className="text-xs sm:text-sm text-gray-400 hover:text-white transition-all">← 메인 메뉴</button>
-                </div>
-            )}
             <div className="flex justify-between items-center mb-2 px-1">
                 <div className="flex gap-1">
                     {[1, 2, 3].map(s => (
@@ -316,20 +309,6 @@ const GameMap = ({
                 </div>
             </div>
             </div>
-
-            {/* 메인 메뉴 복귀 확인 모달 */}
-            {showExitConfirm && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-                    <div className="bg-gray-900 p-6 rounded-xl border border-gray-600 text-center max-w-sm mx-4" style={{ boxShadow: '0 0 30px rgba(0,0,0,0.5)' }}>
-                        <p className="text-lg text-white font-bold mb-2">메인 메뉴로 돌아가시겠습니까?</p>
-                        <p className="text-sm text-gray-400 mb-5">현재 진행 상황이 저장되지 않습니다.</p>
-                        <div className="flex gap-3 justify-center">
-                            <button onClick={() => setShowExitConfirm(false)} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold text-gray-300 transition-all">취소</button>
-                            <button onClick={() => { setShowExitConfirm(false); onMainMenu(); }} className="px-6 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 rounded-lg font-bold text-white transition-all">나가기</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

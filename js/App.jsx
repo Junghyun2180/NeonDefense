@@ -505,6 +505,7 @@ const NeonDefense = () => {
         permanentBuffs={gameState.permanentBuffs}
         gameMode={runModeState.runMode}
         spawnConfig={gameState.activeConfig?.SPAWN}
+        onMainMenu={handleCampaignMainMenu}
       />
 
       <div ref={mapContainerRef} className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
@@ -537,7 +538,6 @@ const NeonDefense = () => {
           toggleSupportTowerSelect={inventoryState.toggleSupportTowerSelect}
           handleTileClick={dragState.handleTileClick}
           getElementInfo={getElementInfo}
-          onMainMenu={handleCampaignMainMenu}
         />
 
         {/* 사이드 패널 */}
