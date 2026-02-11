@@ -66,11 +66,10 @@ const RunModeMenu = ({
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 px-3 py-2 rounded-md text-sm font-bold transition-all ${
-                tab === t.id
-                  ? 'bg-gradient-to-r from-orange-600 to-cyan-600 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
-              }`}
+              className={`flex-1 px-3 py-2 rounded-md text-sm font-bold transition-all ${tab === t.id
+                ? 'bg-gradient-to-r from-orange-600 to-cyan-600 text-white shadow-lg'
+                : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                }`}
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
               {t.icon} {t.label}
@@ -108,7 +107,7 @@ const RunModeMenu = ({
               )}
 
               {/* 모드 카드들 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Standard Run */}
                 <button
                   onClick={() => onStartRun('standard')}
@@ -118,7 +117,7 @@ const RunModeMenu = ({
                   <h3 className="text-lg font-bold text-orange-300 mb-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                     Standard Run
                   </h3>
-                  <p className="text-gray-400 text-xs mb-3">5 스테이지 x 3 웨이브</p>
+                  <p className="text-gray-400 text-xs mb-3">5 스테이지 x 5 웨이브 | ㅁ 맵</p>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between text-gray-300">
                       <span>보상</span>
@@ -128,6 +127,10 @@ const RunModeMenu = ({
                       <span>난이도</span>
                       <span className="text-orange-300">★★★☆☆</span>
                     </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>패배</span>
+                      <span className="text-red-300">적 70마리 초과</span>
+                    </div>
                   </div>
                 </button>
 
@@ -135,11 +138,10 @@ const RunModeMenu = ({
                 <button
                   onClick={() => !dailyAttempted && onStartRun('daily', dailyModifiers)}
                   disabled={dailyAttempted}
-                  className={`group bg-gray-900/60 border-2 rounded-xl p-5 transition-all text-left ${
-                    dailyAttempted
-                      ? 'border-gray-600/40 opacity-50 cursor-not-allowed'
-                      : 'border-purple-500/40 hover:border-purple-400 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20'
-                  }`}
+                  className={`group bg-gray-900/60 border-2 rounded-xl p-5 transition-all text-left ${dailyAttempted
+                    ? 'border-gray-600/40 opacity-50 cursor-not-allowed'
+                    : 'border-purple-500/40 hover:border-purple-400 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20'
+                    }`}
                 >
                   <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📅</div>
                   <h3 className="text-lg font-bold text-purple-300 mb-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
@@ -185,6 +187,32 @@ const RunModeMenu = ({
                     <div className="flex justify-between text-gray-300">
                       <span>보상</span>
                       <span className="text-cyan-300">💎 스테이지당 10</span>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Boss Rush */}
+                <button
+                  onClick={() => onStartRun('bossRush')}
+                  className="group bg-gray-900/60 border-2 border-yellow-500/40 hover:border-yellow-400 rounded-xl p-5 transition-all hover:scale-105 hover:shadow-xl hover:shadow-yellow-500/20 text-left"
+                >
+                  <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">🏆</div>
+                  <h3 className="text-lg font-bold text-yellow-300 mb-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    Boss Rush
+                  </h3>
+                  <p className="text-gray-400 text-xs mb-3">보스만 출현 | 한정 자원</p>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between text-gray-300">
+                      <span>보상</span>
+                      <span className="text-cyan-300">💎 보스당 15</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>보스 처치</span>
+                      <span className="text-yellow-300">🎰 무료 뽑기</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>난이도</span>
+                      <span className="text-red-300">★★★★☆</span>
                     </div>
                   </div>
                 </button>
@@ -251,11 +279,10 @@ const AchievementTab = ({ unlocked }) => {
       {achievementList.map(ach => {
         const isUnlocked = unlocked && unlocked[ach.id];
         return (
-          <div key={ach.id} className={`rounded-lg p-3 text-center transition-all ${
-            isUnlocked
-              ? 'bg-gradient-to-b from-yellow-900/40 to-gray-800/40 border border-yellow-500/40'
-              : 'bg-gray-800/50 border border-gray-700/30 opacity-60'
-          }`}>
+          <div key={ach.id} className={`rounded-lg p-3 text-center transition-all ${isUnlocked
+            ? 'bg-gradient-to-b from-yellow-900/40 to-gray-800/40 border border-yellow-500/40'
+            : 'bg-gray-800/50 border border-gray-700/30 opacity-60'
+            }`}>
             <div className="text-2xl mb-1">{isUnlocked ? ach.icon : '🔒'}</div>
             <div className="text-xs font-bold text-gray-200">{ach.name}</div>
             <div className="text-xs text-gray-400 mt-1">{ach.desc}</div>

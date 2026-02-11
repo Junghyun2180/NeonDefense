@@ -1,5 +1,6 @@
 // useGameLoop - 게임 루프 및 적 스폰 관리 훅
 // useGameState에서 분리: 게임 틱 처리에만 집중
+// ㅁ맵 순환, 타이머 기반 자동 웨이브, 적 수 패배 조건 지원
 
 const useGameLoop = (config) => {
     const { useEffect, useRef } = React;
@@ -14,6 +15,8 @@ const useGameLoop = (config) => {
         lives,
         // 설정 (런 모드에서 주입, null이면 캠페인 기본값)
         spawnConfig,
+        // 모드 어빌리티 (런 모드에서 주입)
+        modeAbility,
         // Refs (최신 값 참조용)
         enemiesRef,
         towersRef,
@@ -35,10 +38,13 @@ const useGameLoop = (config) => {
         setSpawnedCount,
         setKilledCount,
         setGameStats,
+        // 자동 웨이브용
+        onWaveAutoAdvance,
     } = config;
 
     const gameLoopRef = useRef(null);
     const spawnIntervalRef = useRef(null);
+    const waveTimerRef = useRef(null);
 
     useEffect(() => {
         if (!isPlaying || gameOver) return;
@@ -47,6 +53,8 @@ const useGameLoop = (config) => {
         const activeSPAWN = spawnConfig || SPAWN;
         const totalEnemies = activeSPAWN.enemiesPerWave(stage, wave);
         const baseSpawnDelay = activeSPAWN.spawnDelay(stage, wave);
+        const ability = modeAbility ? ModeAbilityHelper.getAbility(modeAbility) : null;
+        const isLooping = ability ? ability.loopingPath : false;
 
         // 적 스폰 인터벌
         spawnIntervalRef.current = setInterval(() => {
@@ -54,7 +62,14 @@ const useGameLoop = (config) => {
             const paths = pathDataRef.current.paths;
             const selectedPath = paths[Math.floor(Math.random() * paths.length)];
             const newEnemy = EnemySystem.create(stage, wave, localSpawnedCount, totalEnemies, selectedPath.tiles, selectedPath.id);
-            setEnemies(prev => [...prev, newEnemy]);
+            if (newEnemy) {
+                // 순환 경로인 경우 표시
+                if (isLooping) {
+                    newEnemy.isLooping = true;
+                    newEnemy.loopCount = 0;
+                }
+                setEnemies(prev => [...prev, newEnemy]);
+            }
             localSpawnedCount++;
             setSpawnedCount(localSpawnedCount);
         }, baseSpawnDelay);
@@ -72,6 +87,24 @@ const useGameLoop = (config) => {
                 gameSpeed: speed,
                 permanentBuffs: permanentBuffsRef.current,
             }, now);
+
+            // ===== 순환 경로 처리: 끝에 도달한 적을 다시 처음으로 =====
+            if (isLooping) {
+                result.enemies = result.enemies.map(enemy => {
+                    if (enemy.pathIndex >= enemy.pathTiles.length - 1 && enemy.isLooping) {
+                        return {
+                            ...enemy,
+                            pathIndex: 0,
+                            loopCount: (enemy.loopCount || 0) + 1,
+                            x: enemy.pathTiles[0].x * TILE_SIZE + TILE_SIZE / 2,
+                            y: enemy.pathTiles[0].y * TILE_SIZE + TILE_SIZE / 2,
+                        };
+                    }
+                    return enemy;
+                });
+                // 순환 모드에서는 lives 감소 대신 적이 계속 순환
+                result.livesLost = 0;
+            }
 
             setEnemies(result.enemies);
             setTowers(result.towers);
@@ -114,8 +147,33 @@ const useGameLoop = (config) => {
                 if (soundManager[evt.method]) soundManager[evt.method](...evt.args);
             });
 
-            // 목숨 손실
-            if (result.livesLost > 0) {
+            // ===== 적 수 패배 조건 체크 (런 모드 ㅁ 맵) =====
+            if (ability && ability.defeatCondition === 'enemyCount') {
+                const currentEnemyCount = result.enemies.length;
+                if (currentEnemyCount >= ability.defeatThreshold) {
+                    setGameOver(true);
+                    soundManager.playGameOver();
+                    soundManager.stopBGM();
+
+                    if (typeof BalanceLogger !== 'undefined') {
+                        BalanceLogger.logGameEnd('gameover_overflow', {
+                            towers: towersRef.current,
+                            supportTowers: supportTowersRef.current,
+                            gold: gold,
+                            lives: lives,
+                            stage: stage,
+                            wave: wave,
+                            enemyCount: currentEnemyCount,
+                            gameStats: gameStatsRef.current,
+                            permanentBuffs: permanentBuffsRef.current,
+                        });
+                    }
+                    return; // 게임오버 후 더이상 처리 안함
+                }
+            }
+
+            // 목숨 손실 (기존 lives 방식 - 캠페인 + 보스 러시)
+            if (!isLooping && result.livesLost > 0) {
                 setGameStats(prev => ({ ...prev, livesLost: prev.livesLost + result.livesLost }));
                 setLives(l => {
                     const newLives = l - result.livesLost;
@@ -124,7 +182,6 @@ const useGameLoop = (config) => {
                         soundManager.playGameOver();
                         soundManager.stopBGM();
 
-                        // 밸런스 로그 기록 (게임오버)
                         if (typeof BalanceLogger !== 'undefined') {
                             BalanceLogger.logGameEnd('gameover', {
                                 towers: towersRef.current,
@@ -146,10 +203,21 @@ const useGameLoop = (config) => {
             setEffects(prev => GameEngine.cleanExpiredEffects(prev, now));
         }, COMBAT.gameLoopInterval);
 
+        // ===== 자동 웨이브 타이머 (런 모드 전용) =====
+        if (ability && ability.waveAutoStart && activeSPAWN.waveDurationMs) {
+            waveTimerRef.current = setTimeout(() => {
+                // 웨이브 시간 종료 → 자동으로 다음 웨이브
+                if (onWaveAutoAdvance) {
+                    onWaveAutoAdvance();
+                }
+            }, activeSPAWN.waveDurationMs);
+        }
+
         // Cleanup
         return () => {
             clearInterval(gameLoopRef.current);
             clearInterval(spawnIntervalRef.current);
+            if (waveTimerRef.current) clearTimeout(waveTimerRef.current);
         };
     }, [isPlaying, gameOver, wave, stage]);
 
@@ -157,6 +225,7 @@ const useGameLoop = (config) => {
     const clearIntervals = () => {
         clearInterval(gameLoopRef.current);
         clearInterval(spawnIntervalRef.current);
+        if (waveTimerRef.current) clearTimeout(waveTimerRef.current);
     };
 
     return { clearIntervals };

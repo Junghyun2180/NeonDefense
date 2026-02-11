@@ -87,6 +87,61 @@ const registerPathTiles = (pathTiles, occupiedMap) => {
   }
 };
 
+// ===== ㅁ형 순환 경로 생성 (런 모드 전용) =====
+// 그리드 외곽을 시계방향으로 순환하는 ㅁ 경로
+// 패딩 1칸을 두고, 내부 공간은 타워 배치 영역
+const generateSquarePath = (seed, stage) => {
+  const pad = 1; // 외곽 패딩
+  const left = pad;
+  const right = GRID_WIDTH - 1 - pad;
+  const top = pad;
+  const bottom = GRID_HEIGHT - 1 - pad;
+
+  const tiles = [];
+
+  // 시작점: 좌측 중앙 (left, midY)
+  const midY = Math.floor((top + bottom) / 2);
+
+  // 좌측 중앙 → 위로 이동 (좌상단으로)
+  for (let y = midY; y >= top; y--) {
+    tiles.push({ x: left, y });
+  }
+  // 좌상단 → 우상단 (위쪽 가로)
+  for (let x = left + 1; x <= right; x++) {
+    tiles.push({ x, y: top });
+  }
+  // 우상단 → 우하단 (우측 세로)
+  for (let y = top + 1; y <= bottom; y++) {
+    tiles.push({ x: right, y });
+  }
+  // 우하단 → 좌하단 (아래쪽 가로)
+  for (let x = right - 1; x >= left; x--) {
+    tiles.push({ x, y: bottom });
+  }
+  // 좌하단 → 시작점 아래 (좌측 세로, 돌아오기)
+  for (let y = bottom - 1; y > midY; y--) {
+    tiles.push({ x: left, y });
+  }
+
+  const startPoint = { x: left, y: midY, id: 'A' };
+  // 끝점은 시작점 바로 아래 (순환이므로 의미적으로만 사용)
+  const endPoint = { x: left, y: midY + 1, id: '1' };
+
+  return {
+    paths: [{
+      id: 'A',
+      tiles,
+      startPoint,
+      endPoint,
+      color: PATH_COLORS[0],
+      isLoop: true, // 순환 경로 표시
+    }],
+    startPoints: [startPoint],
+    endPoints: [endPoint],
+    isSquareMap: true,
+  };
+};
+
 // 단일 경로 생성 (시작점에서 도착점까지)
 const generateSinglePath = (seed, startY, endY, startX = 0, endX = GRID_WIDTH - 1, numTurns = 4) => {
   const seededRandom = (s) => { const x = Math.sin(s) * 10000; return x - Math.floor(x); };

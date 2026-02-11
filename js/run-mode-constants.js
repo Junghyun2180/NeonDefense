@@ -1,19 +1,31 @@
 // Neon Defense - 런 모드 전용 상수
 // 캠페인 constants.js와 동일 패턴, 런 모드에 최적화된 밸런스
 
-// ===== 런 모드 스폰 설정 =====
+// ===== 런 모드 스폰 설정 (ㅁ 맵 + 타이머 기반) =====
 const RUN_SPAWN = {
-  wavesPerStage: 3,
+  wavesPerStage: 5,              // 5 웨이브 per 스테이지
   maxStage: 5,
   enemiesPerWave: (stage, wave) => {
-    // Stage 1: 12~18, Stage 5: 30~42
-    return Math.floor(10 + wave * 2 + stage * 4);
+    // 고정 20마리 (웨이브/스테이지별 약간의 변동)
+    return 20;
   },
   spawnDelay: (stage, wave) => {
-    // 스테이지가 갈수록 빨라짐
-    let base = 550 - (stage * 60) - (wave * 25);
-    return Math.max(100, base);
+    // 60초(웨이브) 동안 20마리 → 3초 간격
+    return 3000;
   },
+  waveDurationMs: 60000,         // 웨이브 지속시간: 1분
+  waveAutoStart: true,           // 자동 웨이브 시작
+  defeatThreshold: 70,           // 맵 위 적 70마리 이상 = 패배
+  bossPhaseDurationMs: 60000,    // 보스 페이즈 제한시간: 1분
+};
+
+// ===== 보스 러시 스폰 설정 =====
+const BOSS_RUSH_SPAWN = {
+  wavesPerStage: 999,            // 사실상 무한 (죽을 때까지)
+  maxStage: 1,                   // 단일 스테이지
+  enemiesPerWave: (stage, wave) => 1, // 보스 1마리
+  spawnDelay: (stage, wave) => 1000,  // 즉시 스폰
+  waveAutoStart: false,          // 수동 시작
 };
 
 // ===== 런 모드 경제 설정 =====
@@ -27,19 +39,46 @@ const RUN_ECONOMY = {
   sellRefundRate: 0.5,
   towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
   supportBaseValues: { 1: 40, 2: 120, 3: 360 },
-  waveReward: (wave) => 18 + wave * 6 + (wave === 3 ? 20 : 0),
+  waveReward: (wave) => 18 + wave * 6 + (wave === 5 ? 20 : 0),
   stageClearBonus: (stage) => 50 + stage * 12,
   bossGoldReward: (stage, wave) => 25 + stage * 8 + wave * 4,
 };
 
+// ===== 보스 러시 경제 설정 =====
+const BOSS_RUSH_ECONOMY = {
+  startGold: 200,                // 넉넉한 시작 자원
+  startLives: 5,                 // 제한된 목숨
+  drawCost: 20,
+  supportDrawCost: 40,
+  maxInventory: 30,
+  maxSupportInventory: 15,
+  sellRefundRate: 0.5,
+  towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
+  supportBaseValues: { 1: 40, 2: 120, 3: 360 },
+  waveReward: (wave) => 0,       // 웨이브 보상 없음
+  stageClearBonus: (stage) => 0,
+  bossGoldReward: (stage, wave) => 0, // 골드 대신 타워 뽑기
+  bossKillDrawCount: 1,          // 보스 처치 시 무료 뽑기 1회
+};
+
 // ===== 런 모드 체력 스케일링 =====
 const RUN_HEALTH_SCALING = {
-  base: 35,
-  stageGrowth: 0.65,        // 캠페인보다 빠른 스케일링 (5스테이지라 압축)
-  waveGrowth: 0.45,
-  lateWaveThreshold: 3,     // 3웨이브 중 마지막이 "후반"
-  lateWaveBonus: 1.6,
-  bossFormula: (stage) => 12 + stage * 2.5,
+  base: 30,
+  stageGrowth: 0.5,             // ㅁ맵 순환이라 좀 더 여유
+  waveGrowth: 0.3,
+  lateWaveThreshold: 4,
+  lateWaveBonus: 1.4,
+  bossFormula: (stage) => 15 + stage * 3,
+};
+
+// ===== 보스 러시 체력 스케일링 =====
+const BOSS_RUSH_HEALTH_SCALING = {
+  base: 60,
+  stageGrowth: 0.0,             // 스테이지 개념 없음
+  waveGrowth: 0.8,              // 웨이브(=보스 차수)마다 크게 증가
+  lateWaveThreshold: 99,
+  lateWaveBonus: 1.0,
+  bossFormula: (stage) => 20 + stage * 5,
 };
 
 // ===== 런 모드 캐리오버 설정 =====
@@ -48,6 +87,14 @@ const RUN_CARRYOVER = {
   maxSupports: 2,
   minTowerTier: 2,
   minSupportTier: 2,
+};
+
+// ===== 보스 러시 캐리오버 설정 =====
+const BOSS_RUSH_CARRYOVER = {
+  maxTowers: 0,          // 캐리오버 없음
+  maxSupports: 0,
+  minTowerTier: 99,
+  minSupportTier: 99,
 };
 
 // ===== 크리스탈 보상 테이블 =====
@@ -59,6 +106,10 @@ const CRYSTAL_REWARDS = {
   speedBonus: 20,          // 15분 이내 클리어
   perStageBonus: 10,       // 스테이지당 보상 (실패 시)
   gradeBonus: { S: 30, A: 20, B: 10, C: 5, D: 0 },
+
+  // 보스 러시
+  bossRushPerBoss: 15,     // 보스당 크리스탈
+  bossRushEfficiencyBonus: { S: 40, A: 25, B: 15, C: 5, D: 0 },
 
   // 캠페인 모드
   campaignClear: 80,            // 캠페인 전체 클리어
@@ -195,9 +246,13 @@ const DAILY_MODIFIERS = {
 
 // 전역 등록
 window.RUN_SPAWN = RUN_SPAWN;
+window.BOSS_RUSH_SPAWN = BOSS_RUSH_SPAWN;
 window.RUN_ECONOMY = RUN_ECONOMY;
+window.BOSS_RUSH_ECONOMY = BOSS_RUSH_ECONOMY;
 window.RUN_HEALTH_SCALING = RUN_HEALTH_SCALING;
+window.BOSS_RUSH_HEALTH_SCALING = BOSS_RUSH_HEALTH_SCALING;
 window.RUN_CARRYOVER = RUN_CARRYOVER;
+window.BOSS_RUSH_CARRYOVER = BOSS_RUSH_CARRYOVER;
 window.CRYSTAL_REWARDS = CRYSTAL_REWARDS;
 window.META_UPGRADES = META_UPGRADES;
 window.DAILY_MODIFIERS = DAILY_MODIFIERS;

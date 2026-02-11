@@ -26,6 +26,9 @@ const useRunMode = () => {
   const runConfig = useMemo(() => {
     if (!runActive || !metaSnapshot) return null;
 
+    if (runMode === 'bossRush') {
+      return RunMode.buildBossRushConfig(metaSnapshot);
+    }
     if (runMode === 'endless') {
       return RunMode.buildEndlessConfig(metaSnapshot);
     }

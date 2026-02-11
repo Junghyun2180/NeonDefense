@@ -22,6 +22,25 @@ const RunMode = {
         ...RUN_CARRYOVER,
         maxTowers: RUN_CARRYOVER.maxTowers + carryoverBonus,
       },
+      modeAbility: 'run',
+      mapType: 'square',
+    };
+  },
+
+  // ===== 보스 러시 모드 설정 빌드 =====
+  buildBossRushConfig(metaUpgrades = {}) {
+    const discountBonus = META_UPGRADES.drawDiscount.effect(metaUpgrades.drawDiscount || 0);
+
+    return {
+      SPAWN: { ...BOSS_RUSH_SPAWN },
+      ECONOMY: {
+        ...BOSS_RUSH_ECONOMY,
+        drawCost: Math.max(1, BOSS_RUSH_ECONOMY.drawCost - discountBonus),
+      },
+      HEALTH_SCALING: { ...BOSS_RUSH_HEALTH_SCALING },
+      CARRYOVER: { ...BOSS_RUSH_CARRYOVER },
+      modeAbility: 'bossRush',
+      mapType: 'square',
     };
   },
 
@@ -100,6 +119,14 @@ const RunMode = {
   // ===== 크리스탈 보상 계산 (런 모드) =====
   calculateCrystals(result) {
     let crystals = 0;
+
+    // 보스 러시: 보스당 크리스탈
+    if (result.mode === 'bossRush') {
+      crystals = (result.bossKills || 0) * CRYSTAL_REWARDS.bossRushPerBoss;
+      const gradeBonus = CRYSTAL_REWARDS.bossRushEfficiencyBonus[result.grade] || 0;
+      crystals += gradeBonus;
+      return crystals;
+    }
 
     if (result.cleared) {
       // 모드별 기본 보상
@@ -260,6 +287,23 @@ const RunMode = {
   // ===== 런 등급 계산 =====
   calculateRunGrade(stats, runMode = 'standard') {
     let score = 0;
+
+    // 보스 러시: 효율 기반 등급
+    if (runMode === 'bossRush') {
+      const bossKills = stats.bossKills || 0;
+      score = bossKills * 15;
+      // 시간 효율 보너스
+      if (stats.endTime && stats.startTime && bossKills > 0) {
+        const avgTimePerBoss = (stats.endTime - stats.startTime) / bossKills / 1000;
+        if (avgTimePerBoss <= 30) score += 30;
+        else if (avgTimePerBoss <= 60) score += 15;
+      }
+      if (score >= 100) return 'S';
+      if (score >= 75) return 'A';
+      if (score >= 50) return 'B';
+      if (score >= 25) return 'C';
+      return 'D';
+    }
 
     // 클리어 보너스
     if (stats.stagesCleared >= 5) score += 40;
