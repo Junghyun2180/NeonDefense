@@ -383,3 +383,30 @@ body {
 .frozen-enemy {
   animation: frozen 0.5s ease-in-out infinite;
 }
+
+/* ===== 모바일 반응형 ===== */
+
+/* 300ms 터치 딜레이 제거 */
+button,
+.inventory-item,
+.grass-tile,
+.path-tile {
+  touch-action: manipulation;
+}
+
+/* 터치 디바이스 최적화 */
+@media (pointer: coarse) {
+  .inventory-item {
+    cursor: pointer;
+  }
+  .inventory-item:active {
+    transform: scale(0.95);
+  }
+}
+
+/* 모바일 레이아웃 */
+@media (max-width: 640px) {
+  body {
+    overflow-x: hidden;
+  }
+}

@@ -3,6 +3,7 @@ const PlacementUI = ({
     placementMode,
     setPlacementMode,
     mapRef,
+    mapScale = 1,
     getAvailableElements,
     getInventoryByElement,
     handleElementSelect,
@@ -14,8 +15,8 @@ const PlacementUI = ({
     const mapRect = mapRef.current?.getBoundingClientRect();
     if (!mapRect) return null;
 
-    const centerX = mapRect.left + placementMode.gridX * TILE_SIZE + TILE_SIZE / 2;
-    const centerY = mapRect.top + placementMode.gridY * TILE_SIZE + TILE_SIZE / 2;
+    const centerX = mapRect.left + (placementMode.gridX * TILE_SIZE + TILE_SIZE / 2) * mapScale;
+    const centerY = mapRect.top + (placementMode.gridY * TILE_SIZE + TILE_SIZE / 2) * mapScale;
 
     if (placementMode.step === 'element') {
         const availableElements = getAvailableElements();

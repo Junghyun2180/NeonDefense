@@ -1,6 +1,7 @@
 // GameMap - 게임 맵 컴포넌트
 const GameMap = ({
     mapRef,
+    mapScale = 1,
     pathData,
     pathArrows,
     towers,
@@ -53,7 +54,21 @@ const GameMap = ({
                 </button>
             </div>
 
-            <div ref={mapRef} className="relative mx-auto" style={{ width: GRID_WIDTH * TILE_SIZE, height: GRID_HEIGHT * TILE_SIZE }}>
+            {/* 모바일 배치 취소 버튼 */}
+            {selectedTowerForPlacement && (
+                <div className="flex justify-center mb-1">
+                    <button
+                        onClick={cancelPlacementMode}
+                        className="px-4 py-2 bg-red-700 border border-red-500 rounded-lg text-sm font-bold text-white hover:bg-red-600 transition-all"
+                        style={{ touchAction: 'manipulation' }}
+                    >
+                        ✕ 배치 취소
+                    </button>
+                </div>
+            )}
+
+            <div className="relative mx-auto overflow-hidden" style={{ width: GRID_WIDTH * TILE_SIZE * mapScale, height: GRID_HEIGHT * TILE_SIZE * mapScale }}>
+            <div ref={mapRef} className="relative" style={{ width: GRID_WIDTH * TILE_SIZE, height: GRID_HEIGHT * TILE_SIZE, transform: `scale(${mapScale})`, transformOrigin: 'top left' }}>
                 <div className="absolute inset-0 rounded-lg overflow-hidden border-2 border-cyan-500/30" style={{ boxShadow: '0 0 30px rgba(78, 205, 196, 0.2), inset 0 0 30px rgba(0,0,0,0.5)' }}>
                     {Array.from({ length: GRID_HEIGHT }, (_, y) => (
                         Array.from({ length: GRID_WIDTH }, (_, x) => {
@@ -292,6 +307,7 @@ const GameMap = ({
                         );
                     })}
                 </div>
+            </div>
             </div>
         </div>
     );

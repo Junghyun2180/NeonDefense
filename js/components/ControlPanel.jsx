@@ -37,7 +37,7 @@ const ControlPanel = ({
     effectiveDrawCost = ECONOMY.drawCost,
 }) => {
     return (
-        <div className="flex-1 min-w-[280px] space-y-3">
+        <div className="flex-1 min-w-0 space-y-3">
             {/* 뽑기 버튼들 */}
             <div className="flex gap-2">
                 <button type="button" onClick={drawRandomNeon} disabled={gold < effectiveDrawCost || isInventoryFull} className="flex-1 btn-neon px-3 py-2 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-pink-400/30 text-sm">

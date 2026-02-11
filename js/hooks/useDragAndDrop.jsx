@@ -1,5 +1,5 @@
 // useDragAndDrop - 클릭 배치 및 모바일 배치 훅
-const useDragAndDrop = (gameState, inventoryState) => {
+const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
     const { useState, useCallback, useRef, useEffect } = React;
 
     const { towers, setTowers, supportTowers, setSupportTowers, pathData, setGameStats } = gameState;
@@ -106,7 +106,8 @@ const useDragAndDrop = (gameState, inventoryState) => {
         if (!selectedTowerForPlacement || !mapRef.current) return;
 
         const rect = mapRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left, y = e.clientY - rect.top;
+        const x = (e.clientX - rect.left) / mapScale;
+        const y = (e.clientY - rect.top) / mapScale;
         const gridX = Math.floor(x / TILE_SIZE), gridY = Math.floor(y / TILE_SIZE);
 
         if (gridX >= 0 && gridX < GRID_WIDTH && gridY >= 0 && gridY < GRID_HEIGHT) {
@@ -117,7 +118,7 @@ const useDragAndDrop = (gameState, inventoryState) => {
         } else {
             setDropPreview(null);
         }
-    }, [selectedTowerForPlacement, pathData, towers, supportTowers]);
+    }, [selectedTowerForPlacement, pathData, towers, supportTowers, mapScale]);
 
     // 배치 모드 외부 클릭 핸들러
     const handleClickOutside = useCallback((e) => {

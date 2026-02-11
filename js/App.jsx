@@ -35,8 +35,26 @@ const NeonDefense = () => {
     gameOver: gameState.gameOver,
   });
 
+  // ===== 맵 스케일 (모바일 반응형) =====
+  const [mapScale, setMapScale] = useState(1);
+  const mapContainerRef = useRef(null);
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (!mapContainerRef.current) return;
+      const containerWidth = mapContainerRef.current.offsetWidth;
+      const MAP_WIDTH = GRID_WIDTH * TILE_SIZE; // 640
+      const scale = Math.min(1, containerWidth / MAP_WIDTH);
+      setMapScale(scale);
+    };
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    if (mapContainerRef.current) observer.observe(mapContainerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   // ===== 드래그 앤 드롭 훅 =====
-  const dragState = useDragAndDrop(gameState, inventoryState);
+  const dragState = useDragAndDrop(gameState, inventoryState, mapScale);
 
   // ===== 치트 콘솔 훅 =====
   const cheatState = useCheatConsole(gameState, inventoryState, runModeState);
@@ -489,10 +507,11 @@ const NeonDefense = () => {
         spawnConfig={gameState.activeConfig?.SPAWN}
       />
 
-      <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
+      <div ref={mapContainerRef} className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
         {/* 게임 맵 */}
         <GameMap
           mapRef={dragState.mapRef}
+          mapScale={mapScale}
           pathData={gameState.pathData}
           pathArrows={pathArrows}
           towers={gameState.towers}
@@ -561,6 +580,7 @@ const NeonDefense = () => {
         placementMode={dragState.placementMode}
         setPlacementMode={dragState.setPlacementMode}
         mapRef={dragState.mapRef}
+        mapScale={mapScale}
         getAvailableElements={inventoryState.getAvailableElements}
         getInventoryByElement={inventoryState.getInventoryByElement}
         handleElementSelect={dragState.handleElementSelect}
