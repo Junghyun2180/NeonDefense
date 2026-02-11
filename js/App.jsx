@@ -537,6 +537,7 @@ const NeonDefense = () => {
           toggleSupportTowerSelect={inventoryState.toggleSupportTowerSelect}
           handleTileClick={dragState.handleTileClick}
           getElementInfo={getElementInfo}
+          onMainMenu={handleCampaignMainMenu}
         />
 
         {/* 사이드 패널 */}

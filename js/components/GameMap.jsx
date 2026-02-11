@@ -27,6 +27,7 @@ const GameMap = ({
     toggleSupportTowerSelect,
     handleTileClick,
     getElementInfo,
+    onMainMenu,
 }) => {
     const { useMemo } = React;
 
@@ -46,6 +47,9 @@ const GameMap = ({
                     ))}
                 </div>
                 <div className="flex gap-1">
+                    {onMainMenu && (
+                        <button onClick={onMainMenu} className="px-2 py-1 rounded text-sm transition-all bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white" title="메인 메뉴">🏠</button>
+                    )}
                     <button onClick={toggleBgm} className={'px-2 py-1 rounded text-sm transition-all ' + (bgmEnabled ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500')} title="BGM 토글">🎵</button>
                     <button onClick={toggleSfx} className={'px-2 py-1 rounded text-sm transition-all ' + (sfxEnabled ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500')} title="효과음 토글">🔊</button>
                 </div>
