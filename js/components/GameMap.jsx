@@ -34,23 +34,23 @@ const GameMap = ({
 
     return (
         <div className="relative">
+            {onMainMenu && (
+                <div className="mb-1 px-1">
+                    <button onClick={() => setShowExitConfirm(true)} className="text-xs sm:text-sm text-gray-400 hover:text-white transition-all">← 메인 메뉴</button>
+                </div>
+            )}
             <div className="flex justify-between items-center mb-2 px-1">
-                <div className="flex items-center gap-2">
-                    {onMainMenu && (
-                        <button onClick={() => setShowExitConfirm(true)} className="text-xs sm:text-sm text-gray-400 hover:text-white transition-all whitespace-nowrap">← 메인 메뉴</button>
-                    )}
-                    <div className="flex gap-1">
-                        {[1, 2, 3].map(s => (
-                            <button
-                                key={s}
-                                onClick={() => setGameSpeed(s)}
-                                className={'px-3 py-1 rounded text-sm font-bold transition-all ' + (gameSpeed === s ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
-                                style={gameSpeed === s ? { boxShadow: '0 0 10px rgba(0,255,255,0.5)' } : {}}
-                            >
-                                {s}x
-                            </button>
-                        ))}
-                    </div>
+                <div className="flex gap-1">
+                    {[1, 2, 3].map(s => (
+                        <button
+                            key={s}
+                            onClick={() => setGameSpeed(s)}
+                            className={'px-3 py-1 rounded text-sm font-bold transition-all ' + (gameSpeed === s ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
+                            style={gameSpeed === s ? { boxShadow: '0 0 10px rgba(0,255,255,0.5)' } : {}}
+                        >
+                            {s}x
+                        </button>
+                    ))}
                 </div>
                 <div className="flex gap-1 items-center">
                     <button onClick={toggleBgm} className={'px-2 py-1 rounded text-sm transition-all ' + (bgmEnabled ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500')} title="BGM 토글">🎵</button>
