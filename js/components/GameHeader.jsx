@@ -20,7 +20,7 @@ const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCoun
                 {onMainMenu && (
                     <button onClick={() => setShowExitConfirm(true)} className="text-xs sm:text-sm text-gray-400 hover:text-white transition-all whitespace-nowrap shrink-0">← 메인 메뉴</button>
                 )}
-                <div className="flex flex-wrap justify-center gap-1 sm:gap-3 flex-1">
+                <div className="flex flex-wrap gap-1 sm:gap-3 flex-1">
                     {isRunMode && (
                         <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-1 sm:gap-2">
                             <span className="font-bold text-orange-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
