@@ -28,7 +28,6 @@ const RunModeMenu = ({
   const tabs = [
     { id: 'modes', label: '모드 선택', icon: '🎮' },
     { id: 'upgrades', label: '업그레이드', icon: '⚡' },
-    { id: 'leaderboard', label: '리더보드', icon: '🏆' },
     { id: 'achievements', label: '업적', icon: '🎖️' },
   ];
 
@@ -219,18 +218,6 @@ const RunModeMenu = ({
               metaProgress={metaProgress}
               neonCrystals={neonCrystals}
               onPurchaseUpgrade={onPurchaseUpgrade}
-            />
-          )}
-
-          {/* 리더보드 탭 */}
-          {tab === 'leaderboard' && (
-            <LeaderboardTab
-              initialMode="standard"
-              modes={[
-                { id: 'standard', label: 'Standard', icon: '🎮' },
-                { id: 'daily', label: 'Daily', icon: '📅' },
-                { id: 'endless', label: 'Endless', icon: '♾️' },
-              ]}
             />
           )}
 
