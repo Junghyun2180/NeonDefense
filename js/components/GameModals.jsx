@@ -2,6 +2,7 @@
 const GameModals = ({
     gameOver,
     resetGame,
+    onMainMenu,
     stage,
     wave,
     killedCount,
@@ -39,7 +40,12 @@ const GameModals = ({
                                 </div>
                             </div>
                         )}
-                        <button type="button" onClick={resetGame} className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-bold text-lg hover:from-cyan-500 hover:to-blue-500 transition-all">🔄 다시 시작</button>
+                        <div className="flex gap-3 justify-center">
+                            <button type="button" onClick={resetGame} className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-bold text-lg hover:from-cyan-500 hover:to-blue-500 transition-all">🔄 다시 시작</button>
+                            {onMainMenu && (
+                                <button type="button" onClick={onMainMenu} className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold text-gray-300 transition-all">← 메인 메뉴</button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

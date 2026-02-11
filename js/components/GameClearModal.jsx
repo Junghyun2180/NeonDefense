@@ -1,5 +1,5 @@
 // GameClearModal - 게임 클리어 축하 모달 (캠페인 크리스탈 보상 포함)
-const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart, onClose, crystalResult, newAchievements, leaderboardRank }) => {
+const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart, onMainMenu, onClose, crystalResult, newAchievements, leaderboardRank }) => {
   if (!isOpen || !stats) return null;
 
   const summary = GameStats.getSummary(stats, lives, gold);
@@ -189,6 +189,14 @@ const GameClearModal = ({ isOpen, stats, lives, gold, permanentBuffs, onRestart,
           >
             🔄 다시 도전
           </button>
+          {onMainMenu && (
+            <button
+              onClick={onMainMenu}
+              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold text-gray-300 transition-all"
+            >
+              ← 메인 메뉴
+            </button>
+          )}
         </div>
 
         {/* 런 모드 안내 */}

@@ -241,6 +241,13 @@ const NeonDefense = () => {
     saveLoadState.setGameStarted(true);
   }, [runModeState, saveLoadState]);
 
+  const handleCampaignMainMenu = useCallback(() => {
+    gameState.resetGame();
+    inventoryState.resetInventory();
+    saveLoadState.setGameStarted(false);
+    saveLoadState.setShowMainMenu(true);
+  }, [gameState, inventoryState, saveLoadState]);
+
   const handleRunMenuBack = useCallback(() => {
     setShowRunMenu(false);
     saveLoadState.setShowMainMenu(true);
@@ -565,6 +572,7 @@ const NeonDefense = () => {
       <GameModals
         gameOver={gameState.gameOver && !runModeState.runMode}
         resetGame={handleResetGame}
+        onMainMenu={handleCampaignMainMenu}
         stage={gameState.stage}
         wave={gameState.wave}
         killedCount={gameState.killedCount}
@@ -629,6 +637,7 @@ const NeonDefense = () => {
         gold={gameState.gold}
         permanentBuffs={gameState.permanentBuffs}
         onRestart={handleResetGame}
+        onMainMenu={handleCampaignMainMenu}
         crystalResult={campaignCrystalResult}
         newAchievements={newAchievements}
         leaderboardRank={campaignRank}
