@@ -10,8 +10,8 @@ const RUN_SPAWN = {
     return 20;
   },
   spawnDelay: (stage, wave) => {
-    // 60초(웨이브) 동안 20마리 → 3초 간격
-    return 3000;
+    // 20초 동안 20마리 → 1초 간격
+    return 1000;
   },
   waveDurationMs: 60000,         // 웨이브 지속시간: 1분
   waveAutoStart: true,           // 자동 웨이브 시작
@@ -73,12 +73,12 @@ const RUN_HEALTH_SCALING = {
 
 // ===== 보스 러시 체력 스케일링 =====
 const BOSS_RUSH_HEALTH_SCALING = {
-  base: 60,
+  base: 200,
   stageGrowth: 0.0,             // 스테이지 개념 없음
-  waveGrowth: 0.8,              // 웨이브(=보스 차수)마다 크게 증가
+  waveGrowth: 1.5,              // 웨이브(=보스 차수)마다 크게 증가
   lateWaveThreshold: 99,
   lateWaveBonus: 1.0,
-  bossFormula: (stage) => 20 + stage * 5,
+  bossFormula: (stage) => 50 + stage * 15,
 };
 
 // ===== 런 모드 캐리오버 설정 =====

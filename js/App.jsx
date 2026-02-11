@@ -260,11 +260,18 @@ const NeonDefense = () => {
   }, [runModeState, saveLoadState]);
 
   const handleCampaignMainMenu = useCallback(() => {
-    gameState.resetGame();
-    inventoryState.resetInventory();
-    saveLoadState.setGameStarted(false);
-    saveLoadState.setShowMainMenu(true);
-  }, [gameState, inventoryState, saveLoadState]);
+    // runMode를 먼저 정리하여 resetGame이 캠페인 config로 동작하게 함
+    if (runModeState.runActive || runModeState.runMode) {
+      runModeState.closeRunResult();
+    }
+    // cfg 갱신 후 resetGame 실행되도록 setTimeout 사용
+    setTimeout(() => {
+      gameState.resetGame();
+      inventoryState.resetInventory();
+      saveLoadState.setGameStarted(false);
+      saveLoadState.setShowMainMenu(true);
+    }, 0);
+  }, [gameState, inventoryState, saveLoadState, runModeState]);
 
   const handleRunMenuBack = useCallback(() => {
     setShowRunMenu(false);
@@ -272,11 +279,16 @@ const NeonDefense = () => {
   }, [saveLoadState]);
 
   const handleRunResultMainMenu = useCallback(() => {
+    // closeRunResult를 먼저 호출하여 runMode=null로 설정
+    // → cfg가 캠페인 기본값으로 갱신된 후 resetGame 실행
     runModeState.closeRunResult();
-    gameState.resetGame();
-    inventoryState.resetInventory();
-    saveLoadState.setGameStarted(false);
-    saveLoadState.setShowMainMenu(true);
+    // resetGame은 다음 렌더 사이클에서 cfg 갱신 후 실행되도록 setTimeout 사용
+    setTimeout(() => {
+      gameState.resetGame();
+      inventoryState.resetInventory();
+      saveLoadState.setGameStarted(false);
+      saveLoadState.setShowMainMenu(true);
+    }, 0);
   }, [runModeState, gameState, inventoryState, saveLoadState]);
 
   const handleRunResultRestart = useCallback(() => {
@@ -495,196 +507,196 @@ const NeonDefense = () => {
         <div className="p-2 sm:p-4">
           {/* 상단 정보 바 */}
           <GameHeader
-        stage={gameState.stage}
-        wave={gameState.wave}
-        gold={gameState.gold}
-        lives={gameState.lives}
-        pathCount={gameState.pathData.paths.length}
-        isPlaying={gameState.isPlaying}
-        killedCount={gameState.killedCount}
-        permanentBuffs={gameState.permanentBuffs}
-        gameMode={runModeState.runMode}
-        spawnConfig={gameState.activeConfig?.SPAWN}
-        onMainMenu={handleCampaignMainMenu}
-      />
+            stage={gameState.stage}
+            wave={gameState.wave}
+            gold={gameState.gold}
+            lives={gameState.lives}
+            pathCount={gameState.pathData.paths.length}
+            isPlaying={gameState.isPlaying}
+            killedCount={gameState.killedCount}
+            permanentBuffs={gameState.permanentBuffs}
+            gameMode={runModeState.runMode}
+            spawnConfig={gameState.activeConfig?.SPAWN}
+            onMainMenu={handleCampaignMainMenu}
+          />
 
-      <div ref={mapContainerRef} className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
-        {/* 게임 맵 */}
-        <GameMap
-          mapRef={dragState.mapRef}
-          mapScale={mapScale}
-          pathData={gameState.pathData}
-          pathArrows={pathArrows}
-          towers={gameState.towers}
-          supportTowers={gameState.supportTowers}
-          enemies={gameState.enemies}
-          projectiles={gameState.projectiles}
-          effects={gameState.effects}
-          chainLightnings={gameState.chainLightnings}
-          dropPreview={dragState.dropPreview}
-          placementMode={dragState.placementMode}
-          selectedTowerForPlacement={dragState.selectedTowerForPlacement}
-          cancelPlacementMode={dragState.cancelPlacementMode}
-          selectedTowers={inventoryState.selectedTowers}
-          selectedSupportTowers={inventoryState.selectedSupportTowers}
-          gameSpeed={gameState.gameSpeed}
-          setGameSpeed={gameState.setGameSpeed}
-          bgmEnabled={bgmEnabled}
-          sfxEnabled={sfxEnabled}
-          toggleBgm={toggleBgm}
-          toggleSfx={toggleSfx}
-          setShowHelp={setShowHelp}
-          toggleTowerSelect={inventoryState.toggleTowerSelect}
-          toggleSupportTowerSelect={inventoryState.toggleSupportTowerSelect}
-          handleTileClick={dragState.handleTileClick}
-          getElementInfo={getElementInfo}
-        />
+          <div ref={mapContainerRef} className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
+            {/* 게임 맵 */}
+            <GameMap
+              mapRef={dragState.mapRef}
+              mapScale={mapScale}
+              pathData={gameState.pathData}
+              pathArrows={pathArrows}
+              towers={gameState.towers}
+              supportTowers={gameState.supportTowers}
+              enemies={gameState.enemies}
+              projectiles={gameState.projectiles}
+              effects={gameState.effects}
+              chainLightnings={gameState.chainLightnings}
+              dropPreview={dragState.dropPreview}
+              placementMode={dragState.placementMode}
+              selectedTowerForPlacement={dragState.selectedTowerForPlacement}
+              cancelPlacementMode={dragState.cancelPlacementMode}
+              selectedTowers={inventoryState.selectedTowers}
+              selectedSupportTowers={inventoryState.selectedSupportTowers}
+              gameSpeed={gameState.gameSpeed}
+              setGameSpeed={gameState.setGameSpeed}
+              bgmEnabled={bgmEnabled}
+              sfxEnabled={sfxEnabled}
+              toggleBgm={toggleBgm}
+              toggleSfx={toggleSfx}
+              setShowHelp={setShowHelp}
+              toggleTowerSelect={inventoryState.toggleTowerSelect}
+              toggleSupportTowerSelect={inventoryState.toggleSupportTowerSelect}
+              handleTileClick={dragState.handleTileClick}
+              getElementInfo={getElementInfo}
+            />
 
-        {/* 사이드 패널 */}
-        <ControlPanel
-          gold={gameState.gold}
-          isPlaying={gameState.isPlaying}
-          drawRandomNeon={inventoryState.drawRandomNeon}
-          drawRandomSupport={inventoryState.drawRandomSupport}
-          startWave={gameState.startWave}
-          isInventoryFull={inventoryState.isInventoryFull}
-          isSupportInventoryFull={inventoryState.isSupportInventoryFull}
-          inventory={inventoryState.inventory}
-          selectedInventory={inventoryState.selectedInventory}
-          selectedTowerForPlacement={dragState.selectedTowerForPlacement}
-          handleInventoryClick={dragState.handleInventoryClick}
-          toggleInventorySelect={inventoryState.toggleInventorySelect}
-          getElementInfo={getElementInfo}
-          combineNeons={inventoryState.combineNeons}
-          combineAllNeons={inventoryState.combineAllNeons}
-          combineTowers={inventoryState.combineTowers}
-          sellSelectedTowers={inventoryState.sellSelectedTowers}
-          selectedTowers={inventoryState.selectedTowers}
-          totalSellPrice={inventoryState.totalSellPrice}
-          canCombineTowers={inventoryState.canCombineTowers}
-          supportInventory={inventoryState.supportInventory}
-          selectedSupportInventory={inventoryState.selectedSupportInventory}
-          toggleSupportInventorySelect={inventoryState.toggleSupportInventorySelect}
-          combineSupports={inventoryState.combineSupports}
-          combineAllSupports={inventoryState.combineAllSupports}
-          combineSupportTowers={inventoryState.combineSupportTowers}
-          sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
-          selectedSupportTowers={inventoryState.selectedSupportTowers}
-          totalSupportSellPrice={inventoryState.totalSupportSellPrice}
-          canCombineSupportTowers={inventoryState.canCombineSupportTowers}
-          effectiveDrawCost={inventoryState.effectiveDrawCost}
-        />
-      </div>
+            {/* 사이드 패널 */}
+            <ControlPanel
+              gold={gameState.gold}
+              isPlaying={gameState.isPlaying}
+              drawRandomNeon={inventoryState.drawRandomNeon}
+              drawRandomSupport={inventoryState.drawRandomSupport}
+              startWave={gameState.startWave}
+              isInventoryFull={inventoryState.isInventoryFull}
+              isSupportInventoryFull={inventoryState.isSupportInventoryFull}
+              inventory={inventoryState.inventory}
+              selectedInventory={inventoryState.selectedInventory}
+              selectedTowerForPlacement={dragState.selectedTowerForPlacement}
+              handleInventoryClick={dragState.handleInventoryClick}
+              toggleInventorySelect={inventoryState.toggleInventorySelect}
+              getElementInfo={getElementInfo}
+              combineNeons={inventoryState.combineNeons}
+              combineAllNeons={inventoryState.combineAllNeons}
+              combineTowers={inventoryState.combineTowers}
+              sellSelectedTowers={inventoryState.sellSelectedTowers}
+              selectedTowers={inventoryState.selectedTowers}
+              totalSellPrice={inventoryState.totalSellPrice}
+              canCombineTowers={inventoryState.canCombineTowers}
+              supportInventory={inventoryState.supportInventory}
+              selectedSupportInventory={inventoryState.selectedSupportInventory}
+              toggleSupportInventorySelect={inventoryState.toggleSupportInventorySelect}
+              combineSupports={inventoryState.combineSupports}
+              combineAllSupports={inventoryState.combineAllSupports}
+              combineSupportTowers={inventoryState.combineSupportTowers}
+              sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
+              selectedSupportTowers={inventoryState.selectedSupportTowers}
+              totalSupportSellPrice={inventoryState.totalSupportSellPrice}
+              canCombineSupportTowers={inventoryState.canCombineSupportTowers}
+              effectiveDrawCost={inventoryState.effectiveDrawCost}
+            />
+          </div>
 
-      {/* 모바일 배치 UI */}
-      <PlacementUI
-        placementMode={dragState.placementMode}
-        setPlacementMode={dragState.setPlacementMode}
-        mapRef={dragState.mapRef}
-        mapScale={mapScale}
-        getAvailableElements={inventoryState.getAvailableElements}
-        getInventoryByElement={inventoryState.getInventoryByElement}
-        handleElementSelect={dragState.handleElementSelect}
-        handleTierSelect={dragState.handleTierSelect}
-        getElementInfo={getElementInfo}
-      />
+          {/* 모바일 배치 UI */}
+          <PlacementUI
+            placementMode={dragState.placementMode}
+            setPlacementMode={dragState.setPlacementMode}
+            mapRef={dragState.mapRef}
+            mapScale={mapScale}
+            getAvailableElements={inventoryState.getAvailableElements}
+            getInventoryByElement={inventoryState.getInventoryByElement}
+            handleElementSelect={dragState.handleElementSelect}
+            handleTierSelect={dragState.handleTierSelect}
+            getElementInfo={getElementInfo}
+          />
 
-      {/* 모달들 (런 모드에서는 게임오버 모달 숨김) */}
-      <GameModals
-        gameOver={gameState.gameOver && !runModeState.runMode}
-        resetGame={handleResetGame}
-        onMainMenu={handleCampaignMainMenu}
-        stage={gameState.stage}
-        wave={gameState.wave}
-        killedCount={gameState.killedCount}
-        showStageTransition={gameState.showStageTransition}
-        showHelp={showHelp}
-        setShowHelp={setShowHelp}
-        getElementInfo={getElementInfo}
-        crystalResult={campaignCrystalResult}
-      />
+          {/* 모달들 (런 모드에서는 게임오버 모달 숨김) */}
+          <GameModals
+            gameOver={gameState.gameOver && !runModeState.runMode}
+            resetGame={handleResetGame}
+            onMainMenu={handleCampaignMainMenu}
+            stage={gameState.stage}
+            wave={gameState.wave}
+            killedCount={gameState.killedCount}
+            showStageTransition={gameState.showStageTransition}
+            showHelp={showHelp}
+            setShowHelp={setShowHelp}
+            getElementInfo={getElementInfo}
+            crystalResult={campaignCrystalResult}
+          />
 
-      {/* T4 역할 선택 모달 */}
-      <RoleSelectionModal
-        pendingT4Choice={inventoryState.pendingT4Choice}
-        onSelectRole={inventoryState.confirmT4Role}
-        onCancel={inventoryState.cancelT4Choice}
-        getElementInfo={getElementInfo}
-      />
+          {/* T4 역할 선택 모달 */}
+          <RoleSelectionModal
+            pendingT4Choice={inventoryState.pendingT4Choice}
+            onSelectRole={inventoryState.confirmT4Role}
+            onCancel={inventoryState.cancelT4Choice}
+            getElementInfo={getElementInfo}
+          />
 
-      {/* 치트 콘솔 */}
-      <CheatConsole
-        cheatOpen={cheatState.cheatOpen}
-        setCheatOpen={cheatState.setCheatOpen}
-        cheatInput={cheatState.cheatInput}
-        setCheatInput={cheatState.setCheatInput}
-        cheatLog={cheatState.cheatLog}
-        cheatInputRef={cheatState.cheatInputRef}
-        handleCheatSubmit={cheatState.handleCheatSubmit}
-        handleKeyDown={cheatState.handleKeyDown}
-      />
+          {/* 치트 콘솔 */}
+          <CheatConsole
+            cheatOpen={cheatState.cheatOpen}
+            setCheatOpen={cheatState.setCheatOpen}
+            cheatInput={cheatState.cheatInput}
+            setCheatInput={cheatState.setCheatInput}
+            cheatLog={cheatState.cheatLog}
+            cheatInputRef={cheatState.cheatInputRef}
+            handleCheatSubmit={cheatState.handleCheatSubmit}
+            handleKeyDown={cheatState.handleKeyDown}
+          />
 
-      {/* 타워 캐리오버 선택 모달 */}
-      <CarryoverModal
-        isOpen={gameState.showCarryoverSelection}
-        candidates={gameState.carryoverCandidates}
-        selectedIds={gameState.selectedCarryover}
-        onToggleTower={gameState.toggleCarryoverTower}
-        onToggleSupport={gameState.toggleCarryoverSupport}
-        onConfirm={gameState.confirmCarryover}
-        allTowers={{
-          towers: gameState.towers,
-          supports: gameState.supportTowers,
-          inventory: inventoryState.inventory,
-          supportInventory: inventoryState.supportInventory,
-        }}
-      />
+          {/* 타워 캐리오버 선택 모달 */}
+          <CarryoverModal
+            isOpen={gameState.showCarryoverSelection}
+            candidates={gameState.carryoverCandidates}
+            selectedIds={gameState.selectedCarryover}
+            onToggleTower={gameState.toggleCarryoverTower}
+            onToggleSupport={gameState.toggleCarryoverSupport}
+            onConfirm={gameState.confirmCarryover}
+            allTowers={{
+              towers: gameState.towers,
+              supports: gameState.supportTowers,
+              inventory: inventoryState.inventory,
+              supportInventory: inventoryState.supportInventory,
+            }}
+          />
 
-      {/* 영구 버프 선택 모달 */}
-      <BuffSelectionModal
-        isOpen={gameState.showBuffSelection}
-        buffChoices={gameState.buffChoices}
-        currentBuffs={gameState.permanentBuffs}
-        onSelectBuff={handleSelectBuff}
-        rerollsRemaining={runModeState.runActive ? runModeState.rerollsRemaining : 0}
-        onReroll={runModeState.runActive ? () => runModeState.rerollBuffChoices(gameState.permanentBuffs, gameState.setBuffChoices) : null}
-      />
+          {/* 영구 버프 선택 모달 */}
+          <BuffSelectionModal
+            isOpen={gameState.showBuffSelection}
+            buffChoices={gameState.buffChoices}
+            currentBuffs={gameState.permanentBuffs}
+            onSelectBuff={handleSelectBuff}
+            rerollsRemaining={runModeState.runActive ? runModeState.rerollsRemaining : 0}
+            onReroll={runModeState.runActive ? () => runModeState.rerollBuffChoices(gameState.permanentBuffs, gameState.setBuffChoices) : null}
+          />
 
-      {/* 게임 클리어 모달 (캠페인 전용) */}
-      <GameClearModal
-        isOpen={gameState.gameCleared && !runModeState.runMode}
-        stats={gameState.gameStats}
-        lives={gameState.lives}
-        gold={gameState.gold}
-        permanentBuffs={gameState.permanentBuffs}
-        onRestart={handleResetGame}
-        onMainMenu={handleCampaignMainMenu}
-        crystalResult={campaignCrystalResult}
-        newAchievements={newAchievements}
-        leaderboardRank={campaignRank}
-      />
+          {/* 게임 클리어 모달 (캠페인 전용) */}
+          <GameClearModal
+            isOpen={gameState.gameCleared && !runModeState.runMode}
+            stats={gameState.gameStats}
+            lives={gameState.lives}
+            gold={gameState.gold}
+            permanentBuffs={gameState.permanentBuffs}
+            onRestart={handleResetGame}
+            onMainMenu={handleCampaignMainMenu}
+            crystalResult={campaignCrystalResult}
+            newAchievements={newAchievements}
+            leaderboardRank={campaignRank}
+          />
 
-      {/* 런 결과 모달 */}
-      <RunResultModal
-        isOpen={!!runModeState.runResult}
-        runResult={runModeState.runResult}
-        gameStats={gameState.gameStats}
-        lives={gameState.lives}
-        gold={gameState.gold}
-        permanentBuffs={gameState.permanentBuffs}
-        onRestart={handleRunResultRestart}
-        onMainMenu={handleRunResultMainMenu}
-        onUpgrades={handleRunResultUpgrades}
-      />
+          {/* 런 결과 모달 */}
+          <RunResultModal
+            isOpen={!!runModeState.runResult}
+            runResult={runModeState.runResult}
+            gameStats={gameState.gameStats}
+            lives={gameState.lives}
+            gold={gameState.gold}
+            permanentBuffs={gameState.permanentBuffs}
+            onRestart={handleRunResultRestart}
+            onMainMenu={handleRunResultMainMenu}
+            onUpgrades={handleRunResultUpgrades}
+          />
 
-      {/* 스테이지 클리어 저장 옵션 모달 (선택사항) */}
-      <SaveLoadModal
-        show={saveLoadState.showSaveLoadModal}
-        mode={saveLoadState.saveLoadMode}
-        onSaveAndQuit={saveLoadState.handleSaveAndQuit}
-        onContinue={saveLoadState.handleContinue}
-        saveInfo={saveLoadState.saveInfo}
-      />
+          {/* 스테이지 클리어 저장 옵션 모달 (선택사항) */}
+          <SaveLoadModal
+            show={saveLoadState.showSaveLoadModal}
+            mode={saveLoadState.saveLoadMode}
+            onSaveAndQuit={saveLoadState.handleSaveAndQuit}
+            onContinue={saveLoadState.handleContinue}
+            saveInfo={saveLoadState.saveInfo}
+          />
         </div>
       )}
     </div>

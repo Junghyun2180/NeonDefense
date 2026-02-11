@@ -68,6 +68,7 @@ const useGameLoop = (config) => {
                     newEnemy.isLooping = true;
                     newEnemy.loopCount = 0;
                 }
+                newEnemy.spawnWave = wave; // 웨이브 태그 (조기 클리어 감지용)
                 setEnemies(prev => [...prev, newEnemy]);
             }
             localSpawnedCount++;

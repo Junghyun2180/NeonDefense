@@ -132,10 +132,11 @@ const useRunMode = () => {
     console.log(`[RunMode] 런 종료: ${cleared ? '클리어' : '실패'}, 등급: ${grade}, 크리스탈: ${crystalsEarned}`);
   }, [runMode, metaProgress]);
 
-  // ===== 런 결과 닫기 =====
+  // ===== 런 결과 닫기 / 런 모드 종료 =====
   const closeRunResult = useCallback(() => {
     setRunResult(null);
     setRunMode(null);
+    setRunActive(false);
     setMetaSnapshot(null);
   }, []);
 

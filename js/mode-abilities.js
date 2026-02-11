@@ -56,12 +56,12 @@ const MODE_ABILITIES = {
 
         // 보스 체력 스케일링 (웨이브마다 강해짐)
         healthScaling: {
-            base: 60,
+            base: 200,
             stageGrowth: 0.0,             // 스테이지 개념 없음
-            waveGrowth: 0.8,              // 웨이브(=보스 차수)마다 크게 증가
+            waveGrowth: 1.5,              // 웨이브(=보스 차수)마다 크게 증가
             lateWaveThreshold: 99,
             lateWaveBonus: 1.0,
-            bossFormula: (stage) => 20 + stage * 5,
+            bossFormula: (stage) => 50 + stage * 15,
         },
 
         // 보스 러시 전용: 보스 처치 보상

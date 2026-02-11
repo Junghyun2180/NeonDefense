@@ -239,6 +239,56 @@ const useGameState = (configOverride = null) => {
                     }
                 }, 2000);
             }
+
+            // 런 모드: 현재 웨이브 적 전멸 시 조기 클리어 (수동 다음 웨이브 시작)
+            const totalEnemies = activeCfg.SPAWN.enemiesPerWave(stage, wave);
+            if (!isBossPhase && spawnedCount >= totalEnemies && isPlaying && !gameOver) {
+                const currentWaveEnemies = enemies.filter(e => e.spawnWave === wave);
+                if (currentWaveEnemies.length === 0) {
+                    // 웨이브 클리어 보상
+                    const waveReward = activeCfg.ECONOMY.waveReward(wave);
+                    setGold(prev => prev + waveReward);
+                    setGameStats(prev => ({
+                        ...prev,
+                        wavesCleared: prev.wavesCleared + 1,
+                        totalGoldEarned: prev.totalGoldEarned + waveReward,
+                        goldFromWaves: prev.goldFromWaves + waveReward,
+                    }));
+
+                    if (wave >= activeCfg.SPAWN.wavesPerStage) {
+                        // 스테이지 클리어
+                        setGameStats(prev => ({ ...prev, stagesCleared: prev.stagesCleared + 1 }));
+
+                        if (stage >= activeCfg.SPAWN.maxStage) {
+                            setGameStats(prev => GameStats.finalize(prev));
+                            setGameCleared(true);
+                            soundManager.stopBGM();
+                            soundManager.playWaveStart();
+                            return;
+                        }
+
+                        // 보스 페이즈 시작 (게임 계속 진행)
+                        setIsBossPhase(true);
+                        const paths = pathDataRef.current.paths;
+                        const selectedPath = paths[0];
+                        const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id);
+                        if (bossEnemy) {
+                            bossEnemy.type = 'boss';
+                            bossEnemy.isLooping = true;
+                            bossEnemy.loopCount = 0;
+                            const bossHealth = Math.floor(EnemySystem.calcBaseHealth(stage, wave) * HEALTH_SCALING.bossFormula(stage));
+                            bossEnemy.health = bossHealth;
+                            bossEnemy.maxHealth = bossHealth;
+                            setEnemies(prev => [...prev, bossEnemy]);
+                        }
+                    } else {
+                        // 다음 웨이브 준비 (수동 시작 대기)
+                        setIsPlaying(false);
+                        setWave(prev => prev + 1);
+                        setSpawnedCount(0);
+                    }
+                }
+            }
             return;
         }
 
@@ -354,9 +404,9 @@ const useGameState = (configOverride = null) => {
 
     // ===== 리셋 =====
     const resetGame = useCallback(() => {
-        const activeCfg = cfgRef.current;
-        setGold(activeCfg.ECONOMY.startGold);
-        setLives(activeCfg.ECONOMY.startLives);
+        // cfg를 직접 사용 (cfgRef.current는 stale할 수 있음)
+        setGold(cfg.ECONOMY.startGold);
+        setLives(cfg.ECONOMY.startLives);
         setStage(1);
         setWave(1);
         setIsPlaying(false);
@@ -368,7 +418,7 @@ const useGameState = (configOverride = null) => {
         setSpawnedCount(0);
         setKilledCount(0);
         // ㅁ 맵 지원
-        if (activeCfg.mapType === 'square') {
+        if (cfg.mapType === 'square') {
             setPathData(generateSquarePath(Date.now(), 1));
         } else {
             setPathData(generateMultiplePaths(Date.now(), 1));
@@ -392,7 +442,7 @@ const useGameState = (configOverride = null) => {
         setIsBossPhase(false);
         setWaveTimer(0);
         soundManager.stopBGM();
-    }, []);
+    }, [cfg]);
 
     // 치트용 clearWave (외부에서 호출)
     const clearWave = useCallback(() => {

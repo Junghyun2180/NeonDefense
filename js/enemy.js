@@ -113,6 +113,7 @@ const EnemySystem = {
         // 상태이상 초기화
         ...StatusEffectSystem.getDefaultFields(),
         lastHealTime: 0,
+        spawnWave: parent.spawnWave, // 부모 웨이브 상속
         isSplitChild: true, // 분열 자식 표시 (재분열 방지)
       };
       // Ability 할당
@@ -190,6 +191,19 @@ const EnemySystem = {
   move(enemy, gameSpeed, now) {
     const path = enemy.pathTiles;
     if (!path || enemy.pathIndex >= path.length - 1) {
+      // 순환 경로인 경우: 시작점으로 리셋 (제거하지 않음)
+      if (enemy.isLooping) {
+        return {
+          enemy: {
+            ...enemy,
+            pathIndex: 0,
+            loopCount: (enemy.loopCount || 0) + 1,
+            x: path[0].x * TILE_SIZE + TILE_SIZE / 2,
+            y: path[0].y * TILE_SIZE + TILE_SIZE / 2,
+          },
+          livesLost: 0,
+        };
+      }
       const config = ENEMY_CONFIG[enemy.type];
       if (!config) {
         console.warn(`[EnemySystem.move] Unknown enemy type: ${enemy.type}`, enemy);
