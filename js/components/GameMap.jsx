@@ -131,7 +131,7 @@ const GameMap = ({
                                         {isDropPreview && selectedTowerForPlacement && (() => {
                                             const neon = selectedTowerForPlacement;
                                             if (neon.isSupport) {
-                                                const supportType = SUPPORT_TYPES[neon.supportTypeIndex];
+                                                const supportType = SUPPORT_UI[neon.supportType];
                                                 return (
                                                     <div className="w-full h-full flex flex-col items-center justify-center pointer-events-none relative">
                                                         <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${supportType.color}40 0%, transparent 70%)`, animation: 'pulse 1s ease-in-out infinite' }} />
