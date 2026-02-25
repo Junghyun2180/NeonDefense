@@ -7,38 +7,86 @@
 - **배포**: GitHub Pages (`https://junghyun2180.github.io/NeonDefense/`)
 - **언어**: 순수 JavaScript + JSX (Babel Standalone 런타임 변환, CDN)
 
-## 파일 구조
+## 파일 구조 (DDD 기반)
 
 ```
 NeonDefense/
-├── index.html          # 진입점 (CDN + 스크립트 로드)
-├── css/styles.css      # 애니메이션, UI 스타일 (~330줄)
+├── index.html              # 진입점 (CDN + 스크립트 로드 순서 정의)
+├── css/styles.css          # 애니메이션, UI 스타일
 ├── js/
-│   ├── App.jsx         # 메인 React 컴포넌트
-│   ├── constants.js    # 게임 상수 및 설정 테이블
-│   ├── status-effect.js # StatusEffectSystem (상태이상 처리)
-│   ├── permanent-buff.js # 영구 버프 시스템 (로그라이크)
-│   ├── game-stats.js   # 게임 통계 추적
-│   ├── ability.js      # Ability 기본 클래스 + 팩토리
-│   ├── ability-system.js # AbilitySystem (공격 타워 라우터)
-│   ├── abilities/      # Ability 모듈
-│   │   ├── fire-ability.js     # 화염 계열 (4개 클래스)
-│   │   ├── water-ability.js    # 냉기 계열 (4개 클래스)
-│   │   ├── electric-ability.js # 전격 계열 (4개 클래스)
-│   │   ├── wind-ability.js     # 질풍 계열 (4개 클래스)
-│   │   ├── void-ability.js     # 공허 계열 (4개 클래스)
-│   │   ├── light-ability.js    # 광휘 계열 (4개 클래스)
-│   │   ├── support-ability.js  # 서포트 타워 (4개 클래스)
-│   │   └── enemy-ability.js    # 적 (8개 클래스)
-│   ├── enemy.js        # EnemySystem (적 생성/이동)
-│   ├── game-engine.js  # GameEngine (게임 틱)
-│   ├── sound.js        # SoundManager
-│   ├── tower.js        # TowerSystem (타워/서포트)
-│   ├── utils.js        # 유틸리티
-│   ├── hooks/          # 커스텀 훅 (useGameState, useInventory 등)
-│   └── components/     # UI 컴포넌트 (GameMap, ControlPanel 등)
-└── .claude/SKILL/      # Claude 스킬 정의
+│   ├── App.jsx             # 메인 React 컴포넌트
+│   ├── domain/             # 🎯 도메인 레이어 (핵심 비즈니스 로직)
+│   │   ├── config/         # 설정 도메인
+│   │   │   ├── constants.js        # 게임 상수 및 설정 테이블
+│   │   │   ├── run-mode-constants.js # 런모드 전용 상수
+│   │   │   ├── mode-abilities.js   # 모드별 어빌리티 설정
+│   │   │   ├── game-data.js        # GAME_DATA 통합 레지스트리
+│   │   │   └── data-resolver.js    # DataResolver (모드 기반 데이터 조회)
+│   │   ├── tower/          # 타워 도메인
+│   │   │   ├── ability.js          # Ability 기본 클래스 + 팩토리
+│   │   │   ├── ability-system.js   # AbilitySystem (공격 타워 라우터)
+│   │   │   ├── tower-system.js     # TowerSystem (타워/서포트 생성/조합)
+│   │   │   └── abilities/          # 타워 Ability 모듈
+│   │   │       ├── fire-ability.js
+│   │   │       ├── water-ability.js
+│   │   │       ├── electric-ability.js
+│   │   │       ├── wind-ability.js
+│   │   │       ├── void-ability.js
+│   │   │       ├── light-ability.js
+│   │   │       └── support-ability.js
+│   │   ├── enemy/          # 적 도메인
+│   │   │   ├── enemy-system.js     # EnemySystem (적 생성/이동)
+│   │   │   └── abilities/
+│   │   │       └── enemy-ability.js # 적 Ability (8종)
+│   │   ├── effect/         # 효과 도메인
+│   │   │   └── status-effect.js    # StatusEffectSystem (상태이상)
+│   │   ├── combat/         # 전투 도메인
+│   │   │   └── game-engine.js      # GameEngine (게임 틱 오케스트레이터)
+│   │   └── progression/    # 진행 도메인
+│   │       ├── permanent-buff.js   # PermanentBuffManager (영구 버프)
+│   │       ├── game-stats.js       # GameStats (통계 추적)
+│   │       ├── achievement-system.js # 업적 시스템
+│   │       └── leaderboard.js      # 리더보드
+│   ├── infra/              # 🔧 인프라 레이어 (기술적 지원)
+│   │   ├── utils.js                # 유틸리티 + BuffHelper
+│   │   ├── sound.js                # SoundManager
+│   │   ├── save-system.js          # 저장/불러오기
+│   │   ├── run-save-system.js      # 런모드 저장
+│   │   ├── run-mode.js             # 런모드 관리
+│   │   ├── daily-challenge.js      # 일일 도전
+│   │   ├── balance-logger.js       # 밸런스 로거
+│   │   └── help-data.js            # 도움말 데이터
+│   ├── hooks/              # 🪝 커스텀 훅 (React 상태 관리)
+│   │   ├── useGameState.jsx        # 게임 상태 관리
+│   │   ├── useGameLoop.jsx         # 게임 루프
+│   │   ├── useInventory.jsx        # 인벤토리 관리
+│   │   ├── useDragAndDrop.jsx      # 드래그앤드롭
+│   │   ├── useCheatConsole.jsx     # 치트 콘솔
+│   │   ├── useSaveLoad.jsx         # 저장/불러오기
+│   │   └── useRunMode.jsx          # 런모드
+│   └── components/         # 🖥️ UI 컴포넌트
+│       ├── GameMap.jsx, GameHeader.jsx, ControlPanel.jsx ...
+│       └── (18개 컴포넌트)
+└── .claude/SKILL/          # Claude 스킬 정의
 ```
+
+### DDD 레이어 규칙
+| 레이어 | 경로 | 역할 | 의존 방향 |
+|--------|------|------|----------|
+| **domain** | `js/domain/` | 핵심 비즈니스 로직, 게임 규칙 | 다른 도메인만 참조 가능 |
+| **infra** | `js/infra/` | 저장, 사운드, 유틸리티 등 기술 지원 | domain 참조 가능 |
+| **hooks** | `js/hooks/` | React 상태 + domain/infra 연결 | domain + infra 참조 |
+| **components** | `js/components/` | UI 렌더링 | hooks를 통해 간접 참조 |
+
+### 도메인별 담당 영역
+| 도메인 | 경로 | 수정 대상 |
+|--------|------|----------|
+| **config** | `domain/config/` | 게임 상수, 모드 설정, GAME_DATA |
+| **tower** | `domain/tower/` | 타워 생성/조합, 공격 Ability, 서포트 Ability |
+| **enemy** | `domain/enemy/` | 적 생성/이동, 적 Ability |
+| **effect** | `domain/effect/` | 상태이상 (버프/디버프) |
+| **combat** | `domain/combat/` | 게임 틱, 전투 흐름 |
+| **progression** | `domain/progression/` | 영구 버프, 통계, 업적, 리더보드 |
 
 ## 핵심 아키텍처
 
@@ -78,11 +126,23 @@ enemies[], projectiles[], effects[], chainLightnings[]
 
 ## 코드 수정 규칙
 
+### DDD 원칙 (최우선)
+- **도메인 경계 준수**: 수정할 내용이 속한 도메인 폴더의 파일만 변경
+  - 타워 관련 → `domain/tower/` 내에서 해결
+  - 적 관련 → `domain/enemy/` 내에서 해결
+  - 상태이상 → `domain/effect/` 내에서 해결
+  - 게임 수치/설정 → `domain/config/` 내에서 해결
+  - 진행/업적 → `domain/progression/` 내에서 해결
+  - 저장/사운드/유틸 → `infra/` 내에서 해결
+- **의존성 방향**: domain ← infra ← hooks ← components (역방향 의존 금지)
+- **모드별 데이터**: `GAME_DATA` + `DataResolver`를 통해 조회 (글로벌 상수 직접 참조 지양)
+
 ### 필수 원칙
 - 타워 생성: `TowerSystem.create()` 또는 `TowerSystem.createSupport()`
 - 적 생성: `EnemySystem.create()`
 - 게임 틱: `GameEngine.gameTick()`
-- 상수: `constants.js`에 집중
+- 상수: `domain/config/constants.js`에 집중
+- 모드별 설정: `domain/config/game-data.js` + `domain/config/data-resolver.js`
 
 ### 주의사항
 - CDN 기반 → import/export 불가 (글로벌 스코프)
@@ -134,9 +194,9 @@ switch (effect.type) {
 ### Ability 분류
 | 시스템 | 파일 | 클래스 예시 |
 |--------|------|-------------|
-| 공격 타워 | `abilities/*-ability.js` | `BurnAbility`, `SlowAbility`, `ChainLightningAbility` |
-| 서포트 타워 | `abilities/support-ability.js` | `AttackBuffSupportAbility`, `SpeedBuffSupportAbility` |
-| 적 | `abilities/enemy-ability.js` | `JammerEnemyAbility`, `HealerEnemyAbility` |
+| 공격 타워 | `domain/tower/abilities/*-ability.js` | `BurnAbility`, `SlowAbility`, `ChainLightningAbility` |
+| 서포트 타워 | `domain/tower/abilities/support-ability.js` | `AttackBuffSupportAbility`, `SpeedBuffSupportAbility` |
+| 적 | `domain/enemy/abilities/enemy-ability.js` | `JammerEnemyAbility`, `HealerEnemyAbility` |
 
 ### 사용법
 ```javascript
@@ -212,14 +272,16 @@ const vulnMult = StatusEffectManager.getVulnerabilityMultiplier(target, now);
 - **Grep으로 함수 위치 먼저 파악** 후 해당 부분만 읽기
 - 변경 필요한 부분만 정확히 타겟팅
 
-### App.jsx 분리 후보
-| 영역 | 분리 파일 | 라인 수 (예상) |
-|------|----------|---------------|
-| 드래그앤드롭 | `useDragAndDrop.js` | ~80줄 |
-| 치트 콘솔 | `useCheatConsole.js` | ~60줄 |
-| 서포트 타워 핸들러 | `useSupportTower.js` | ~100줄 |
-| 타워 렌더러 | `TowerRenderer.jsx` | ~50줄 |
-| 적 렌더러 | `EnemyRenderer.jsx` | ~40줄 |
+### App.jsx 분리 현황 (완료)
+| 영역 | 분리된 훅 | 상태 |
+|------|----------|------|
+| 게임 상태 | `hooks/useGameState.jsx` | ✅ 완료 |
+| 게임 루프 | `hooks/useGameLoop.jsx` | ✅ 완료 |
+| 인벤토리 | `hooks/useInventory.jsx` | ✅ 완료 |
+| 드래그앤드롭 | `hooks/useDragAndDrop.jsx` | ✅ 완료 |
+| 치트 콘솔 | `hooks/useCheatConsole.jsx` | ✅ 완료 |
+| 저장/불러오기 | `hooks/useSaveLoad.jsx` | ✅ 완료 |
+| 런모드 | `hooks/useRunMode.jsx` | ✅ 완료 |
 
 ## Skill 참조
 

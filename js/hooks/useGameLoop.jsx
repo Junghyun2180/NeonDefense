@@ -54,14 +54,14 @@ const useGameLoop = (config) => {
         const totalEnemies = activeSPAWN.enemiesPerWave(stage, wave);
         const baseSpawnDelay = activeSPAWN.spawnDelay(stage, wave);
         const ability = modeAbility ? ModeAbilityHelper.getAbility(modeAbility) : null;
-        const isLooping = ability ? ability.loopingPath : false;
+        const isLooping = DataResolver.isLoopingPath(modeAbility);
 
         // 적 스폰 인터벌
         spawnIntervalRef.current = setInterval(() => {
             if (localSpawnedCount >= totalEnemies) return;
             const paths = pathDataRef.current.paths;
             const selectedPath = paths[Math.floor(Math.random() * paths.length)];
-            const newEnemy = EnemySystem.create(stage, wave, localSpawnedCount, totalEnemies, selectedPath.tiles, selectedPath.id);
+            const newEnemy = EnemySystem.create(stage, wave, localSpawnedCount, totalEnemies, selectedPath.tiles, selectedPath.id, modeAbility);
             if (newEnemy) {
                 // 순환 경로인 경우 표시
                 if (isLooping) {
@@ -149,28 +149,25 @@ const useGameLoop = (config) => {
             });
 
             // ===== 적 수 패배 조건 체크 (런 모드 ㅁ 맵) =====
-            if (ability && ability.defeatCondition === 'enemyCount') {
-                const currentEnemyCount = result.enemies.length;
-                if (currentEnemyCount >= ability.defeatThreshold) {
-                    setGameOver(true);
-                    soundManager.playGameOver();
-                    soundManager.stopBGM();
+            if (modeAbility && DataResolver.checkDefeat(modeAbility, { enemyCount: result.enemies.length, lives: lives })) {
+                setGameOver(true);
+                soundManager.playGameOver();
+                soundManager.stopBGM();
 
-                    if (typeof BalanceLogger !== 'undefined') {
-                        BalanceLogger.logGameEnd('gameover_overflow', {
-                            towers: towersRef.current,
-                            supportTowers: supportTowersRef.current,
-                            gold: gold,
-                            lives: lives,
-                            stage: stage,
-                            wave: wave,
-                            enemyCount: currentEnemyCount,
-                            gameStats: gameStatsRef.current,
-                            permanentBuffs: permanentBuffsRef.current,
-                        });
-                    }
-                    return; // 게임오버 후 더이상 처리 안함
+                if (typeof BalanceLogger !== 'undefined') {
+                    BalanceLogger.logGameEnd('gameover_overflow', {
+                        towers: towersRef.current,
+                        supportTowers: supportTowersRef.current,
+                        gold: gold,
+                        lives: lives,
+                        stage: stage,
+                        wave: wave,
+                        enemyCount: result.enemies.length,
+                        gameStats: gameStatsRef.current,
+                        permanentBuffs: permanentBuffsRef.current,
+                    });
                 }
+                return; // 게임오버 후 더이상 처리 안함
             }
 
             // 목숨 손실 (기존 lives 방식 - 캠페인 + 보스 러시)

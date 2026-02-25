@@ -7,6 +7,7 @@ const useGameState = (configOverride = null) => {
     const cfg = useMemo(() => ({
         SPAWN: configOverride?.SPAWN || SPAWN,
         ECONOMY: configOverride?.ECONOMY || ECONOMY,
+        HEALTH_SCALING: configOverride?.HEALTH_SCALING || HEALTH_SCALING,
         CARRYOVER: configOverride?.CARRYOVER || CARRYOVER,
         modeAbility: configOverride?.modeAbility || null,
         mapType: configOverride?.mapType || 'standard',
@@ -117,13 +118,13 @@ const useGameState = (configOverride = null) => {
             // 보스 스폰 (1마리)
             const paths = pathDataRef.current.paths;
             const selectedPath = paths[0];
-            const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id);
+            const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id, cfg.modeAbility);
             if (bossEnemy) {
                 bossEnemy.type = 'boss';
                 bossEnemy.isLooping = true;
                 bossEnemy.loopCount = 0;
                 // 보스 체력 재설정
-                const bossHealth = Math.floor(EnemySystem.calcBaseHealth(stage, wave) * HEALTH_SCALING.bossFormula(stage));
+                const bossHealth = DataResolver.getBossHealth(cfg.modeAbility, stage, wave);
                 bossEnemy.health = bossHealth;
                 bossEnemy.maxHealth = bossHealth;
                 setEnemies(prev => [...prev, bossEnemy]);
@@ -271,12 +272,12 @@ const useGameState = (configOverride = null) => {
                         setIsBossPhase(true);
                         const paths = pathDataRef.current.paths;
                         const selectedPath = paths[0];
-                        const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id);
+                        const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id, activeCfg.modeAbility);
                         if (bossEnemy) {
                             bossEnemy.type = 'boss';
                             bossEnemy.isLooping = true;
                             bossEnemy.loopCount = 0;
-                            const bossHealth = Math.floor(EnemySystem.calcBaseHealth(stage, wave) * HEALTH_SCALING.bossFormula(stage));
+                            const bossHealth = DataResolver.getBossHealth(activeCfg.modeAbility, stage, wave);
                             bossEnemy.health = bossHealth;
                             bossEnemy.maxHealth = bossHealth;
                             setEnemies(prev => [...prev, bossEnemy]);

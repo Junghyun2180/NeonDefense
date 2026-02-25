@@ -2,10 +2,12 @@
 // 적 생성, 이동, 상태이상, 타입 판별을 단일 네임스페이스로 관리
 
 const EnemySystem = {
-  // 적 타입 결정 (SPAWN_RULES 테이블 기반, 우선순위 순)
-  determineType(enemyIndex, totalEnemies, wave, stage) {
+  // 적 타입 결정 (스폰 규칙 테이블 기반, 우선순위 순)
+  // modeId: 'campaign' | 'run' | 'bossRush' (DataResolver로 규칙 조회)
+  determineType(enemyIndex, totalEnemies, wave, stage, modeId) {
+    const spawnRules = DataResolver.getSpawnRules(modeId);
     const progress = enemyIndex / totalEnemies;
-    for (const rule of SPAWN_RULES) {
+    for (const rule of spawnRules) {
       if (!rule.condition(enemyIndex, totalEnemies, wave, stage, progress)) continue;
       // 확률 기반 체크
       const chance = rule.chance
@@ -15,25 +17,23 @@ const EnemySystem = {
     return 'normal'; // fallback
   },
 
-  // 기본 체력 계산 (HEALTH_SCALING 설정 참조)
-  calcBaseHealth(stage, wave) {
-    const hs = HEALTH_SCALING;
-    const stageMult = 1 + (stage - 1) * hs.stageGrowth;
-    const waveMult = 1 + (wave - 1) * hs.waveGrowth;
-    const lateBonus = wave >= hs.lateWaveThreshold ? hs.lateWaveBonus : 1;
-    return Math.floor(hs.base * stageMult * waveMult * lateBonus);
+  // 기본 체력 계산 (DataResolver 기반)
+  // modeId: 'campaign' | 'run' | 'bossRush'
+  calcBaseHealth(stage, wave, modeId) {
+    return DataResolver.calcBaseHealth(modeId, stage, wave);
   },
 
   // 적 생성 팩토리 (단일 진실의 원천)
-  create(stage, wave, enemyIndex, totalEnemies, pathTiles, pathId) {
-    let type = this.determineType(enemyIndex, totalEnemies, wave, stage);
-    let config = ENEMY_CONFIG[type];
+  // modeId: 'campaign' | 'run' | 'bossRush' (선택, 기본값 'campaign')
+  create(stage, wave, enemyIndex, totalEnemies, pathTiles, pathId, modeId) {
+    let type = this.determineType(enemyIndex, totalEnemies, wave, stage, modeId);
+    let config = DataResolver.getEnemyConfig(type);
 
     // 타입이 유효하지 않으면 'normal'로 fallback
     if (!config) {
       console.error(`[EnemySystem.create] Unknown enemy type: ${type}. Using 'normal' as fallback.`);
       type = 'normal';
-      config = ENEMY_CONFIG['normal'];
+      config = DataResolver.getEnemyConfig('normal');
 
       // 그래도 없으면 심각한 오류
       if (!config) {
@@ -41,12 +41,12 @@ const EnemySystem = {
         return null;
       }
     }
-    const baseHealth = this.calcBaseHealth(stage, wave);
+    const baseHealth = this.calcBaseHealth(stage, wave, modeId);
 
     // 체력 계산
     let health;
     if (type === 'boss') {
-      health = Math.floor(baseHealth * HEALTH_SCALING.bossFormula(stage));
+      health = DataResolver.getBossHealth(modeId, stage, wave);
     } else {
       health = Math.floor(baseHealth * config.healthMult);
     }
@@ -61,8 +61,9 @@ const EnemySystem = {
     }
 
     // 골드 보상
+    const economy = DataResolver.getEconomy(modeId);
     const goldReward = type === 'boss'
-      ? ECONOMY.bossGoldReward(stage, wave)
+      ? economy.bossGoldReward(stage, wave)
       : config.goldReward;
 
     const enemy = {
@@ -77,8 +78,8 @@ const EnemySystem = {
       speed,
       debuffRange: config.debuffRange || 0,
       goldReward,
-      x: pathTiles[0].x * TILE_SIZE + TILE_SIZE / 2,
-      y: pathTiles[0].y * TILE_SIZE + TILE_SIZE / 2,
+      x: pathTiles[0].x * GAME_DATA.shared.grid.tileSize + GAME_DATA.shared.grid.tileSize / 2,
+      y: pathTiles[0].y * GAME_DATA.shared.grid.tileSize + GAME_DATA.shared.grid.tileSize / 2,
       // 상태이상 (StatusEffectSystem에서 기본값 가져옴)
       ...StatusEffectSystem.getDefaultFields(),
       // 힐러 전용
@@ -253,9 +254,10 @@ const EnemySystem = {
     return StatusEffectSystem.apply(enemy, effect, now);
   },
 
-  // 폭발 색상 (ENEMY_CONFIG 참조)
+  // 폭발 색상 (DataResolver 참조)
   getExplosionColor(enemy) {
-    return ENEMY_CONFIG[enemy.type].explosionColor;
+    const config = DataResolver.getEnemyConfig(enemy.type);
+    return config ? config.explosionColor : '#ffffff';
   },
 
   // 디버프 적인지 확인
