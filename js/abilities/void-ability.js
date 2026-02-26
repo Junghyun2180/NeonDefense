@@ -24,7 +24,7 @@ class PierceAbility extends Ability {
 
     const pierceCount = this.getTierValue('pierceCount', 1);
     const pierceDamageDecay = this.getTierValue('pierceDamageDecay', 0.5);
-    const pierceRange = 80;
+    const pierceRange = this.getTierValue('pierceRange', 80);
 
     // 관통 대상 찾기
     let pierced = 0;
@@ -88,7 +88,7 @@ class SynergyBuffAbility extends Ability {
     // 관통 (T4 기본)
     const pierceCount = this.getTierValue('pierceCount', 3);
     const pierceDamageDecay = this.getTierValue('pierceDamageDecay', 0.8);
-    const pierceRange = 100;
+    const pierceRange = this.getTierValue('pierceRange', 100);
 
     let pierced = 0;
     const sortedEnemies = enemies
@@ -148,7 +148,7 @@ class BalancedAbility extends Ability {
     // T4 기본 관통
     const pierceCount = this.getTierValue('pierceCount', 3);
     const pierceDamageDecay = this.getTierValue('pierceDamageDecay', 0.8);
-    const pierceRange = 100;
+    const pierceRange = this.getTierValue('pierceRange', 100);
 
     let pierced = 0;
     const sortedEnemies = enemies

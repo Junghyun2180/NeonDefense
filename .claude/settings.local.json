@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(py:*)",
+      "Bash(where gh)",
+      "Bash(git -C \"F:\\\\VibeCodingProject\\\\NeonDefense\" status)",
+      "Bash(node --version:*)",
+      "Bash(\"/c/Program Files/nodejs/node.exe\" --version)",
+      "Bash(\"/mnt/c/Program Files/nodejs/node.exe\" --version)",
+      "Bash(git -C \"F:/VibeCodingProject/NeonDefense\" status)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(Start-Process -NoNewWindow -FilePath \"npx\" -ArgumentList \"serve\",\"F:\\\\VibeCodingProject\\\\NeonDefense\",\"--port\",\"3001\" -PassThru)",
+      "Bash(ping:*)",
+      "Bash(curl:*)",
+      "Bash(node build.js)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

@@ -54,7 +54,7 @@ const EnemySystem = {
     // 속도 계산
     let speed;
     if (type === 'boss') {
-      speed = 0.25 + stage * 0.02;
+      speed = config.speedBase + stage * config.speedGrowth;
     } else {
       const [minSpeed, maxSpeed] = config.speedRange;
       speed = minSpeed + Math.random() * (maxSpeed - minSpeed) + config.speedWaveBonus * wave;
@@ -171,11 +171,11 @@ const EnemySystem = {
 
       const dist = calcDistance(healer.x, healer.y, enemy.x, enemy.y);
       if (dist <= healRange) {
-        // 재생 버프 부여 (2초간 틱당 2.5% 회복)
+        // 재생 버프 부여 (ENEMY_CONFIG.healer 수치 기반)
         const updatedEnemy = StatusEffectSystem.apply(enemy, {
           type: 'regeneration',
-          healPercent: 0.025,
-          duration: 2000,
+          healPercent: config.regenHealPercent,
+          duration: config.regenDuration,
         }, now);
         affectedEnemies.push(updatedEnemy);
       }

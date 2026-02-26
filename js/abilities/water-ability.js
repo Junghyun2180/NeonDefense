@@ -56,10 +56,11 @@ class FreezeChanceAbility extends Ability {
   static TYPE = 'freezeChance';
 
   constructor(tier) {
+    const we = ELEMENT_EFFECTS[ELEMENT_TYPES.WATER];
     super(tier, {
-      ...ELEMENT_EFFECTS[ELEMENT_TYPES.WATER],
-      freezeChance: 0.25,
-      freezeDuration: 1500,
+      ...we,
+      freezeChance: we.t4FreezeChance,
+      freezeDuration: we.t4FreezeDuration,
     });
     this.type = FreezeChanceAbility.TYPE;
   }
@@ -124,11 +125,12 @@ class AoeSlowAbility extends Ability {
   static TYPE = 'aoeSlow';
 
   constructor(tier) {
+    const we = ELEMENT_EFFECTS[ELEMENT_TYPES.WATER];
     super(tier, {
-      ...ELEMENT_EFFECTS[ELEMENT_TYPES.WATER],
-      aoeRadius: 80,
-      aoeSlowRatio: 0.6,
-      aoeDurationRatio: 0.5,
+      ...we,
+      aoeRadius: we.t4AoeRadius,
+      aoeSlowRatio: we.t4AoeSlowRatio,
+      aoeDurationRatio: we.t4AoeDurationRatio,
     });
     this.type = AoeSlowAbility.TYPE;
   }
@@ -192,9 +194,10 @@ class SlowKnockbackAbility extends Ability {
   static TYPE = 'slowKnockback';
 
   constructor(tier) {
+    const we = ELEMENT_EFFECTS[ELEMENT_TYPES.WATER];
     super(tier, {
-      ...ELEMENT_EFFECTS[ELEMENT_TYPES.WATER],
-      knockbackDistance: 25,
+      ...we,
+      knockbackDistance: we.t4KnockbackDistance,
     });
     this.type = SlowKnockbackAbility.TYPE;
   }

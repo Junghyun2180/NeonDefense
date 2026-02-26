@@ -97,8 +97,8 @@ const TowerSystem = {
     while (combined) {
       combined = false;
       // T1 → T2, T2 → T3만 자동 조합 (T3 → T4는 역할 선택 필요하므로 제외)
-      for (let tier = 1; tier <= 2; tier++) {
-        for (let element = 0; element < 6; element++) {
+      for (let tier = 1; tier <= ARRAY_LENGTHS.maxAutoCombinetier; tier++) {
+        for (let element = 0; element < ARRAY_LENGTHS.elementTypes; element++) {
           const matching = current.filter(n => n.tier === tier && n.colorIndex === element);
           while (matching.length >= 3) {
             const toRemove = matching.splice(0, 3);
@@ -121,8 +121,8 @@ const TowerSystem = {
   getCombinableCount(inventory) {
     let count = 0;
     // T1 → T2, T2 → T3만 카운트 (T3 → T4는 수동으로만)
-    for (let tier = 1; tier <= 2; tier++) {
-      for (let element = 0; element < 6; element++) {
+    for (let tier = 1; tier <= ARRAY_LENGTHS.maxAutoCombinetier; tier++) {
+      for (let element = 0; element < ARRAY_LENGTHS.elementTypes; element++) {
         const matching = inventory.filter(n => n.tier === tier && n.colorIndex === element);
         count += Math.floor(matching.length / 3);
       }
@@ -133,7 +133,7 @@ const TowerSystem = {
   // T3 조합 가능 여부 확인 (역할 선택 필요)
   getT3CombinableCount(inventory) {
     let count = 0;
-    for (let element = 0; element < 6; element++) {
+    for (let element = 0; element < ARRAY_LENGTHS.elementTypes; element++) {
       const matching = inventory.filter(n => n.tier === 3 && n.colorIndex === element);
       count += Math.floor(matching.length / 3);
     }
@@ -347,8 +347,8 @@ const TowerSystem = {
 
     while (combined) {
       combined = false;
-      for (let tier = 1; tier <= 2; tier++) { // T3까지만
-        for (let supportType = 0; supportType < 4; supportType++) {
+      for (let tier = 1; tier <= ARRAY_LENGTHS.maxAutoCombinetier; tier++) { // T3까지만
+        for (let supportType = 0; supportType < ARRAY_LENGTHS.supportTypes; supportType++) {
           const matching = current.filter(s => s.tier === tier && s.supportType === supportType);
           while (matching.length >= 3) {
             const toRemove = matching.splice(0, 3);
@@ -369,8 +369,8 @@ const TowerSystem = {
   // 서포트 조합 가능 세트 수
   getSupportCombinableCount(inventory) {
     let count = 0;
-    for (let tier = 1; tier <= 2; tier++) { // T3까지만
-      for (let supportType = 0; supportType < 4; supportType++) {
+    for (let tier = 1; tier <= ARRAY_LENGTHS.maxAutoCombinetier; tier++) { // T3까지만
+      for (let supportType = 0; supportType < ARRAY_LENGTHS.supportTypes; supportType++) {
         const matching = inventory.filter(s => s.tier === tier && s.supportType === supportType);
         count += Math.floor(matching.length / 3);
       }

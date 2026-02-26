@@ -129,15 +129,18 @@ const GameEngine = {
           // T4 화염: 확산 연소형 - 주변 적에게 화상 전파
           if (isT4 && special.burnSpread) {
             const spreadCount = special.spreadCount || 2;
+            const spreadRadius = fe.t4SpreadRadius;
+            const spreadDmgRatio = fe.t4SpreadDamageRatio;
+            const spreadDurRatio = fe.t4SpreadDurationRatio;
             let spreadTargets = 0;
             currentEnemies.forEach(enemy => {
               if (enemy.id === hit.enemyId || spreadTargets >= spreadCount) return;
               const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
-              if (dist <= 60) {
+              if (dist <= spreadRadius) {
                 statusEffects.push({
                   enemyId: enemy.id, type: 'burn',
-                  damage: Math.floor(burnDamage * 0.5),
-                  duration: burnDuration * 0.7,
+                  damage: Math.floor(burnDamage * spreadDmgRatio),
+                  duration: burnDuration * spreadDurRatio,
                 });
                 visualEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 't4-fire-spread', color: '#FF4500' });
                 spreadTargets++;
@@ -148,7 +151,7 @@ const GameEngine = {
           // T4 화염: 고열 압축형 - 빠른 적 추가 피해
           else if (isT4 && special.fastEnemyBonus) {
             const target = currentEnemies.find(e => e.id === hit.enemyId);
-            if (target && target.baseSpeed > 0.6) {
+            if (target && target.baseSpeed > COMBAT.fastEnemySpeedThreshold) {
               finalDamage = Math.floor(finalDamage * (1 + special.fastEnemyBonus));
               visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-fire-fast', color: '#FFD700' });
             }
@@ -186,14 +189,17 @@ const GameEngine = {
           }
           // T4 냉기: 광역 감속형 - 주변 적 슬로우
           else if (isT4 && special.aoeSlowBonus) {
+            const aoeRadius = we.t4AoeRadius;
+            const aoeSlowRatio = we.t4AoeSlowRatio;
+            const aoeDurRatio = we.t4AoeDurationRatio;
             currentEnemies.forEach(enemy => {
               if (enemy.id === hit.enemyId) return;
               const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
-              if (dist <= 80) {
+              if (dist <= aoeRadius) {
                 statusEffects.push({
                   enemyId: enemy.id, type: 'slow',
-                  percent: slowPercent * 0.6,
-                  duration: slowDuration * 0.5,
+                  percent: slowPercent * aoeSlowRatio,
+                  duration: slowDuration * aoeDurRatio,
                 });
               }
             });
@@ -265,11 +271,12 @@ const GameEngine = {
           // T4 질풍: 광역 분쇄형 - 범위 피해
           if (isT4 && special.aoeDamage) {
             const aoeRadius = special.aoeRadius || 50;
+            const aoeDmgRatio = we.t4AoeDamageRatio;
             currentEnemies.forEach(enemy => {
               if (enemy.id === hit.enemyId) return;
               const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
               if (dist <= aoeRadius) {
-                const aoeDmg = Math.floor(finalDamage * 0.5);
+                const aoeDmg = Math.floor(finalDamage * aoeDmgRatio);
                 damageMap.set(enemy.id, (damageMap.get(enemy.id) || 0) + aoeDmg);
               }
             });
@@ -280,7 +287,7 @@ const GameEngine = {
             currentEnemies.forEach(enemy => {
               if (enemy.id === hit.enemyId) return;
               const dist = calcDistance(hit.x, hit.y, enemy.x, enemy.y);
-              if (dist <= 100 && dist > 20) {
+              if (dist <= we.t4PullRange && dist > we.t4PullMinRange) {
                 statusEffects.push({
                   enemyId: enemy.id, type: 'pull',
                   targetX: hit.x, targetY: hit.y,
@@ -320,16 +327,17 @@ const GameEngine = {
           // T4 공허: 차원 파열형 - 강화된 관통
           else if (isT4 && special.piercing) {
             let pierceCount = special.pierceCount || 3;
+            const t4PierceRange = ve.pierceRange[4];
             let pierced = 0;
             const sortedEnemies = currentEnemies
               .filter(e => e.id !== hit.enemyId)
               .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
-              .filter(e => e.dist <= 120)
+              .filter(e => e.dist <= t4PierceRange)
               .sort((a, b) => a.dist - b.dist);
 
             sortedEnemies.forEach(({ enemy }) => {
               if (pierced >= pierceCount) return;
-              const pierceDmg = Math.floor(finalDamage * 0.7);
+              const pierceDmg = Math.floor(finalDamage * ve.pierceDamageDecay[4]);
               damageMap.set(enemy.id, (damageMap.get(enemy.id) || 0) + pierceDmg);
               pierced++;
             });
@@ -340,11 +348,12 @@ const GameEngine = {
             // T4 기본형도 관통 적용
             const pierceCount = ve.pierceCount[4];
             const pierceDamageDecay = ve.pierceDamageDecay[4];
+            const balancePierceRange = ve.pierceRange[4];
             let pierced = 0;
             const sortedEnemies = currentEnemies
               .filter(e => e.id !== hit.enemyId)
               .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
-              .filter(e => e.dist <= 100)
+              .filter(e => e.dist <= balancePierceRange)
               .sort((a, b) => a.dist - b.dist);
 
             sortedEnemies.forEach(({ enemy }) => {
@@ -359,11 +368,12 @@ const GameEngine = {
           else {
             const pierceCount = ve.pierceCount[hit.tier];
             const pierceDamageDecay = ve.pierceDamageDecay[hit.tier];
+            const tierPierceRange = ve.pierceRange[hit.tier];
             let pierced = 0;
             const sortedEnemies = currentEnemies
               .filter(e => e.id !== hit.enemyId)
               .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
-              .filter(e => e.dist <= 80)
+              .filter(e => e.dist <= tierPierceRange)
               .sort((a, b) => a.dist - b.dist);
 
             sortedEnemies.forEach(({ enemy }) => {
@@ -400,14 +410,14 @@ const GameEngine = {
               statusEffects.push({
                 enemyId: hit.enemyId, type: 'slow',
                 percent: special.knockbackSlow,
-                duration: 2000,
+                duration: le.t4KnockbackSlowDuration,
               });
             }
             visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-knockback', color: '#E6E6FA' });
           }
           // T4 광휘: 러시 차단형 - 빠른 적 보너스
           else if (isT4 && special.fastEnemyBonus) {
-            if (target && target.baseSpeed > 0.6) {
+            if (target && target.baseSpeed > COMBAT.fastEnemySpeedThreshold) {
               finalDamage = Math.floor(finalDamage * (1 + special.fastEnemyBonus));
               visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 't4-light-fast', color: '#FF69B4' });
             }

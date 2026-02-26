@@ -23,11 +23,23 @@ const ELEMENT_EFFECTS = {
     burnDuration: { 1: 2000, 2: 2500, 3: 3000, 4: 4000 },
     burnDamagePercent: { 1: 0.3, 2: 0.4, 3: 0.5, 4: 0.6 },
     burnTicks: 4,
+    // T4 전용 수치
+    t4SpreadRadius: 60,         // 확산 연소형: 화상 전파 반경 (px)
+    t4SpreadDamageRatio: 0.5,   // 확산 연소형: 전파 화상 데미지 배율
+    t4SpreadDurationRatio: 0.7, // 확산 연소형: 전파 화상 지속시간 배율
+    fastEnemyThreshold: 0.6,    // 빠른 적 판정 기준 속도
   },
   [ELEMENT_TYPES.WATER]: {
     name: '빙결', icon: '❄️', desc: '이동속도 감소',
     slowPercent: { 1: 0.3, 2: 0.4, 3: 0.5, 4: 0.6 },
     slowDuration: { 1: 1500, 2: 2000, 3: 2500, 4: 3000 },
+    // T4 전용 수치
+    t4FreezeChance: 0.25,       // 빙결 제어형: 빙결 발동 확률
+    t4FreezeDuration: 1500,     // 빙결 제어형: 빙결 지속 시간 (ms)
+    t4AoeRadius: 80,            // 광역 감속형: 광역 반경 (px)
+    t4AoeSlowRatio: 0.6,        // 광역 감속형: 광역 슬로우 배율
+    t4AoeDurationRatio: 0.5,    // 광역 감속형: 광역 지속시간 배율
+    t4KnockbackDistance: 25,    // 파동 차단형: 넉백 거리 (px)
   },
   [ELEMENT_TYPES.ELECTRIC]: {
     name: '전격', icon: '⚡', desc: '체인 라이트닝',
@@ -39,16 +51,23 @@ const ELEMENT_EFFECTS = {
     name: '질풍', icon: '🌪️', desc: '고데미지 + 넉백',
     damageMultiplier: { 1: 1.5, 2: 1.8, 3: 2.2, 4: 3.0 },
     knockbackDistance: { 1: 15, 2: 20, 3: 25, 4: 35 },
+    // T4 전용 수치
+    t4AoeDamageRatio: 0.5,   // 광역 분쇄형: 광역 피해 배율
+    t4PullRange: 100,        // 흡인 제어형: 끌어당김 탐색 반경 (px)
+    t4PullMinRange: 20,      // 흡인 제어형: 끌어당김 최소 거리 (px, 너무 가까우면 제외)
   },
   [ELEMENT_TYPES.VOID]: {
     name: '공허', icon: '🌀', desc: '관통 공격',
     pierceCount: { 1: 1, 2: 2, 3: 2, 4: 3 },        // 관통 대상 수
     pierceDamageDecay: { 1: 0.5, 2: 0.6, 3: 0.7, 4: 0.8 }, // 관통 데미지 감쇠
+    pierceRange: { 1: 80, 2: 80, 3: 80, 4: 100 },   // 관통 탐색 반경 (px)
   },
   [ELEMENT_TYPES.LIGHT]: {
     name: '광휘', icon: '💎', desc: '정밀 타격',
     executeThreshold: { 1: 0.2, 2: 0.25, 3: 0.3, 4: 0.35 }, // 처형 HP 임계값
     executeBonus: { 1: 1.5, 2: 1.8, 3: 2.0, 4: 2.5 },       // 처형 보너스 배율
+    // T4 전용 수치
+    t4KnockbackSlowDuration: 2000, // 넉백 제어형: 슬로우 지속 시간 (ms)
   },
 };
 
@@ -109,6 +128,7 @@ const ENEMY_CONFIG = {
     goldReward: null, livesLost: 10,
     color: 'bg-red-600', shadow: '0 0 20px #ff0000, 0 0 30px #ff0000', size: 'w-8 h-8',
     icon: '👑', explosionColor: '#ff0000',
+    speedBase: 0.25, speedGrowth: 0.02, // 속도 공식: speedBase + stage * speedGrowth
   },
   jammer: {
     healthMult: 2.2, speedRange: [0.4, 0.5], speedWaveBonus: 0.01,
@@ -131,6 +151,8 @@ const ENEMY_CONFIG = {
     color: 'bg-green-500', shadow: '0 0 15px #22c55e, 0 0 30px #22c55e', size: 'w-7 h-7',
     icon: '💚', explosionColor: '#22c55e',
     healRange: 80, healAmount: 0.05, healInterval: 1000,
+    regenHealPercent: 0.025, // 재생 버프: 틱당 회복 비율 (2.5%)
+    regenDuration: 2000,     // 재생 버프: 지속 시간 (ms)
   },
   // 새로운 적 타입: 분열체 - 죽으면 작은 적 2마리로 분열
   splitter: {
@@ -223,6 +245,8 @@ const COMBAT = {
   debuffMinFactor: 0.3,
   chainLightningDisplayTime: 300,
   shootSoundChance: 0.3,
+  maxSlowPercent: 0.9,          // 슬로우 최대 감속률 (90%)
+  fastEnemySpeedThreshold: 0.6, // 빠른 적 판정 기준 속도 (공통)
 };
 
 // ===== 스폰 설정 =====
@@ -433,4 +457,11 @@ const T4_ROLES = {
       special: { fastEnemyBonus: 0.6, killBonus: 5 },
     },
   ],
+};
+
+// ===== 루프 상한 상수 (매직 넘버 제거용) =====
+const ARRAY_LENGTHS = {
+  elementTypes: Object.keys(ELEMENT_TYPES).length, // 속성 타입 수 (6)
+  supportTypes: Object.keys(SUPPORT_TYPES).length, // 서포트 타입 수 (4)
+  maxAutoCombinetier: 2,  // 자동 조합 최대 티어 (T2→T3, T3→T4는 수동)
 };

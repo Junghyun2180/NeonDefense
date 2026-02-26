@@ -120,7 +120,7 @@ class SlowEffect extends StatusEffect {
   constructor(percent, duration) {
     super(duration);
     this.type = SlowEffect.TYPE;
-    this.percent = Math.min(0.9, percent); // 최대 90% 감속
+    this.percent = Math.min(COMBAT.maxSlowPercent, percent); // 최대 감속률 (COMBAT.maxSlowPercent)
   }
 
   getSpeedMultiplier() {
