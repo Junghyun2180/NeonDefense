@@ -18,42 +18,56 @@
 <body>
   <div id="root"></div>
 
-  <!-- 모듈 파일 로드 (순서 중요) -->
-  <script src="js/constants.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/sound.js"></script>
-  <script src="js/save-system.js"></script>
-  <script src="js/run-mode-constants.js"></script>
-  <script src="js/run-mode.js"></script>
-  <script src="js/mode-abilities.js"></script>
-  <script src="js/run-save-system.js"></script>
-  <script src="js/daily-challenge.js"></script>
-  <script src="js/leaderboard.js"></script>
-  <script src="js/achievement-system.js"></script>
-  <script src="js/balance-logger.js"></script>
-  <script src="js/status-effect.js"></script>
-  <script src="js/permanent-buff.js"></script>
-  <script src="js/game-stats.js"></script>
-  <script src="js/help-data.js"></script>
+  <!-- ===== DDD 도메인 기반 모듈 로드 (순서 중요) ===== -->
 
-  <!-- Ability 시스템 (tower.js/game-engine.js보다 먼저 로드) -->
-  <script src="js/ability.js"></script>
-  <!-- 공격 타워 Ability -->
-  <script src="js/abilities/fire-ability.js"></script>
-  <script src="js/abilities/water-ability.js"></script>
-  <script src="js/abilities/electric-ability.js"></script>
-  <script src="js/abilities/wind-ability.js"></script>
-  <script src="js/abilities/void-ability.js"></script>
-  <script src="js/abilities/light-ability.js"></script>
-  <script src="js/ability-system.js"></script>
-  <!-- 서포트 타워 Ability -->
-  <script src="js/abilities/support-ability.js"></script>
-  <!-- 적 Ability -->
-  <script src="js/abilities/enemy-ability.js"></script>
+  <!-- Config Domain (의존성 없음) -->
+  <script src="js/domain/config/constants.js"></script>
 
-  <script src="js/tower.js"></script>
-  <script src="js/enemy.js"></script>
-  <script src="js/game-engine.js"></script>
+  <!-- Infrastructure (Config에 의존) -->
+  <script src="js/infra/utils.js"></script>
+  <script src="js/infra/sound.js"></script>
+  <script src="js/infra/save-system.js"></script>
+  <script src="js/domain/config/run-mode-constants.js"></script>
+  <script src="js/infra/run-mode.js"></script>
+  <script src="js/domain/config/mode-abilities.js"></script>
+  <script src="js/domain/config/game-data.js"></script>
+  <script src="js/domain/config/data-resolver.js"></script>
+  <script src="js/infra/run-save-system.js"></script>
+  <script src="js/infra/daily-challenge.js"></script>
+
+  <!-- Progression Domain -->
+  <script src="js/domain/progression/leaderboard.js"></script>
+  <script src="js/domain/progression/achievement-system.js"></script>
+  <script src="js/infra/balance-logger.js"></script>
+
+  <!-- Effect Domain (Config, COMBAT, SUPPORT_CAPS에 의존) -->
+  <script src="js/domain/effect/status-effect.js"></script>
+
+  <!-- Progression Domain (Effect에 의존) -->
+  <script src="js/domain/progression/permanent-buff.js"></script>
+  <script src="js/domain/progression/game-stats.js"></script>
+  <script src="js/infra/help-data.js"></script>
+
+  <!-- Tower Domain - Ability 시스템 -->
+  <script src="js/domain/tower/ability.js"></script>
+  <script src="js/domain/tower/abilities/fire-ability.js"></script>
+  <script src="js/domain/tower/abilities/water-ability.js"></script>
+  <script src="js/domain/tower/abilities/electric-ability.js"></script>
+  <script src="js/domain/tower/abilities/wind-ability.js"></script>
+  <script src="js/domain/tower/abilities/void-ability.js"></script>
+  <script src="js/domain/tower/abilities/light-ability.js"></script>
+  <script src="js/domain/tower/ability-system.js"></script>
+  <script src="js/domain/tower/abilities/support-ability.js"></script>
+
+  <!-- Enemy Domain -->
+  <script src="js/domain/enemy/abilities/enemy-ability.js"></script>
+
+  <!-- Tower + Enemy Systems (Ability에 의존) -->
+  <script src="js/domain/tower/tower-system.js"></script>
+  <script src="js/domain/enemy/enemy-system.js"></script>
+
+  <!-- Combat Domain (모든 도메인에 의존) -->
+  <script src="js/domain/combat/game-engine.js"></script>
 
   <!-- 커스텀 훅 (Babel JSX 변환) -->
   <script type="text/babel" src="js/hooks/useGameLoop.jsx"></script>
