@@ -2,19 +2,41 @@
 // 적 생성, 이동, 상태이상, 타입 판별을 단일 네임스페이스로 관리
 
 const EnemySystem = {
-  // 적 타입 결정 (스폰 규칙 테이블 기반, 우선순위 순)
+  // 적 타입 결정 (스테이지 풀 기반 + 웨이브별 확률 증가)
   // modeId: 'campaign' | 'run' | 'bossRush' (DataResolver로 규칙 조회)
   determineType(enemyIndex, totalEnemies, wave, stage, modeId) {
+    // 1. 보스 체크 (마지막 웨이브의 마지막 적)
     const spawnRules = DataResolver.getSpawnRules(modeId);
+    for (const rule of spawnRules) {
+      if (rule.type === 'boss' && rule.condition(enemyIndex, totalEnemies, wave, stage)) {
+        return 'boss';
+      }
+    }
+
+    // 2. 캠페인 모드: 스테이지 풀 기반 타입 결정
+    if (modeId === 'campaign' || !modeId) {
+      const pool = STAGE_ENEMY_POOL[stage] || ALL_ENEMY_TYPES;
+
+      // 풀에서 special 타입 확률 순회 (normal, fast 제외한 특수 타입 먼저)
+      const specialTypes = pool.filter(t => t !== 'normal');
+      for (const type of specialTypes) {
+        const config = SPECIAL_ENEMY_CHANCE[type];
+        if (!config) continue;
+        const chance = config.base + (config.perWave || 0) * (wave - 1);
+        if (Math.random() < chance) return type;
+      }
+      return 'normal'; // fallback
+    }
+
+    // 3. 다른 모드: 기존 스폰 규칙 사용
     const progress = enemyIndex / totalEnemies;
     for (const rule of spawnRules) {
       if (!rule.condition(enemyIndex, totalEnemies, wave, stage, progress)) continue;
-      // 확률 기반 체크
       const chance = rule.chance
         ?? (rule.chanceBase || 0) + (rule.chancePerWave || 0) * wave + (rule.chancePerStage || 0) * stage;
       if (Math.random() < chance) return rule.type;
     }
-    return 'normal'; // fallback
+    return 'normal';
   },
 
   // 기본 체력 계산 (DataResolver 기반)

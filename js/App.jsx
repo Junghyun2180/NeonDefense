@@ -8,7 +8,11 @@ const NeonDefense = () => {
   const [showRunMenu, setShowRunMenu] = useState(false);
 
   // ===== 게임 상태 훅 =====
-  const gameState = useGameState(runModeState.runConfig);
+  // 런 모드: runConfig / 캠페인: campaignConfig (메타 업그레이드 적용)
+  const activeConfig = runModeState.runActive
+    ? runModeState.runConfig
+    : runModeState.campaignConfig;
+  const gameState = useGameState(activeConfig);
 
   // ===== 인벤토리 훅 =====
   const inventoryState = useInventory(gameState);
@@ -486,6 +490,8 @@ const NeonDefense = () => {
           onLoadGame={saveLoadState.handleLoadGame}
           onSelectMode={handleSelectMode}
           metaProgress={runModeState.metaProgress}
+          neonCrystals={runModeState.neonCrystals}
+          onPurchaseUpgrade={runModeState.purchaseUpgrade}
         />
       )}
 
@@ -520,7 +526,8 @@ const NeonDefense = () => {
             onMainMenu={handleCampaignMainMenu}
           />
 
-          <div ref={mapContainerRef} className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-4">
+          {/* 맵 + 선택 정보 사이드패널 (맵 가운데 정렬) */}
+          <div ref={mapContainerRef} className="flex justify-center gap-3">
             {/* 게임 맵 */}
             <GameMap
               mapRef={dragState.mapRef}
@@ -552,41 +559,51 @@ const NeonDefense = () => {
               getElementInfo={getElementInfo}
             />
 
-            {/* 사이드 패널 */}
+            {/* 사이드 패널: 선택된 타워/서포트 정보만 */}
             <ControlPanel
-              gold={gameState.gold}
-              isPlaying={gameState.isPlaying}
-              drawRandomNeon={inventoryState.drawRandomNeon}
-              drawRandomSupport={inventoryState.drawRandomSupport}
-              startWave={gameState.startWave}
-              isInventoryFull={inventoryState.isInventoryFull}
-              isSupportInventoryFull={inventoryState.isSupportInventoryFull}
               inventory={inventoryState.inventory}
               selectedInventory={inventoryState.selectedInventory}
-              selectedTowerForPlacement={dragState.selectedTowerForPlacement}
-              handleInventoryClick={dragState.handleInventoryClick}
-              toggleInventorySelect={inventoryState.toggleInventorySelect}
               getElementInfo={getElementInfo}
-              combineNeons={inventoryState.combineNeons}
-              combineAllNeons={inventoryState.combineAllNeons}
-              combineTowers={inventoryState.combineTowers}
-              sellSelectedTowers={inventoryState.sellSelectedTowers}
               selectedTowers={inventoryState.selectedTowers}
               totalSellPrice={inventoryState.totalSellPrice}
-              canCombineTowers={inventoryState.canCombineTowers}
-              supportInventory={inventoryState.supportInventory}
               selectedSupportInventory={inventoryState.selectedSupportInventory}
-              toggleSupportInventorySelect={inventoryState.toggleSupportInventorySelect}
-              combineSupports={inventoryState.combineSupports}
-              combineAllSupports={inventoryState.combineAllSupports}
-              combineSupportTowers={inventoryState.combineSupportTowers}
-              sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
               selectedSupportTowers={inventoryState.selectedSupportTowers}
               totalSupportSellPrice={inventoryState.totalSupportSellPrice}
-              canCombineSupportTowers={inventoryState.canCombineSupportTowers}
-              effectiveDrawCost={inventoryState.effectiveDrawCost}
             />
           </div>
+
+          {/* 하단: 버튼 행 + 인벤토리 패널 */}
+          <InventoryPanel
+            gold={gameState.gold}
+            isPlaying={gameState.isPlaying}
+            startWave={gameState.startWave}
+            isInventoryFull={inventoryState.isInventoryFull}
+            isSupportInventoryFull={inventoryState.isSupportInventoryFull}
+            drawRandomNeon={inventoryState.drawRandomNeon}
+            drawRandomSupport={inventoryState.drawRandomSupport}
+            effectiveDrawCost={inventoryState.effectiveDrawCost}
+            inventory={inventoryState.inventory}
+            selectedInventory={inventoryState.selectedInventory}
+            selectedTowerForPlacement={dragState.selectedTowerForPlacement}
+            handleInventoryClick={dragState.handleInventoryClick}
+            getElementInfo={getElementInfo}
+            combineNeons={inventoryState.combineNeons}
+            combineAllNeons={inventoryState.combineAllNeons}
+            combineTowers={inventoryState.combineTowers}
+            sellSelectedTowers={inventoryState.sellSelectedTowers}
+            selectedTowers={inventoryState.selectedTowers}
+            totalSellPrice={inventoryState.totalSellPrice}
+            canCombineTowers={inventoryState.canCombineTowers}
+            supportInventory={inventoryState.supportInventory}
+            selectedSupportInventory={inventoryState.selectedSupportInventory}
+            combineSupports={inventoryState.combineSupports}
+            combineAllSupports={inventoryState.combineAllSupports}
+            combineSupportTowers={inventoryState.combineSupportTowers}
+            sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
+            selectedSupportTowers={inventoryState.selectedSupportTowers}
+            totalSupportSellPrice={inventoryState.totalSupportSellPrice}
+            canCombineSupportTowers={inventoryState.canCombineSupportTowers}
+          />
 
           {/* 모바일 배치 UI */}
           <PlacementUI

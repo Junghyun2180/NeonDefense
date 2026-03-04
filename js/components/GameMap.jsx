@@ -32,7 +32,9 @@ const GameMap = ({
 
     return (
         <div className="relative">
+            {/* 컨트롤 바: 좌(배속) / 가운데(배치 취소) / 우(음소거+?) — 항상 같은 높이 */}
             <div className="flex justify-between items-center mb-2 px-1">
+                {/* 좌: 배속 */}
                 <div className="flex gap-1">
                     {[1, 2, 3].map(s => (
                         <button
@@ -45,6 +47,17 @@ const GameMap = ({
                         </button>
                     ))}
                 </div>
+
+                {/* 가운데: 배치 취소 (없을 땐 투명하게 공간 유지) */}
+                <button
+                    onClick={cancelPlacementMode}
+                    className="px-4 py-1 bg-red-700 border border-red-500 rounded-lg text-sm font-bold text-white hover:bg-red-600 transition-all"
+                    style={{ visibility: selectedTowerForPlacement ? 'visible' : 'hidden', touchAction: 'manipulation' }}
+                >
+                    ✕ 배치 취소
+                </button>
+
+                {/* 우: 음소거 + 도움말 */}
                 <div className="flex gap-1 items-center">
                     <button onClick={toggleBgm} className={'px-2 py-1 rounded text-sm transition-all ' + (bgmEnabled ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500')} title="BGM 토글">🎵</button>
                     <button onClick={toggleSfx} className={'px-2 py-1 rounded text-sm transition-all ' + (sfxEnabled ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500')} title="효과음 토글">🔊</button>
@@ -53,19 +66,6 @@ const GameMap = ({
                     </button>
                 </div>
             </div>
-
-            {/* 모바일 배치 취소 버튼 */}
-            {selectedTowerForPlacement && (
-                <div className="flex justify-center mb-1">
-                    <button
-                        onClick={cancelPlacementMode}
-                        className="px-4 py-2 bg-red-700 border border-red-500 rounded-lg text-sm font-bold text-white hover:bg-red-600 transition-all"
-                        style={{ touchAction: 'manipulation' }}
-                    >
-                        ✕ 배치 취소
-                    </button>
-                </div>
-            )}
 
             <div className="relative mx-auto overflow-hidden" style={{ width: GRID_WIDTH * TILE_SIZE * mapScale, height: GRID_HEIGHT * TILE_SIZE * mapScale }}>
                 <div ref={mapRef} className="relative" style={{ width: GRID_WIDTH * TILE_SIZE, height: GRID_HEIGHT * TILE_SIZE, transform: `scale(${mapScale})`, transformOrigin: 'top left' }}>

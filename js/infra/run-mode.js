@@ -27,6 +27,29 @@ const RunMode = {
     };
   },
 
+  // ===== 캠페인 설정 빌드 (메타 업그레이드 적용) =====
+  buildCampaignConfig(metaUpgrades = {}) {
+    const startGoldBonus = META_UPGRADES.startingGold.effect(metaUpgrades.startingGold || 0);
+    const startLivesBonus = META_UPGRADES.startingLives.effect(metaUpgrades.startingLives || 0);
+    const discountBonus = META_UPGRADES.drawDiscount.effect(metaUpgrades.drawDiscount || 0);
+
+    // 적용할 메타 효과가 없으면 null 반환 → useGameState가 기본값 사용
+    if (!startGoldBonus && !startLivesBonus && !discountBonus) return null;
+
+    return {
+      SPAWN: { ...SPAWN },
+      ECONOMY: {
+        ...ECONOMY,
+        startGold: ECONOMY.startGold + startGoldBonus,
+        startLives: ECONOMY.startLives + startLivesBonus,
+        drawCost: Math.max(1, ECONOMY.drawCost - discountBonus),
+      },
+      HEALTH_SCALING: { ...HEALTH_SCALING },
+      modeAbility: null,
+      mapType: 'standard',
+    };
+  },
+
   // ===== 보스 러시 모드 설정 빌드 =====
   buildBossRushConfig(metaUpgrades = {}) {
     const discountBonus = META_UPGRADES.drawDiscount.effect(metaUpgrades.drawDiscount || 0);

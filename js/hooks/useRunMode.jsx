@@ -22,6 +22,12 @@ const useRunMode = () => {
   // 메타 업그레이드가 적용된 스냅샷 (런 시작 시 고정)
   const [metaSnapshot, setMetaSnapshot] = useState(null);
 
+  // ===== 캠페인 설정 (메타 업그레이드 적용) =====
+  const campaignConfig = useMemo(() => {
+    if (!metaProgress?.upgrades) return null;
+    return RunMode.buildCampaignConfig(metaProgress.upgrades);
+  }, [metaProgress]);
+
   // ===== 런 설정 (메타 업그레이드 적용) =====
   const runConfig = useMemo(() => {
     if (!runActive || !metaSnapshot) return null;
@@ -232,6 +238,7 @@ const useRunMode = () => {
     runActive,
     runResult,
     runConfig,
+    campaignConfig,
     runSeed,
     runModifiers,
 

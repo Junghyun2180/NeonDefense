@@ -16,42 +16,44 @@ const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCoun
             <h1 className="text-xl sm:text-4xl font-black text-center mb-2 sm:mb-4 tracking-wider" style={{ background: 'linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96e6a1, #dda0dd, #ffd93d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 0 30px rgba(78, 205, 196, 0.5)' }}>
                 ⚡ NEON DEFENSE ⚡
             </h1>
-            <div className="flex items-center gap-1 sm:gap-3 mb-2 sm:mb-4 text-xs sm:text-base">
+            <div className="relative flex items-center justify-center mb-2 sm:mb-3 text-xs sm:text-sm">
+                {/* 좌측: 메인메뉴 버튼 */}
                 {onMainMenu && (
-                    <button onClick={() => setShowExitConfirm(true)} className="text-xs sm:text-sm text-gray-400 hover:text-white transition-all whitespace-nowrap shrink-0">← 메인 메뉴</button>
+                    <button onClick={() => setShowExitConfirm(true)} className="absolute left-0 text-xs text-gray-400 hover:text-white transition-all whitespace-nowrap">← 메인 메뉴</button>
                 )}
-                <div className="flex flex-wrap gap-1 sm:gap-3 flex-1">
+                {/* 가운데: 상태 뱃지 */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
                     {isRunMode && (
-                        <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-1 sm:gap-2">
-                            <span className="font-bold text-orange-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                        <div className="px-2 py-1 bg-gray-900 rounded-lg border border-orange-500/50">
+                            <span className="font-bold text-orange-300 text-xs" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                                 {gameMode === 'endless' ? '♾️ ENDLESS' : gameMode === 'daily' ? '📅 DAILY' : '🎲 RUN'}
                             </span>
                         </div>
                     )}
-                    <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-emerald-500/50 flex items-center gap-1 sm:gap-2">
+                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-emerald-500/50 flex items-center gap-1">
                         <span className="text-emerald-400">🏰</span>
-                        <span className="font-bold text-emerald-300">{stage}/{gameMode === 'endless' ? '∞' : activeSPAWN.maxStage}</span>
+                        <span className="font-bold text-emerald-300 whitespace-nowrap">{stage}/{gameMode === 'endless' ? '∞' : activeSPAWN.maxStage}</span>
                     </div>
-                    <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-cyan-500/50 flex items-center gap-1 sm:gap-2">
+                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-cyan-500/50 flex items-center gap-1">
                         <span className="text-cyan-400">🌊</span>
-                        <span className="font-bold text-cyan-300">{wave}/{activeSPAWN.wavesPerStage}</span>
+                        <span className="font-bold text-cyan-300 whitespace-nowrap">{wave}/{activeSPAWN.wavesPerStage}</span>
                     </div>
-                    <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-yellow-500/50 flex items-center gap-1 sm:gap-2">
+                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-yellow-500/50 flex items-center gap-1">
                         <span className="text-yellow-400">💰</span>
-                        <span className="font-bold text-yellow-300">{gold}</span>
+                        <span className="font-bold text-yellow-300 whitespace-nowrap">{gold}</span>
                     </div>
-                    <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-red-500/50 flex items-center gap-1 sm:gap-2">
+                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-red-500/50 flex items-center gap-1">
                         <span className="text-red-400">❤️</span>
-                        <span className="font-bold text-red-300">{lives}</span>
+                        <span className="font-bold text-red-300 whitespace-nowrap">{lives}</span>
                     </div>
-                    <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-1 sm:gap-2">
+                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-1">
                         <span className="text-orange-400">🛤️</span>
-                        <span className="font-bold text-orange-300">{pathCount}</span>
+                        <span className="font-bold text-orange-300 whitespace-nowrap">{pathCount}</span>
                     </div>
                     {isPlaying && (
-                        <div className="px-2 sm:px-4 py-1 sm:py-2 bg-gray-900 rounded-lg border border-purple-500/50 flex items-center gap-1 sm:gap-2">
+                        <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-purple-500/50 flex items-center gap-1">
                             <span className="text-purple-400">👾</span>
-                            <span className="font-bold text-purple-300">{killedCount}/{activeSPAWN.enemiesPerWave(stage, wave)}</span>
+                            <span className="font-bold text-purple-300 whitespace-nowrap">{killedCount}/{activeSPAWN.enemiesPerWave(stage, wave)}</span>
                         </div>
                     )}
                 </div>
