@@ -164,11 +164,53 @@ const useInventory = (gameState, settings = {}) => {
     const drawDiscount = BuffHelper.getDrawDiscount(permanentBuffs);
     const effectiveDrawCost = Math.max(1, ECONOMY.drawCost - drawDiscount);
 
+    // Prism 확률 및 Pity 시스템
+    // - 기본 확률 0.5%
+    // - 200연뽑 도달 시 다음 뽑기 확정 Prism
+    // - Prism 획득 시 카운터 리셋
+    const PRISM_BASE_CHANCE = 0.005;
+    const PRISM_PITY_THRESHOLD = 200;
+
+    const rollPrism = (forcedPrism) => {
+        if (forcedPrism) return true;
+        return Math.random() < PRISM_BASE_CHANCE;
+    };
+
+    const drawOne = () => {
+        const colorIndex = Math.floor(Math.random() * 6);
+        // Pity 카운터 읽기
+        let pityNow = typeof CollectionSystem !== 'undefined' ? CollectionSystem.getPityCounter() : 0;
+        const forcedPrism = pityNow + 1 >= PRISM_PITY_THRESHOLD;
+        const isPrism = rollPrism(forcedPrism);
+        const n = TowerSystem.create(1, colorIndex, { isPrism });
+        if (typeof CollectionSystem !== 'undefined') {
+            if (isPrism) {
+                CollectionSystem.resetPity();
+                CollectionSystem.recordPrismAcquired();
+            } else {
+                CollectionSystem.incrementPity(1);
+            }
+        }
+        return { tower: n, isPrism };
+    };
+
+    // 10연뽑 Pity: 10회 전부 T1이면 마지막을 T2로 승급
+    const applyTenPullPity = (neons) => {
+        if (neons.length < 10) return neons;
+        const hasT2Plus = neons.some(n => n.tier >= 2);
+        if (hasT2Plus) return neons;
+        // 마지막 T1을 T2로 변경 (isPrism 계승)
+        const last = neons[neons.length - 1];
+        const upgraded = TowerSystem.create(2, last.colorIndex, { isPrism: last.isPrism });
+        upgraded.id = last.id;
+        neons[neons.length - 1] = upgraded;
+        return neons;
+    };
+
     const drawRandomNeon = useCallback(() => {
         const cost = Math.max(1, ECONOMY.drawCost - BuffHelper.getDrawDiscount(permanentBuffs));
         if (gold < cost || inventory.length >= ECONOMY.maxInventory) return;
-        const colorIndex = Math.floor(Math.random() * 6);
-        const newNeon = TowerSystem.create(1, colorIndex);
+        const { tower: newNeon, isPrism } = drawOne();
         setInventory(prev => {
             const next = [...prev, newNeon];
             return autoCombine ? TowerSystem.combineAll(next) : next;
@@ -180,9 +222,12 @@ const useInventory = (gameState, settings = {}) => {
             totalGoldSpent: prev.totalGoldSpent + cost,
         }));
         soundManager.playDraw();
+        if (isPrism && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('neon-prism-drop', { detail: { tower: newNeon } }));
+        }
     }, [gold, inventory.length, setGold, permanentBuffs, updateStats, autoCombine]);
 
-    // 10연뽑 (한 번에 최대 10회)
+    // 10연뽑 (한 번에 최대 10회, Pity 포함)
     const drawRandomNeon10 = useCallback(() => {
         const cost = Math.max(1, ECONOMY.drawCost - BuffHelper.getDrawDiscount(permanentBuffs));
         const remainingSlots = ECONOMY.maxInventory - inventory.length;
@@ -191,13 +236,17 @@ const useInventory = (gameState, settings = {}) => {
         if (count <= 0) return;
 
         const baseId = Date.now();
-        const newNeons = [];
+        let newNeons = [];
+        let prismCount = 0;
         for (let i = 0; i < count; i++) {
-            const colorIndex = Math.floor(Math.random() * 6);
-            const n = TowerSystem.create(1, colorIndex);
-            n.id = baseId + i + Math.random();
-            newNeons.push(n);
+            const { tower, isPrism } = drawOne();
+            tower.id = baseId + i + Math.random();
+            newNeons.push(tower);
+            if (isPrism) prismCount++;
         }
+        // 10회 전부 T1이면 마지막 T2 승급 (소규모 Pity)
+        if (count === 10) newNeons = applyTenPullPity(newNeons);
+
         setInventory(prev => {
             const next = [...prev, ...newNeons];
             return autoCombine ? TowerSystem.combineAll(next) : next;
@@ -209,6 +258,9 @@ const useInventory = (gameState, settings = {}) => {
             totalGoldSpent: prev.totalGoldSpent + cost * count,
         }));
         soundManager.playDraw();
+        if (prismCount > 0 && typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('neon-prism-drop', { detail: { count: prismCount } }));
+        }
     }, [gold, inventory.length, setGold, permanentBuffs, updateStats, autoCombine]);
 
     const drawRandomSupport = useCallback(() => {

@@ -111,6 +111,7 @@ const CollectionSystem = {
       if (!raw) return this._emptyState();
       const parsed = JSON.parse(raw);
       return {
+        ...parsed,               // pityDraws, milestones, freeDrawTickets, prismCount 등 전체 보존
         tower: parsed.tower || {},
         towerRole: parsed.towerRole || {},
         support: parsed.support || {},
@@ -207,6 +208,31 @@ const CollectionSystem = {
     state.freeDrawTickets -= 1;
     this.save(state);
     return true;
+  },
+
+  // Prism 가챠 천장 카운터 (200연뽑에 1회 확정, localStorage 영속)
+  // reset: 'all' | 'since-last-prism'
+  getPityCounter() {
+    const state = this.load();
+    return state.pityDraws || 0;
+  },
+  incrementPity(by = 1) {
+    const state = this.load();
+    state.pityDraws = (state.pityDraws || 0) + by;
+    this.save(state);
+    return state.pityDraws;
+  },
+  resetPity() {
+    const state = this.load();
+    state.pityDraws = 0;
+    this.save(state);
+  },
+  // Prism 획득 횟수 (통계)
+  recordPrismAcquired() {
+    const state = this.load();
+    state.prismCount = (state.prismCount || 0) + 1;
+    this.save(state);
+    return state.prismCount;
   },
 
   // 서포트 생성 기록

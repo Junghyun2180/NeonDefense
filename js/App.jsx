@@ -118,6 +118,54 @@ const NeonDefense = () => {
     prevMilestoneRef.current = ms;
   }, [inventoryState.inventory.length, gameState.towers.length]);
 
+  // Prism 드랍 이벤트 감지 → 대박 토스트
+  useEffect(() => {
+    const handler = (e) => {
+      const count = e.detail?.count || 1;
+      setHintToast({
+        visible: true,
+        message: count > 1
+          ? `✨ PRISM ${count}개 획득! 스탯 +30% 레어 타워!`
+          : '✨ PRISM 타워 획득! 스탯 +30%의 레어 드랍!',
+        icon: '🌈',
+      });
+    };
+    window.addEventListener('neon-prism-drop', handler);
+    return () => window.removeEventListener('neon-prism-drop', handler);
+  }, []);
+
+  // ===== 킬 콤보 카운터 (2초 내 연속 킬 = 콤보) =====
+  const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
+  const comboTimerRef = useRef(null);
+  const prevKilledRef = useRef(0);
+
+  useEffect(() => {
+    const killed = gameState.killedCount;
+    const prev = prevKilledRef.current;
+    prevKilledRef.current = killed;
+
+    if (killed > prev) {
+      // 새 킬 감지
+      setCombo(prevCombo => {
+        const next = prevCombo + (killed - prev);
+        if (next > maxCombo) setMaxCombo(next);
+        return next;
+      });
+      // 2초 후 리셋 타이머 갱신
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      comboTimerRef.current = setTimeout(() => setCombo(0), 2000);
+    }
+  }, [gameState.killedCount, maxCombo]);
+
+  // 게임 종료/스테이지 전환 시 콤보 리셋
+  useEffect(() => {
+    if (!gameState.isPlaying || gameState.gameOver) {
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      setCombo(0);
+    }
+  }, [gameState.isPlaying, gameState.gameOver]);
+
   // ===== 튜토리얼 단계 (Stage 0 경량) =====
   // step: 'none' | 'draw' | 'combine' | 'place' | 'start' | 'done' | 'done-closed'
   const [tutorialStep, setTutorialStep] = useState('none');
@@ -899,6 +947,16 @@ const NeonDefense = () => {
         icon={hintToast.icon}
         onClose={() => setHintToast(prev => ({ ...prev, visible: false }))}
       />
+
+      {/* 킬 콤보 카운터 (게임 중 화면 중앙 상단) */}
+      {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
+        <ComboIndicator combo={combo} maxCombo={maxCombo} />
+      )}
+
+      {/* Near-miss 위험 vignette (lives ≤ 5) */}
+      {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
+        <DangerVignette lives={gameState.lives} maxLives={30} isPlaying={gameState.isPlaying} />
+      )}
     </div>
   );
 };
