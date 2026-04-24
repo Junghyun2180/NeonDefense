@@ -44,12 +44,17 @@ body {
 
 /* Tiles */
 .path-tile {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid #0f3460;
+  background-image: url('../assets/tiles/path-tile.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .grass-tile {
-  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  background-image: url('../assets/tiles/grass-tile.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Tower Range */

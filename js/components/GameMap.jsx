@@ -36,6 +36,11 @@ const GameMap = ({
         return opts;
     }, [maxGameSpeed]);
     const { useMemo } = React;
+
+    // 속성 인덱스 → orb 이미지 URL
+    const ELEMENT_KEYS = ['fire', 'water', 'electric', 'wind', 'void', 'light'];
+    const getElementOrbUrl = (element) => `assets/icons/elements/${ELEMENT_KEYS[element]}.png`;
+    const getStatusIconUrl = (type) => `assets/icons/status/${type}.png`;
     // 스프라이트 로드 완료 감지 → 리렌더 트리거 (preload 비동기)
     const [spritesReady, setSpritesReady] = React.useState(() =>
         (typeof TowerSprite !== 'undefined' && TowerSprite._available?.size > 0)
@@ -109,7 +114,8 @@ const GameMap = ({
                                 let extraClass = '';
                                 if (isDropPreview) extraClass = dropPreview.valid ? 'drop-preview-valid' : 'drop-preview-invalid';
                                 if (isSelectedTile) extraClass = 'ring-2 ring-white ring-opacity-80';
-                                const pathStyle = isPath && pathInfo ? { backgroundColor: pathInfo.color + '40', borderColor: pathInfo.color + '60' } : {};
+                                // 경로별 색상 틴트 — path-tile.png 위에 inset shadow로 은은하게 덧칠
+                                const pathStyle = isPath && pathInfo ? { boxShadow: `inset 0 0 0 9999px ${pathInfo.color}20, inset 0 0 0 1px ${pathInfo.color}60` } : {};
 
                                 const startPath = startPoint && pathData.paths.find(p => p.startPoint.id === startPoint.id);
                                 const endPaths = endPoint && pathData.paths.filter(p => p.endPoint.id === endPoint.id);
@@ -119,7 +125,7 @@ const GameMap = ({
                                         {startPoint && startPath && (() => {
                                             // 경로 방향에 따른 화살표 결정
                                             const tiles = startPath.tiles;
-                                            let startArrow = '▶'; // 기본값
+                                            let startArrow = '▶';
                                             if (tiles.length > 1) {
                                                 const dx = tiles[1].x - tiles[0].x;
                                                 const dy = tiles[1].y - tiles[0].y;
@@ -128,18 +134,17 @@ const GameMap = ({
                                                 else if (dy > 0) startArrow = '▼';
                                                 else if (dy < 0) startArrow = '▲';
                                             }
-                                            // 첫 번째 경로(A)는 노란색, 나머지는 경로별 색상
                                             const arrowColor = startPath.id === 'A' ? '#FFD700' : startPath.color;
                                             return (
-                                                <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, ' + arrowColor + '50 0%, transparent 70%)' }}>
-                                                    <span className="text-lg font-bold" style={{ color: arrowColor, textShadow: '0 0 8px ' + arrowColor + ', 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000', filter: 'drop-shadow(0 0 6px ' + arrowColor + ')' }}>{startArrow}</span>
+                                                <div className="w-full h-full flex items-center justify-center relative"
+                                                     style={{ backgroundImage: 'url(assets/tiles/start-point.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                                    <span className="text-lg font-bold relative z-10" style={{ color: arrowColor, textShadow: '0 0 8px ' + arrowColor + ', 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000', filter: 'drop-shadow(0 0 6px ' + arrowColor + ')' }}>{startArrow}</span>
                                                 </div>
                                             );
                                         })()}
                                         {endPoint && endPaths && endPaths.length > 0 && !pathData.isSquareMap && (
-                                            <div className="w-full h-full flex items-center justify-center" style={{ background: 'radial-gradient(circle, rgba(255,100,100,0.5) 0%, transparent 70%)' }}>
-                                                <span className="text-lg" style={{ filter: 'drop-shadow(0 0 6px #FF6666)' }}>🏠</span>
-                                            </div>
+                                            <div className="w-full h-full"
+                                                 style={{ backgroundImage: 'url(assets/tiles/end-point.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
                                         )}
                                         {!startPoint && !endPoint && pathArrows[`${x},${y}`] && pathArrows[`${x},${y}`].length > 0 && (
                                             <div className="w-full h-full flex items-center justify-center pointer-events-none flex-wrap gap-0" style={{ opacity: 0.9 }}>
@@ -227,8 +232,29 @@ const GameMap = ({
                                         </div>
                                     )}
                                     <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: tower.x - 8, top: tower.y + SPRITE_SIZE / 2 - 2, textShadow: '0 0 3px black' }}>T{tower.tier}{tower.isPrism ? '★' : ''}</div>
-                                    {tower.isDebuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬇️</div>}
-                                    {tower.isBuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬆️</div>}
+                                    {(() => {
+                                        // 타워에 적용된 구체적 버프/디버프 아이콘
+                                        const nowTs = Date.now();
+                                        const icons = [];
+                                        if (typeof StatusEffectManager !== 'undefined') {
+                                            for (const t of ['attackBuff', 'attackSpeedBuff', 'rangeBuff']) {
+                                                if (StatusEffectManager.hasEffect(tower, t, nowTs)) icons.push(t);
+                                            }
+                                            if (StatusEffectManager.hasEffect(tower, 'attackSpeedDebuff', nowTs)) icons.push('attackSpeedDebuff');
+                                        }
+                                        // statusEffect가 없지만 isBuffed/isDebuffed 플래그만 켜진 경우 폴백
+                                        if (icons.length === 0 && tower.isBuffed) icons.push('attackBuff');
+                                        const showGenericDebuff = icons.length === 0 && tower.isDebuffed;
+                                        return (
+                                            <div className="absolute flex gap-0.5 pointer-events-none" style={{ left: tower.x - 18, top: tower.y - 20 }}>
+                                                {icons.map((t, i) => (
+                                                    <img key={i} src={getStatusIconUrl(t)} alt={t} draggable={false}
+                                                         style={{ width: 12, height: 12, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.9))' }} />
+                                                ))}
+                                                {showGenericDebuff && <span className="text-xs">⬇️</span>}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })}
@@ -278,6 +304,16 @@ const GameMap = ({
                             const isBurning = StatusEffectManager.hasEffect(enemy, 'burn', now);
                             const isSlowed = StatusEffectManager.hasEffect(enemy, 'slow', now);
                             const isFrozen = StatusEffectManager.hasEffect(enemy, 'freeze', now);
+                            const isStunned = StatusEffectManager.hasEffect(enemy, 'stun', now);
+                            const isVulnerable = StatusEffectManager.hasEffect(enemy, 'vulnerability', now);
+                            const isRegenerating = StatusEffectManager.hasEffect(enemy, 'regeneration', now);
+                            const activeStatusIcons = [
+                                isBurning && 'burn',
+                                isFrozen ? 'freeze' : (isSlowed && 'slow'),
+                                isStunned && 'stun',
+                                isVulnerable && 'vulnerability',
+                                isRegenerating && 'regeneration',
+                            ].filter(Boolean);
                             const enemyUrl = typeof EnemySprite !== 'undefined' ? EnemySprite.getUrl(enemy.type) : null;
                             // 적 크기 — boss는 크게, 일반은 기본, fast는 약간 작게
                             const SIZE = enemy.type === 'boss' ? 48
@@ -290,38 +326,73 @@ const GameMap = ({
                                     {EnemySystem.isDebuffer(enemy) && (
                                         <div className="absolute rounded-full opacity-20 pointer-events-none" style={{ left: SIZE / 2 - (enemy.debuffRange || 80), top: SIZE / 2 - (enemy.debuffRange || 80), width: (enemy.debuffRange || 80) * 2, height: (enemy.debuffRange || 80) * 2, background: enemy.type === 'jammer' ? 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)' : 'radial-gradient(circle, #ec4899 0%, transparent 70%)' }} />
                                     )}
-                                    {enemyUrl ? (
-                                        <img
-                                            src={enemyUrl}
-                                            alt={enemy.type}
-                                            draggable={false}
-                                            style={{
-                                                width: SIZE, height: SIZE,
-                                                imageRendering: 'auto',
-                                                filter: isFrozen ? 'hue-rotate(200deg) brightness(1.3)'
-                                                      : isBurning ? 'drop-shadow(0 0 6px #FF6B6B)'
-                                                      : isSlowed ? 'drop-shadow(0 0 4px #45B7D1) brightness(0.85)'
-                                                      : 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
-                                                pointerEvents: 'none',
-                                            }}
-                                        />
-                                    ) : (
+                                    {enemyUrl ? (() => {
+                                        // 방향(Lerp) + 수평 flip + 상하 바빙
+                                        const rotDeg = (enemy.facingAngle || 0) * 180 / Math.PI;
+                                        const flip = enemy.facingFlip || 1;
+                                        const bobY = Math.sin(enemy.bobPhase || 0) * 1.8;
+                                        return (
+                                            <img
+                                                src={enemyUrl}
+                                                alt={enemy.type}
+                                                draggable={false}
+                                                style={{
+                                                    width: SIZE, height: SIZE,
+                                                    imageRendering: 'auto',
+                                                    transform: `translateY(${bobY.toFixed(2)}px) rotate(${rotDeg.toFixed(1)}deg) scaleX(${flip})`,
+                                                    transformOrigin: 'center center',
+                                                    filter: isFrozen ? 'hue-rotate(200deg) brightness(1.3)'
+                                                          : isBurning ? 'drop-shadow(0 0 6px #FF6B6B)'
+                                                          : isSlowed ? 'drop-shadow(0 0 4px #45B7D1) brightness(0.85)'
+                                                          : 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
+                                                    pointerEvents: 'none',
+                                                }}
+                                            />
+                                        );
+                                    })() : (
                                         <div className={config.size + ' ' + config.color + ' rounded-sm transform rotate-45'} style={{ boxShadow: config.shadow }} />
                                     )}
                                     <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-gray-800 rounded">
                                         <div className="h-full bg-green-500 rounded enemy-health-bar" style={{ width: (enemy.health / enemy.maxHealth * 100) + '%' }} />
                                     </div>
-                                    {isBurning && <div className="absolute -top-4 left-0 text-xs burning-effect">🔥</div>}
-                                    {isSlowed && !isFrozen && <div className="absolute -top-4 right-0 text-xs slowed-effect">❄️</div>}
-                                    {isFrozen && <div className="absolute -top-4 right-0 text-xs frozen-effect">🧊</div>}
+                                    {activeStatusIcons.length > 0 && (
+                                        <div className="absolute -top-5 left-1/2 flex gap-0.5 pointer-events-none" style={{ transform: 'translateX(-50%)' }}>
+                                            {activeStatusIcons.map((type, idx) => (
+                                                <img
+                                                    key={idx}
+                                                    src={getStatusIconUrl(type)}
+                                                    alt={type}
+                                                    draggable={false}
+                                                    style={{ width: 14, height: 14, filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.8))' }}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
 
-                        {/* 투사체 */}
-                        {projectiles.map(proj => (
-                            <div key={proj.id} className="absolute w-3 h-3 rounded-full" style={{ left: proj.x - 6, top: proj.y - 6, background: proj.color, boxShadow: '0 0 10px ' + proj.color + ', 0 0 20px ' + proj.color }} />
-                        ))}
+                        {/* 투사체 — 속성별 orb 이미지 */}
+                        {projectiles.map(proj => {
+                            const orbUrl = getElementOrbUrl(proj.element);
+                            const SIZE = 20;
+                            return (
+                                <img
+                                    key={proj.id}
+                                    src={orbUrl}
+                                    alt=""
+                                    draggable={false}
+                                    className="absolute pointer-events-none"
+                                    style={{
+                                        left: proj.x - SIZE / 2,
+                                        top: proj.y - SIZE / 2,
+                                        width: SIZE,
+                                        height: SIZE,
+                                        filter: `drop-shadow(0 0 4px ${proj.color}) drop-shadow(0 0 8px ${proj.color})`,
+                                    }}
+                                />
+                            );
+                        })}
 
                         {/* 이펙트 */}
                         {effects.map(effect => {

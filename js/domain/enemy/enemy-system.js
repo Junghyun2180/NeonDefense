@@ -45,6 +45,17 @@ const EnemySystem = {
     return DataResolver.calcBaseHealth(modeId, stage, wave);
   },
 
+  // 초기 이동 방향으로부터 facingAngle/flip 계산 (스폰 시 최초 정렬용)
+  _computeInitialFacing(pathTiles) {
+    if (!pathTiles || pathTiles.length < 2) return { angle: 0, flip: 1 };
+    const dx = pathTiles[1].x - pathTiles[0].x;
+    const dy = pathTiles[1].y - pathTiles[0].y;
+    const flip = dx >= 0 ? 1 : -1;
+    const effDx = flip === 1 ? dx : -dx;
+    const angle = Math.atan2(dy, Math.max(0.01, effDx));
+    return { angle, flip };
+  },
+
   // 적 생성 팩토리 (단일 진실의 원천)
   // modeId: 'campaign' | 'run' | 'bossRush' (선택, 기본값 'campaign')
   create(stage, wave, enemyIndex, totalEnemies, pathTiles, pathId, modeId) {
@@ -98,6 +109,7 @@ const EnemySystem = {
       health = Math.floor(health * 1.12);
     }
 
+    const initFacing = this._computeInitialFacing(pathTiles);
     const enemy = {
       id: Date.now() + Math.random(),
       type,
@@ -117,6 +129,10 @@ const EnemySystem = {
       ...StatusEffectSystem.getDefaultFields(),
       // 힐러 전용
       lastHealTime: 0,
+      // 스프라이트 방향/애니메이션 (Lerp 회전 + 상하 바빙)
+      facingAngle: initFacing.angle,
+      facingFlip: initFacing.flip,
+      bobPhase: Math.random() * Math.PI * 2,
     };
     // 보스면 패턴 지정 (스테이지 기반 순환: splitter → regen → berserk)
     if (type === 'boss') {
@@ -154,6 +170,10 @@ const EnemySystem = {
         lastHealTime: 0,
         spawnWave: parent.spawnWave, // 부모 웨이브 상속
         isSplitChild: true, // 분열 자식 표시 (재분열 방지)
+        // 부모 방향 상속, bobPhase는 독립 (같은 위상으로 보이지 않도록)
+        facingAngle: parent.facingAngle || 0,
+        facingFlip: parent.facingFlip || 1,
+        bobPhase: Math.random() * Math.PI * 2,
       };
       // Ability 할당
       splitEnemies.push(EnemyAbilitySystem.assignAbility(splitEnemy));
@@ -264,6 +284,27 @@ const EnemySystem = {
     const targetY = nextTile.y * TILE_SIZE + TILE_SIZE / 2;
     const dist = calcDistance(enemy.x, enemy.y, targetX, targetY);
 
+    // 방향·바빙 갱신 (거리 체크보다 먼저) — 현재 위치→타겟 방향 기준
+    const rawDx = targetX - enemy.x;
+    const rawDy = targetY - enemy.y;
+    const prevFlip = enemy.facingFlip ?? 1;
+    // dx가 거의 0이면 이전 flip 유지 (순수 상하 이동 시 갑자기 뒤집히지 않게)
+    const desiredFlip = Math.abs(rawDx) < 0.01 ? prevFlip : (rawDx >= 0 ? 1 : -1);
+    // flip 기준으로 각도 계산 → 스프라이트가 뒤집힌 좌표계에서 ±90° 범위로만 기울임
+    const effDx = desiredFlip === 1 ? rawDx : -rawDx;
+    const targetAngle = Math.atan2(rawDy, Math.max(0.01, effDx));
+    const currentAngle = enemy.facingAngle ?? targetAngle;
+    // 배속 비례 Lerp (코너에서 빠르게 수렴, 0.15 * gameSpeed → ~10틱)
+    const lerpT = Math.min(1, 0.18 * gameSpeed);
+    const newAngle = currentAngle + (targetAngle - currentAngle) * lerpT;
+    // 바빙 위상: 이동량에 비례 (빠른 적은 빠르게, 슬로우/빙결 시 정적)
+    const bobAdvance = moveSpeed * 0.08;
+    const newBobPhase = (enemy.bobPhase ?? 0) + bobAdvance;
+
+    updatedEnemy.facingAngle = newAngle;
+    updatedEnemy.facingFlip = desiredFlip;
+    updatedEnemy.bobPhase = newBobPhase;
+
     if (dist < moveSpeed * 2) {
       return {
         enemy: { ...updatedEnemy, x: targetX, y: targetY, pathIndex: enemy.pathIndex + 1 },
@@ -271,12 +312,11 @@ const EnemySystem = {
       };
     }
 
-    const dx = targetX - enemy.x, dy = targetY - enemy.y;
     return {
       enemy: {
         ...updatedEnemy,
-        x: enemy.x + (dx / dist) * moveSpeed * 2,
-        y: enemy.y + (dy / dist) * moveSpeed * 2,
+        x: enemy.x + (rawDx / dist) * moveSpeed * 2,
+        y: enemy.y + (rawDy / dist) * moveSpeed * 2,
       },
       livesLost: 0,
     };
