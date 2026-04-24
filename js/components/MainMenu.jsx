@@ -134,7 +134,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                       </div>
                       <div className="flex items-center justify-between text-gray-300">
                         <span>⏱️ 예상 시간</span>
-                        <span className="font-bold text-blue-300">50~70분</span>
+                        <span className="font-bold text-blue-300">{SPAWN.maxStage * 2}~{SPAWN.maxStage * 4}분</span>
                       </div>
                       <div className="flex items-center justify-between text-gray-300">
                         <span>💎 크리스탈 보상</span>

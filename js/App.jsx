@@ -786,6 +786,13 @@ const NeonDefense = () => {
           />
         </div>
       )}
+
+      {/* 도움말 모달 (어디서든 접근 가능, 메인메뉴/게임화면/런모드 공용, 최상단 z-index) */}
+      <HelpModal
+        showHelp={showHelp}
+        setShowHelp={setShowHelp}
+        getElementInfo={getElementInfo}
+      />
     </div>
   );
 };
