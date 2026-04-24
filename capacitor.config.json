@@ -1,0 +1,23 @@
+{
+  "appId": "com.neondefense.app",
+  "appName": "Neon Defense",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always",
+    "scrollEnabled": false
+  },
+  "android": {
+    "backgroundColor": "#0a0a0f"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1000,
+      "backgroundColor": "#0a0a0f",
+      "showSpinner": false
+    }
+  }
+}
