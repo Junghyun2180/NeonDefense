@@ -24,6 +24,7 @@ const useSettings = () => {
     const [autoNextWave, setAutoNextWaveState] = useState(initial.autoNextWave ?? true);
     const [maxGameSpeed, setMaxGameSpeedState] = useState(initial.maxGameSpeed ?? 5);
     const [tutorialSeen, setTutorialSeenState] = useState(initial.tutorialSeen ?? false);
+    const [tutorialDone, setTutorialDoneState] = useState(initial.tutorialDone ?? false);
 
     const persist = useCallback((next) => {
         try {
@@ -82,6 +83,11 @@ const useSettings = () => {
         persist({ tutorialSeen: val });
     }, [persist]);
 
+    const setTutorialDone = useCallback((val) => {
+        setTutorialDoneState(val);
+        persist({ tutorialDone: val });
+    }, [persist]);
+
     return {
         autoCombine, setAutoCombine,
         autoSupportCombine, setAutoSupportCombine,
@@ -89,6 +95,7 @@ const useSettings = () => {
         autoNextWave, setAutoNextWave,
         maxGameSpeed, setMaxGameSpeed,
         tutorialSeen, setTutorialSeen,
+        tutorialDone, setTutorialDone,
     };
 };
 

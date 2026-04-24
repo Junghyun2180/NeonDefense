@@ -86,6 +86,62 @@ const NeonDefense = () => {
   // T4 역할 선택 모달: "이 역할 기억" 체크박스 상태
   const [rememberT4Role, setRememberT4Role] = useState(false);
 
+  // ===== 튜토리얼 단계 (Stage 0 경량) =====
+  // step: 'none' | 'draw' | 'combine' | 'place' | 'start' | 'done' | 'done-closed'
+  const [tutorialStep, setTutorialStep] = useState('none');
+
+  // 튜토리얼 시작 조건: 게임 시작 + tutorialDone=false + 런모드 아님 (첫 캠페인만)
+  useEffect(() => {
+    if (saveLoadState.gameStarted && !saveLoadState.showMainMenu
+        && !settings.tutorialDone && !runModeState.runActive
+        && tutorialStep === 'none') {
+      setTutorialStep('draw');
+    }
+  }, [saveLoadState.gameStarted, saveLoadState.showMainMenu, settings.tutorialDone, runModeState.runActive]);
+
+  // 튜토리얼 자동 진행: 인벤토리/타워/isPlaying 감지
+  // draw: 뽑기 1회 완료 시 → combine (수동 "다음" 대기)
+  // place: 맵 타워 1개 이상 → start
+  // start: isPlaying=true → done
+  useEffect(() => {
+    if (tutorialStep === 'draw' && inventoryState.inventory.length > 0) {
+      setTutorialStep('combine');
+    }
+  }, [inventoryState.inventory.length, tutorialStep]);
+
+  useEffect(() => {
+    if (tutorialStep === 'place' && gameState.towers.length > 0) {
+      setTutorialStep('start');
+    }
+  }, [gameState.towers.length, tutorialStep]);
+
+  useEffect(() => {
+    if (tutorialStep === 'start' && gameState.isPlaying) {
+      setTutorialStep('done');
+    }
+  }, [gameState.isPlaying, tutorialStep]);
+
+  // 사용자가 중간에 타워 배치하면 combine → place 건너뛰고 start로
+  useEffect(() => {
+    if (tutorialStep === 'combine' && gameState.towers.length > 0) {
+      setTutorialStep('start');
+    }
+  }, [gameState.towers.length, tutorialStep]);
+
+  const handleTutorialNext = () => {
+    const order = ['draw', 'combine', 'place', 'start', 'done'];
+    const idx = order.indexOf(tutorialStep);
+    if (idx >= 0 && idx < order.length - 1) setTutorialStep(order[idx + 1]);
+  };
+  const handleTutorialSkip = () => {
+    setTutorialStep('done-closed');
+    settings.setTutorialDone(true);
+  };
+  const handleTutorialClose = () => {
+    setTutorialStep('done-closed');
+    settings.setTutorialDone(true);
+  };
+
   // 사운드 상태
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [sfxEnabled, setSfxEnabled] = useState(true);
@@ -793,6 +849,16 @@ const NeonDefense = () => {
         setShowHelp={setShowHelp}
         getElementInfo={getElementInfo}
       />
+
+      {/* 튜토리얼 오버레이 (첫 게임 진입 시) */}
+      {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
+        <TutorialOverlay
+          step={tutorialStep}
+          onNext={handleTutorialNext}
+          onSkip={handleTutorialSkip}
+          onClose={handleTutorialClose}
+        />
+      )}
     </div>
   );
 };

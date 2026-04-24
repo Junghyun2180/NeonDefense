@@ -22,6 +22,11 @@ const PlacementUI = ({
         const availableElements = getAvailableElements();
         return (
             <div className="fixed inset-0 z-40" onClick={(e) => { if (e.target === e.currentTarget) setPlacementMode(null); }}>
+                {/* 하단 중앙 종료 힌트 */}
+                <div className="fixed text-xs text-gray-300 bg-gray-900/80 px-3 py-1.5 rounded-full border border-gray-600 pointer-events-none"
+                    style={{ bottom: 16, left: '50%', transform: 'translateX(-50%)' }}>
+                    🎯 속성을 선택하세요 · 빈 곳 탭 시 취소
+                </div>
                 <div className="absolute" style={{ left: centerX, top: centerY }}>
                     <div className="absolute w-12 h-12 rounded-full bg-gray-800 border-2 border-gray-600 flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-all" style={{ left: -24, top: -24 }} onClick={() => setPlacementMode(null)}>
                         <span className="text-xl">✕</span>
@@ -55,6 +60,10 @@ const PlacementUI = ({
         const elemColor = NEON_TYPES[1].colors[placementMode.element];
         return (
             <div className="fixed inset-0 z-40" onClick={(e) => { if (e.target === e.currentTarget) setPlacementMode(null); }}>
+                {/* 하단 중앙 힌트 */}
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-xs text-gray-300 bg-gray-900/80 px-3 py-1.5 rounded-full border border-gray-600 pointer-events-none">
+                    ⚡ 티어 선택 · 중앙 아이콘: 속성 되돌리기 · 빈 곳: 취소
+                </div>
                 <div className="absolute" style={{ left: centerX, top: centerY }}>
                     <div className="absolute w-12 h-12 rounded-full bg-gray-800 border-2 flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-all" style={{ left: -24, top: -24, borderColor: elemColor }} onClick={() => setPlacementMode(prev => ({ ...prev, step: 'element', element: null }))}>
                         <span className="text-xl">{elementInfo.icon}</span>

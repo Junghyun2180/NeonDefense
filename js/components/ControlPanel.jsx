@@ -103,11 +103,18 @@ const InventoryPanel = ({
     const drawHandler = activeTab === 'tower' ? drawRandomNeon : drawRandomSupport;
     const drawHandler10 = activeTab === 'tower' ? drawRandomNeon10 : drawRandomSupport10;
     const drawCost = activeTab === 'tower' ? effectiveDrawCost : ECONOMY.supportDrawCost;
-    const drawCost10 = drawCost * 10;
     const isFull = activeTab === 'tower' ? isInventoryFull : isSupportInventoryFull;
     const activeAutoCombine = activeTab === 'tower' ? autoCombine : autoSupportCombine;
     const setActiveAutoCombine = activeTab === 'tower' ? setAutoCombine : setAutoSupportCombine;
     const presetCount = Object.keys(t4RolePresets || {}).length;
+
+    // 10연뽑 시 실제 가능 횟수 (골드/슬롯 제한 반영) — 버튼 레이블 오인 방지
+    const remainingSlots = activeTab === 'tower'
+        ? (ECONOMY.maxInventory - (inventory?.length || 0))
+        : (ECONOMY.maxSupportInventory - (supportInventory?.length || 0));
+    const maxByGold = Math.floor(gold / Math.max(1, drawCost));
+    const draw10Count = Math.max(0, Math.min(10, remainingSlots, maxByGold));
+    const draw10Cost = draw10Count * drawCost;
 
     // --- 통합 조합 ---
     const handleCombine = () => {
@@ -151,10 +158,10 @@ const InventoryPanel = ({
                     className={'flex-1 btn-neon px-2 py-1.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap border ' + (activeTab === 'tower' ? 'bg-gradient-to-r from-pink-600 to-purple-600 border-pink-400/30' : 'bg-gradient-to-r from-orange-500 to-amber-500 border-orange-400/30')}>
                     {isFull ? '📦 가득 참' : '🎲 x1 (' + drawCost + 'G)'}
                 </button>
-                <button type="button" onClick={drawHandler10} disabled={gold < drawCost || isFull}
+                <button type="button" onClick={drawHandler10} disabled={gold < drawCost || isFull || draw10Count === 0}
                     className={'flex-1 btn-neon px-2 py-1.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap border ' + (activeTab === 'tower' ? 'bg-gradient-to-r from-fuchsia-700 to-purple-700 border-fuchsia-400/50' : 'bg-gradient-to-r from-orange-600 to-rose-600 border-orange-400/50')}
-                    title={'최대 10회 뽑기 (' + drawCost10 + 'G 기준, 가능한 만큼)'}>
-                    🎲 x10
+                    title={'최대 10회 연속 뽑기 — 실제 ' + draw10Count + '회 (' + draw10Cost + 'G)'}>
+                    {draw10Count === 10 ? '🎲 x10' : ('🎲 x' + draw10Count)} ({draw10Cost}G)
                 </button>
                 <div className="w-px bg-gray-700 self-stretch" />
                 <button type="button" onClick={handleCombine} disabled={!canCombine}
