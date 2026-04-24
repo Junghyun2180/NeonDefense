@@ -36,6 +36,19 @@ const GameMap = ({
         return opts;
     }, [maxGameSpeed]);
     const { useMemo } = React;
+    // 스프라이트 로드 완료 감지 → 리렌더 트리거 (preload 비동기)
+    const [spritesReady, setSpritesReady] = React.useState(() =>
+        typeof TowerSprite !== 'undefined' && TowerSprite._available && TowerSprite._available.size > 0);
+    React.useEffect(() => {
+        if (typeof TowerSprite === 'undefined') return;
+        if (TowerSprite._available && TowerSprite._available.size > 0) {
+            setSpritesReady(true);
+            return;
+        }
+        const h = () => setSpritesReady(true);
+        window.addEventListener('tower-sprites-ready', h);
+        return () => window.removeEventListener('tower-sprites-ready', h);
+    }, []);
 
     return (
         <div className="relative">
@@ -174,20 +187,43 @@ const GameMap = ({
                             const isSelected = selectedTowers.some(t => t.id === tower.id);
                             const elementInfo = getElementInfo(tower.element);
                             const displayRange = tower.effectiveRange || tower.range;
+                            const spriteUrl = spritesReady && typeof TowerSprite !== 'undefined' ? TowerSprite.getUrl(tower.element, tower.tier) : null;
+                            const SPRITE_SIZE = tower.tier === 4 ? 48 : tower.tier === 3 ? 42 : tower.tier === 2 ? 38 : 34;
                             return (
                                 <div key={tower.id}>
                                     {isSelected && <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - displayRange, top: tower.y - displayRange, width: displayRange * 2, height: displayRange * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />}
-                                    <div onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (selectedTowerForPlacement) {
-                                            cancelPlacementMode();
-                                        } else {
-                                            toggleTowerSelect(tower);
-                                        }
-                                    }} className={'absolute neon-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: tower.x - 15, top: tower.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + tower.color + ' 0%, ' + tower.color + '80 50%, transparent 70%)', borderRadius: '50%', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + tower.color : undefined, color: tower.color, opacity: tower.isDebuffed ? 0.6 : 1, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
-                                        <span className="text-xs font-black text-white drop-shadow-lg">{elementInfo.icon}</span>
-                                    </div>
-                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: tower.x - 8, top: tower.y + 12, textShadow: '0 0 3px black' }}>T{tower.tier}</div>
+                                    {spriteUrl ? (
+                                        <div onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (selectedTowerForPlacement) cancelPlacementMode();
+                                            else toggleTowerSelect(tower);
+                                        }} className={'absolute ' + (isSelected ? 'tower-selected' : '')}
+                                        style={{
+                                            left: tower.x - SPRITE_SIZE / 2,
+                                            top: tower.y - SPRITE_SIZE / 2,
+                                            width: SPRITE_SIZE,
+                                            height: SPRITE_SIZE,
+                                            opacity: tower.isDebuffed ? 0.6 : 1,
+                                            cursor: selectedTowerForPlacement ? 'default' : 'pointer',
+                                            filter: isSelected ? 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px ' + tower.color + ')' : 'drop-shadow(0 0 4px ' + tower.color + '80)',
+                                        }}>
+                                            <img src={spriteUrl} alt={tower.name} draggable={false}
+                                                 style={{ width: '100%', height: '100%', imageRendering: 'auto', pointerEvents: 'none' }} />
+                                            {tower.isPrism && (
+                                                <div className="absolute inset-0 pointer-events-none"
+                                                     style={{ background: 'conic-gradient(from 0deg, #ff0080, #ffff00, #00ff80, #00ffff, #8000ff, #ff0080)', opacity: 0.25, mixBlendMode: 'screen', borderRadius: '50%' }} />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (selectedTowerForPlacement) cancelPlacementMode();
+                                            else toggleTowerSelect(tower);
+                                        }} className={'absolute neon-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: tower.x - 15, top: tower.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + tower.color + ' 0%, ' + tower.color + '80 50%, transparent 70%)', borderRadius: '50%', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + tower.color : undefined, color: tower.color, opacity: tower.isDebuffed ? 0.6 : 1, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
+                                            <span className="text-xs font-black text-white drop-shadow-lg">{elementInfo.icon}</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: tower.x - 8, top: tower.y + SPRITE_SIZE / 2 - 2, textShadow: '0 0 3px black' }}>T{tower.tier}{tower.isPrism ? '★' : ''}</div>
                                     {tower.isDebuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬇️</div>}
                                     {tower.isBuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬆️</div>}
                                 </div>
