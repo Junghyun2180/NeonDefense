@@ -479,10 +479,16 @@ const calculateCarryoverRefund = (towers, supportTowers, inventory, supportInven
   return refund;
 };
 
-// 캐리오버용 타워 복사 (위치 정보 및 임시 상태 제거)
+// 캐리오버용 타워 복사 (위치 + 임시 상태 + 상태이상 전부 제거)
+// 버그 수정: statusEffects가 남아 다음 스테이지에 버프/디버프 아이콘 잔존 현상 방지
 const prepareCarryoverTower = (tower) => {
-  const { gridX, gridY, x, y, lastShot, isBuffed, isDebuffed, effectiveRange, ...rest } = tower;
-  return { ...rest, lastShot: 0 };
+  const {
+    gridX, gridY, x, y,
+    lastShot, isBuffed, isDebuffed, effectiveRange,
+    statusEffects,  // 이전 스테이지의 상태이상(버프/디버프) 제거
+    ...rest
+  } = tower;
+  return { ...rest, lastShot: 0, statusEffects: [] };
 };
 
 window.calculateTowerScore = calculateTowerScore;
