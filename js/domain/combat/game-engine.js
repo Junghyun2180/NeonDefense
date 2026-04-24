@@ -186,6 +186,53 @@ const GameEngine = {
       }
     }
 
+    // 1.7단계: 보스 패턴 (splitter 분신, regen 자가힐, berserk 속도 증가)
+    const bossPatternResults = [];
+    const bossEnemies = movedEnemies.filter(e => e.type === 'boss' && e.bossPattern && e.ability);
+    for (const boss of bossEnemies) {
+      if (typeof boss.ability.onTick !== 'function') continue;
+      const r = boss.ability.onTick({ enemy: boss, towers, enemies: movedEnemies, now });
+      if (r) bossPatternResults.push(r);
+    }
+    if (bossPatternResults.length > 0) {
+      // 자가 힐 적용
+      const healMap = new Map();
+      const mutMap = [];
+      const spawnList = [];
+      const bossVisualFx = [];
+      for (const r of bossPatternResults) {
+        (r.enemyHeals || []).forEach(h => {
+          const id = h.enemyId;
+          healMap.set(id, (healMap.get(id) || 0) + h.amount);
+        });
+        (r.targetMutations || []).forEach(m => mutMap.push(m));
+        (r.spawnEnemies || []).forEach(e => spawnList.push(e));
+        (r.visualEffects || []).forEach(v => bossVisualFx.push(v));
+      }
+      if (healMap.size > 0) {
+        movedEnemies = movedEnemies.map(e => {
+          const heal = healMap.get(e.id);
+          if (!heal) return e;
+          return { ...e, health: Math.min(e.maxHealth, e.health + heal) };
+        });
+      }
+      if (mutMap.length > 0) {
+        movedEnemies = movedEnemies.map(e => {
+          const muts = mutMap.filter(m => m.enemyId === e.id);
+          if (muts.length === 0) return e;
+          let next = e;
+          for (const m of muts) if (m.set) next = { ...next, ...m.set };
+          return next;
+        });
+      }
+      if (spawnList.length > 0) {
+        movedEnemies.push(...spawnList);
+      }
+      if (bossVisualFx.length > 0) {
+        newEffects.push(...bossVisualFx);
+      }
+    }
+
     // 2단계: 타워 공격 → 투사체 생성 (서포트 버프 + 영구 버프 적용)
     const attackContext = { enemies: movedEnemies, supportTowers, now, gameSpeed, permanentBuffs };
     const newProjectiles = [];

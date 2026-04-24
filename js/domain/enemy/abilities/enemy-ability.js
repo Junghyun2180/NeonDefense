@@ -83,7 +83,11 @@ class EliteEnemyAbility extends EnemyAbility {
   }
 }
 
-// ===== 보스 적 (매우 높은 체력) =====
+// ===== 보스 적 (매우 높은 체력 + 패턴) =====
+// enemy.bossPattern = 'splitter' | 'regen' | 'berserk' | null
+//  splitter: HP 50% 교차 시 분신 2마리 생성 (본체 생존)
+//  regen:    주기적 자가 힐 (1.5초마다 maxHP 2.5%)
+//  berserk:  체력 낮을수록 이동속도 ↑ (max +80%)
 class BossEnemyAbility extends EnemyAbility {
   static TYPE = 'bossEnemy';
 
@@ -92,8 +96,82 @@ class BossEnemyAbility extends EnemyAbility {
     this.type = BossEnemyAbility.TYPE;
   }
 
+  onTick(context) {
+    const { enemy, now } = context;
+    const result = {
+      towerDebuffs: [],
+      enemyHeals: [],
+      visualEffects: [],
+      spawnEnemies: [],
+      targetMutations: [],   // 적 상태 직접 변경
+    };
+
+    const pattern = enemy.bossPattern;
+    if (!pattern) return result;
+
+    // ===== splitter: 50% HP 교차 시 분신 2마리 =====
+    if (pattern === 'splitter' && !enemy._spawnedSplits && enemy.health <= enemy.maxHealth * 0.5) {
+      for (let i = 0; i < 2; i++) {
+        const splitEnemy = {
+          id: Date.now() + Math.random() + i,
+          type: 'normal',
+          health: Math.floor(enemy.maxHealth * 0.12),
+          maxHealth: Math.floor(enemy.maxHealth * 0.12),
+          pathIndex: enemy.pathIndex,
+          pathId: enemy.pathId,
+          pathTiles: enemy.pathTiles,
+          baseSpeed: enemy.baseSpeed * 1.4,
+          speed: enemy.baseSpeed * 1.4,
+          debuffRange: 0,
+          goldReward: 2,
+          x: enemy.x + (Math.random() - 0.5) * 30,
+          y: enemy.y + (Math.random() - 0.5) * 30,
+          ...StatusEffectSystem.getDefaultFields(),
+          lastHealTime: 0,
+          isSplitChild: true,
+          spawnWave: enemy.spawnWave,
+          isLooping: enemy.isLooping,
+        };
+        result.spawnEnemies.push(splitEnemy);
+      }
+      result.visualEffects.push({
+        id: Date.now() + Math.random(),
+        x: enemy.x, y: enemy.y, type: 'boss-split', color: '#a855f7',
+      });
+      result.targetMutations.push({ enemyId: enemy.id, set: { _spawnedSplits: true } });
+    }
+
+    // ===== regen: 1.5초마다 maxHP 2.5% 힐 =====
+    if (pattern === 'regen') {
+      const interval = 1500;
+      const last = enemy._lastRegenAt || 0;
+      if (now - last >= interval && enemy.health < enemy.maxHealth) {
+        const healAmount = Math.floor(enemy.maxHealth * 0.025);
+        result.enemyHeals.push({ enemyId: enemy.id, amount: healAmount });
+        result.targetMutations.push({ enemyId: enemy.id, set: { _lastRegenAt: now } });
+        result.visualEffects.push({
+          id: Date.now() + Math.random(),
+          x: enemy.x, y: enemy.y, type: 'boss-regen', color: '#22c55e',
+        });
+      }
+    }
+
+    // ===== berserk: HP 낮을수록 속도 ↑ (base * (1 + (1-hpRatio) * 0.8)) =====
+    if (pattern === 'berserk') {
+      const hpRatio = enemy.health / enemy.maxHealth;
+      const speedMult = 1 + (1 - hpRatio) * 0.8;
+      const targetSpeed = enemy.baseSpeed * speedMult;
+      // speed field만 갱신 (baseSpeed는 원본 유지)
+      if (Math.abs(enemy.speed - targetSpeed) > 0.02) {
+        result.targetMutations.push({ enemyId: enemy.id, set: { speed: targetSpeed } });
+      }
+    }
+
+    return result;
+  }
+
   getDescription() {
-    return '보스 (최고 체력)';
+    return '보스 (최고 체력 + 패턴 능력)';
   }
 }
 

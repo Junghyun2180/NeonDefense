@@ -127,7 +127,12 @@ const useGameState = (configOverride = null) => {
                 const bossHealth = DataResolver.getBossHealth(cfg.modeAbility, stage, wave);
                 bossEnemy.health = bossHealth;
                 bossEnemy.maxHealth = bossHealth;
-                setEnemies(prev => [...prev, bossEnemy]);
+                // 보스 패턴 결정 (스테이지 기반 결정적 순환: splitter → regen → berserk)
+                const patterns = ['splitter', 'regen', 'berserk'];
+                bossEnemy.bossPattern = patterns[(stage - 1) % patterns.length];
+                // type 변경했으므로 ability 재할당
+                const reassigned = EnemyAbilitySystem.assignAbility(bossEnemy);
+                setEnemies(prev => [...prev, reassigned]);
             }
             return;
         }
