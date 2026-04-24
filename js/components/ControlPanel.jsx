@@ -92,6 +92,10 @@ const InventoryPanel = ({
     setAutoSupportCombine,
     clearAllT4RolePresets,
     t4RolePresets,
+    autoNextWave,
+    setAutoNextWave,
+    maxGameSpeed,
+    setMaxGameSpeed,
 }) => {
     const [activeTab, setActiveTab] = React.useState('tower');
 
@@ -174,6 +178,24 @@ const InventoryPanel = ({
                         onChange={(e) => setActiveAutoCombine && setActiveAutoCombine(e.target.checked)}
                         className="w-3.5 h-3.5 accent-cyan-400" />
                     <span>뽑기 후 자동 조합</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200">
+                    <input type="checkbox" checked={!!autoNextWave}
+                        onChange={(e) => setAutoNextWave && setAutoNextWave(e.target.checked)}
+                        className="w-3.5 h-3.5 accent-cyan-400" />
+                    <span>자동 다음 웨이브</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200" title="최대 배속 슬라이더">
+                    <span>최대 배속</span>
+                    <select
+                        value={maxGameSpeed ?? 5}
+                        onChange={(e) => setMaxGameSpeed && setMaxGameSpeed(Number(e.target.value))}
+                        className="bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 text-gray-200 text-xs"
+                    >
+                        <option value={3}>3x</option>
+                        <option value={4}>4x</option>
+                        <option value={5}>5x</option>
+                    </select>
                 </label>
                 {presetCount > 0 && (
                     <button type="button" onClick={clearAllT4RolePresets}

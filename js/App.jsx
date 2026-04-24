@@ -86,6 +86,41 @@ const NeonDefense = () => {
     }
   }, [gameState.stage]);
 
+  // ===== 최대 배속이 줄어들 때 현재 배속 클램프 =====
+  useEffect(() => {
+    if (gameState.gameSpeed > settings.maxGameSpeed) {
+      gameState.setGameSpeed(settings.maxGameSpeed);
+    }
+  }, [settings.maxGameSpeed, gameState.gameSpeed]);
+
+  // ===== 자동 다음 웨이브 (수동 웨이브 모드 전용) =====
+  // 설정이 켜져 있고, 웨이브 간이며, 어떤 모달도 떠 있지 않을 때 자동 시작
+  useEffect(() => {
+    if (!settings.autoNextWave) return;
+    if (gameState.isPlaying || gameState.gameOver || gameState.gameCleared) return;
+    if (gameState.showStageTransition) return;
+    if (gameState.showBuffSelection || gameState.showCarryoverSelection) return;
+    if (gameState.wave <= 1) return; // 새 스테이지 첫 웨이브는 수동 시작
+
+    // 자동 웨이브 모드(런 모드)는 타이머가 처리하므로 스킵
+    const ability = activeConfig?.modeAbility
+      ? (typeof ModeAbilityHelper !== 'undefined' ? ModeAbilityHelper.getAbility(activeConfig.modeAbility) : null)
+      : null;
+    if (ability && ability.waveAutoStart) return;
+
+    const timer = setTimeout(() => {
+      gameState.startWave();
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [
+    settings.autoNextWave,
+    gameState.isPlaying, gameState.wave, gameState.stage,
+    gameState.gameOver, gameState.gameCleared,
+    gameState.showStageTransition,
+    gameState.showBuffSelection, gameState.showCarryoverSelection,
+    activeConfig,
+  ]);
+
   // ===== 밸런스 로거 - 게임 클리어 시 로그 기록 =====
   useEffect(() => {
     if (gameState.gameCleared && typeof BalanceLogger !== 'undefined') {
@@ -554,6 +589,7 @@ const NeonDefense = () => {
               selectedSupportTowers={inventoryState.selectedSupportTowers}
               gameSpeed={gameState.gameSpeed}
               setGameSpeed={gameState.setGameSpeed}
+              maxGameSpeed={settings.maxGameSpeed}
               bgmEnabled={bgmEnabled}
               sfxEnabled={sfxEnabled}
               toggleBgm={toggleBgm}
@@ -596,6 +632,10 @@ const NeonDefense = () => {
             setAutoSupportCombine={settings.setAutoSupportCombine}
             clearAllT4RolePresets={settings.clearAllT4RolePresets}
             t4RolePresets={settings.t4RolePresets}
+            autoNextWave={settings.autoNextWave}
+            setAutoNextWave={settings.setAutoNextWave}
+            maxGameSpeed={settings.maxGameSpeed}
+            setMaxGameSpeed={settings.setMaxGameSpeed}
             inventory={inventoryState.inventory}
             selectedInventory={inventoryState.selectedInventory}
             selectedTowerForPlacement={dragState.selectedTowerForPlacement}

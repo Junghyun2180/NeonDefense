@@ -21,6 +21,8 @@ const useSettings = () => {
     const [autoCombine, setAutoCombineState] = useState(initial.autoCombine ?? true);
     const [autoSupportCombine, setAutoSupportCombineState] = useState(initial.autoSupportCombine ?? true);
     const [t4RolePresets, setT4RolePresetsState] = useState(initial.t4RolePresets || {});
+    const [autoNextWave, setAutoNextWaveState] = useState(initial.autoNextWave ?? true);
+    const [maxGameSpeed, setMaxGameSpeedState] = useState(initial.maxGameSpeed ?? 5);
 
     const persist = useCallback((next) => {
         try {
@@ -63,10 +65,23 @@ const useSettings = () => {
         persist({ t4RolePresets: {} });
     }, [persist]);
 
+    const setAutoNextWave = useCallback((val) => {
+        setAutoNextWaveState(val);
+        persist({ autoNextWave: val });
+    }, [persist]);
+
+    const setMaxGameSpeed = useCallback((val) => {
+        const clamped = Math.max(3, Math.min(5, val));
+        setMaxGameSpeedState(clamped);
+        persist({ maxGameSpeed: clamped });
+    }, [persist]);
+
     return {
         autoCombine, setAutoCombine,
         autoSupportCombine, setAutoSupportCombine,
         t4RolePresets, setT4RolePreset, clearT4RolePreset, clearAllT4RolePresets,
+        autoNextWave, setAutoNextWave,
+        maxGameSpeed, setMaxGameSpeed,
     };
 };
 
