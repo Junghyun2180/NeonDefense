@@ -37,14 +37,18 @@ const PlacementUI = ({
                         const x = Math.cos(angle) * radius - 22;
                         const y = Math.sin(angle) * radius - 22;
                         const hasElement = availableElements[elem.id];
+                        const elemKey = ['fire', 'water', 'electric', 'wind', 'void', 'light'][elem.id];
+                        const orbUrl = `assets/icons/elements/${elemKey}.png`;
                         return (
                             <div
                                 key={elem.id}
                                 className={'absolute w-11 h-11 rounded-full flex items-center justify-center cursor-pointer transition-all ' + (hasElement ? 'hover:scale-110' : 'opacity-30 cursor-not-allowed')}
-                                style={{ left: x, top: y, background: hasElement ? `radial-gradient(circle, ${elem.color} 0%, ${elem.color}80 70%)` : '#333', boxShadow: hasElement ? `0 0 15px ${elem.color}80` : 'none', border: `2px solid ${hasElement ? elem.color : '#555'}` }}
+                                style={{ left: x, top: y, background: 'transparent', boxShadow: hasElement ? `0 0 15px ${elem.color}80` : 'none' }}
                                 onClick={() => hasElement && handleElementSelect(elem.id)}
+                                title={elem.name}
                             >
-                                <span className="text-lg">{elem.icon}</span>
+                                <img src={orbUrl} alt={elem.name} draggable={false}
+                                     style={{ width: '100%', height: '100%', pointerEvents: 'none', filter: hasElement ? 'none' : 'grayscale(1) brightness(0.5)' }} />
                             </div>
                         );
                     })}
