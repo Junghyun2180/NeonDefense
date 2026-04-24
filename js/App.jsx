@@ -69,6 +69,20 @@ const NeonDefense = () => {
   // 도움말 모달 상태
   const [showHelp, setShowHelp] = useState(false);
 
+  // 첫 접속 시 도움말 자동 표시 (튜토리얼 대체)
+  useEffect(() => {
+    if (!settings.tutorialSeen) {
+      setShowHelp(true);
+    }
+  }, []);
+
+  // 도움말 닫힐 때 tutorialSeen 저장
+  useEffect(() => {
+    if (!showHelp && !settings.tutorialSeen) {
+      settings.setTutorialSeen(true);
+    }
+  }, [showHelp]);
+
   // T4 역할 선택 모달: "이 역할 기억" 체크박스 상태
   const [rememberT4Role, setRememberT4Role] = useState(false);
 

@@ -23,6 +23,7 @@ const useSettings = () => {
     const [t4RolePresets, setT4RolePresetsState] = useState(initial.t4RolePresets || {});
     const [autoNextWave, setAutoNextWaveState] = useState(initial.autoNextWave ?? true);
     const [maxGameSpeed, setMaxGameSpeedState] = useState(initial.maxGameSpeed ?? 5);
+    const [tutorialSeen, setTutorialSeenState] = useState(initial.tutorialSeen ?? false);
 
     const persist = useCallback((next) => {
         try {
@@ -76,12 +77,18 @@ const useSettings = () => {
         persist({ maxGameSpeed: clamped });
     }, [persist]);
 
+    const setTutorialSeen = useCallback((val) => {
+        setTutorialSeenState(val);
+        persist({ tutorialSeen: val });
+    }, [persist]);
+
     return {
         autoCombine, setAutoCombine,
         autoSupportCombine, setAutoSupportCombine,
         t4RolePresets, setT4RolePreset, clearT4RolePreset, clearAllT4RolePresets,
         autoNextWave, setAutoNextWave,
         maxGameSpeed, setMaxGameSpeed,
+        tutorialSeen, setTutorialSeen,
     };
 };
 
