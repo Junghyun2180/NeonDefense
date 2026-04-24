@@ -134,6 +134,27 @@ const NeonDefense = () => {
     return () => window.removeEventListener('neon-prism-drop', handler);
   }, []);
 
+  // 스테이지 별점 새 기록 시 토스트
+  useEffect(() => {
+    const starHandler = (e) => {
+      const { stage: s, stars, prev } = e.detail || {};
+      const starText = stars === 3 ? '★★★' : stars === 2 ? '★★☆' : '★☆☆';
+      const msg = prev === 0
+        ? `Stage ${s} 클리어! ${starText} 획득!`
+        : `Stage ${s} 별점 갱신! ${starText} (이전 ${prev}★)`;
+      setHintToast({ visible: true, message: msg, icon: stars === 3 ? '🌟' : '⭐' });
+    };
+    const allThreeHandler = () => {
+      setHintToast({ visible: true, message: '🏆 모든 스테이지 ★★★ 달성! 마스터 등극!', icon: '🏆' });
+    };
+    window.addEventListener('neon-stage-star', starHandler);
+    window.addEventListener('neon-all-three-star', allThreeHandler);
+    return () => {
+      window.removeEventListener('neon-stage-star', starHandler);
+      window.removeEventListener('neon-all-three-star', allThreeHandler);
+    };
+  }, []);
+
   // ===== 킬 콤보 카운터 (2초 내 연속 킬 = 콤보) =====
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
@@ -683,6 +704,18 @@ const NeonDefense = () => {
           metaProgress={runModeState.metaProgress}
           neonCrystals={runModeState.neonCrystals}
           onPurchaseUpgrade={runModeState.purchaseUpgrade}
+          onDailyLoginReward={({ crystals, tickets }) => {
+            if (crystals && runModeState.setMetaProgress) {
+              runModeState.setMetaProgress(prev => {
+                const updated = { ...prev, crystals: (prev.crystals || 0) + crystals };
+                if (typeof RunSaveSystem !== 'undefined') RunSaveSystem.saveMeta(updated);
+                return updated;
+              });
+            }
+            if (tickets && typeof CollectionSystem !== 'undefined') {
+              CollectionSystem.addFreeDrawTicket(tickets);
+            }
+          }}
         />
       )}
 

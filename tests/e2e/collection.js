@@ -15,12 +15,27 @@ const URL = process.env.BASE_URL || 'http://localhost:8765/index.html';
   await page.goto(URL, { waitUntil: 'networkidle' });
   await page.waitForSelector('#root *', { timeout: 10000 });
   await page.waitForTimeout(500);
+  // DailyLogin 자동팝업 방지 — sessionStorage 플래그 미리 세팅 후 리로드
+  await page.evaluate(() => {
+    sessionStorage.setItem('__dailyLoginOpened', '1');
+    // 오늘 보상 이미 수령한 상태로 마킹 (자동 오픈 조건 차단)
+    const today = new Date();
+    const d = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    localStorage.setItem('neonDefense_dailyLogin_v1', JSON.stringify({ currentDay: 1, lastClaimDate: d, streak: 1 }));
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(500);
 
-  // 첫 접속 도움말 자동 표시 닫기 (W13)
-  try {
-    const closeBtn = page.locator('button', { hasText: '닫기' }).or(page.locator('button[aria-label="close"]')).or(page.locator('button:has-text("✕")')).first();
-    if (await closeBtn.count() > 0) await closeBtn.click({ timeout: 2000 });
-  } catch {}
+  // 첫 접속 도움말 자동 표시 닫기 (W13) + DailyLogin 자동팝업 닫기 (A2)
+  for (let i = 0; i < 3; i++) {
+    try {
+      const closeBtn = page.locator('button:has-text("✕")').first();
+      if (await closeBtn.count() > 0) {
+        await closeBtn.click({ timeout: 1500 });
+        await page.waitForTimeout(200);
+      } else break;
+    } catch { break; }
+  }
   await page.waitForTimeout(200);
 
   // localStorage 초기 상태 기록

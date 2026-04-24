@@ -34,9 +34,19 @@ const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCoun
                         <span className="text-emerald-400">🏰</span>
                         <span className="font-bold text-emerald-300 whitespace-nowrap">{stage}/{gameMode === 'endless' ? '∞' : activeSPAWN.maxStage}</span>
                     </div>
-                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-cyan-500/50 flex items-center gap-1">
-                        <span className="text-cyan-400">🌊</span>
-                        <span className="font-bold text-cyan-300 whitespace-nowrap">{wave}/{activeSPAWN.wavesPerStage}</span>
+                    <div
+                        className={'px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border flex items-center gap-1 ' +
+                            (wave === activeSPAWN.wavesPerStage
+                                ? 'bg-red-900/60 border-red-500 animate-pulse'
+                                : 'bg-gray-900 border-cyan-500/50')}
+                        title={wave === activeSPAWN.wavesPerStage ? '🚨 DANGER WAVE — 적 속도/체력 강화' : ''}
+                    >
+                        <span className={wave === activeSPAWN.wavesPerStage ? 'text-red-400' : 'text-cyan-400'}>
+                            {wave === activeSPAWN.wavesPerStage ? '🚨' : '🌊'}
+                        </span>
+                        <span className={'font-bold whitespace-nowrap ' + (wave === activeSPAWN.wavesPerStage ? 'text-red-300' : 'text-cyan-300')}>
+                            {wave}/{activeSPAWN.wavesPerStage}
+                        </span>
                     </div>
                     <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-yellow-500/50 flex items-center gap-1">
                         <span className="text-yellow-400">💰</span>
