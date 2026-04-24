@@ -271,9 +271,35 @@ const generateMultiplePaths = (seed, stage = 1) => {
 };
 
 // ===== 모듈러 타일 선택 유틸리티 =====
-// pathData → 셀 Set → (x,y) 이웃 4비트 마스크(UDLR) → 타일 파일명
+// pathData → 실제 경로 이동 인접성 맵 → (x,y) 이웃 4비트 마스크(UDLR)
 //   U=8, D=4, L=2, R=1
+//
+// 중요: "grid상 인접"이 아니라 "경로에서 실제로 이어지는" 셀만 연결로 판정.
+// 이렇게 하지 않으면 두 개의 나란한 경로가 서로를 이웃으로 오인하여
+// 직선 세로 구간이 T-junction으로 잘못 렌더됨 (ladder effect)
 
+const buildPathAdjacency = (pathData) => {
+  const adj = new Map();
+  if (!pathData || !pathData.paths) return adj;
+  for (const p of pathData.paths) {
+    for (let i = 0; i < p.tiles.length; i++) {
+      const key = `${p.tiles[i].x},${p.tiles[i].y}`;
+      if (!adj.has(key)) adj.set(key, new Set());
+      // 실제 경로에서 이 셀 이전/다음으로 이어진 셀만 이웃으로 추가
+      if (i > 0) {
+        const prev = `${p.tiles[i - 1].x},${p.tiles[i - 1].y}`;
+        adj.get(key).add(prev);
+      }
+      if (i < p.tiles.length - 1) {
+        const next = `${p.tiles[i + 1].x},${p.tiles[i + 1].y}`;
+        adj.get(key).add(next);
+      }
+    }
+  }
+  return adj;
+};
+
+// (하위 호환용) 단순 Set: 셀이 path에 속하는지 조회만 필요한 경우
 const buildPathCellsSet = (pathData) => {
   const set = new Set();
   if (!pathData || !pathData.paths) return set;
@@ -283,12 +309,20 @@ const buildPathCellsSet = (pathData) => {
   return set;
 };
 
-const getPathTileMask = (x, y, pathCellsSet) => {
+const getPathTileMask = (x, y, adjacencyOrSet) => {
+  const key = `${x},${y}`;
+  // adjacency Map (정확한 경로 기반) 또는 단순 Set 둘 다 지원
+  const isAdj = adjacencyOrSet instanceof Map;
+  const neighbors = isAdj ? (adjacencyOrSet.get(key) || new Set()) : null;
+  const hasNeighbor = (nx, ny) => {
+    const nk = `${nx},${ny}`;
+    return isAdj ? neighbors.has(nk) : adjacencyOrSet.has(nk);
+  };
   let mask = 0;
-  if (pathCellsSet.has(`${x},${y - 1}`)) mask |= 8; // U
-  if (pathCellsSet.has(`${x},${y + 1}`)) mask |= 4; // D
-  if (pathCellsSet.has(`${x - 1},${y}`)) mask |= 2; // L
-  if (pathCellsSet.has(`${x + 1},${y}`)) mask |= 1; // R
+  if (hasNeighbor(x, y - 1)) mask |= 8; // U
+  if (hasNeighbor(x, y + 1)) mask |= 4; // D
+  if (hasNeighbor(x - 1, y)) mask |= 2; // L
+  if (hasNeighbor(x + 1, y)) mask |= 1; // R
   return mask;
 };
 
@@ -316,6 +350,7 @@ const getPathTileName = (mask) => {
   }
 };
 
+window.buildPathAdjacency = buildPathAdjacency;
 window.buildPathCellsSet = buildPathCellsSet;
 window.getPathTileMask = getPathTileMask;
 window.getPathTileName = getPathTileName;

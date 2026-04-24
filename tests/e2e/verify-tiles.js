@@ -16,8 +16,13 @@ fs.mkdirSync(OUT_DIR, { recursive: true });
     headless: true,
     args: ['--ignore-certificate-errors', '--disable-web-security'],
   });
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const ctx = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    bypassCSP: true,
+  });
+  await ctx.route('**/assets/**', route => route.continue());
   const page = await ctx.newPage();
+  await page.setExtraHTTPHeaders({ 'Cache-Control': 'no-cache' });
 
   const errors = [];
   page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));

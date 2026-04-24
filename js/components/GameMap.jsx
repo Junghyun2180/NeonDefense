@@ -37,8 +37,8 @@ const GameMap = ({
     }, [maxGameSpeed]);
     const { useMemo } = React;
 
-    // 모듈러 타일 선택용: 전체 path 셀의 {x,y} Set (이웃 탐색용)
-    const pathCellsSet = useMemo(() => buildPathCellsSet(pathData), [pathData]);
+    // 모듈러 타일 선택용: 경로 이동 인접성 맵 (grid 근접이 아닌 실제 경로 기반)
+    const pathAdjacency = useMemo(() => buildPathAdjacency(pathData), [pathData]);
 
     // 속성 인덱스 → orb 이미지 URL
     const ELEMENT_KEYS = ['fire', 'water', 'electric', 'wind', 'void', 'light'];
@@ -118,9 +118,9 @@ const GameMap = ({
                                 if (isDropPreview) extraClass = dropPreview.valid ? 'drop-preview-valid' : 'drop-preview-invalid';
                                 if (isSelectedTile) extraClass = 'ring-2 ring-white ring-opacity-80';
 
-                                // 모듈러 타일 선택: 이웃 기반 마스크 → 타일 종류
+                                // 모듈러 타일 선택: 경로 인접성 기반 마스크 → 타일 종류
                                 const tileClass = isPath
-                                    ? 'tile-path ' + getPathTileName(getPathTileMask(x, y, pathCellsSet))
+                                    ? 'tile-path ' + getPathTileName(getPathTileMask(x, y, pathAdjacency))
                                     : 'tile-grass';
                                 // 경로별 색상 틴트는 제거 — 타일 이미지 자체의 네온 색상 유지 (셀 박스 사라지게)
                                 const pathStyle = {};
