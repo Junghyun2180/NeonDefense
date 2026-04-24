@@ -42,7 +42,7 @@ body {
   animation: hit 0.2s ease-out forwards;
 }
 
-/* Tiles */
+/* Tiles (레거시 — 하위 호환용) */
 .path-tile {
   background-image: url('../assets/tiles/path-tile.png');
   background-size: cover;
@@ -56,6 +56,30 @@ body {
   background-position: center;
   background-repeat: no-repeat;
 }
+
+/* ===== 모듈러 타일셋 (신규) ===== */
+.tile-path,
+.tile-grass,
+.tile-start,
+.tile-end {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.tile-grass        { background-image: url('../assets/tiles/path/grass.png'); }
+.tile-path.str-h   { background-image: url('../assets/tiles/path/str-h.png'); }
+.tile-path.str-v   { background-image: url('../assets/tiles/path/str-v.png'); }
+.tile-path.cross   { background-image: url('../assets/tiles/path/cross.png'); }
+.tile-path.cor-ne  { background-image: url('../assets/tiles/path/cor-ne.png'); }
+.tile-path.cor-nw  { background-image: url('../assets/tiles/path/cor-nw.png'); }
+.tile-path.cor-se  { background-image: url('../assets/tiles/path/cor-se.png'); }
+.tile-path.cor-sw  { background-image: url('../assets/tiles/path/cor-sw.png'); }
+.tile-path.t-n     { background-image: url('../assets/tiles/path/t-n.png'); }
+.tile-path.t-s     { background-image: url('../assets/tiles/path/t-s.png'); }
+.tile-path.t-e     { background-image: url('../assets/tiles/path/t-e.png'); }
+.tile-path.t-w     { background-image: url('../assets/tiles/path/t-w.png'); }
+.tile-start        { background-image: url('../assets/tiles/points/start.png'); }
+.tile-end          { background-image: url('../assets/tiles/points/end.png'); }
 
 /* Tower Range */
 .tower-range {
