@@ -251,20 +251,22 @@ const COMBAT = {
 };
 
 // ===== 스폰 설정 (점진적 증가) =====
+// 캠페인 목표: 10-19분 (optimal 10분대, casual 30분 이내)
+// 기존 10스테이지 × 5웨이브 = 50웨이브 → 6스테이지 × 5웨이브 = 30웨이브로 단축
 const SPAWN = {
   enemiesPerWave: (stage, wave) => {
     // 기본: 8 + 웨이브당 2 + 스테이지당 3
-    // S1W1: 10, S1W5: 18, S2W1: 13, S5W1: 22, S10W5: 40
+    // S1W1: 10, S1W5: 18, S2W1: 13, S6W5: 31
     const base = 8 + wave * 2 + (stage - 1) * 3;
-    return Math.min(base, 50); // 최대 50마리 캡
+    return Math.min(base, 50);
   },
   spawnDelay: (stage, wave) => {
     // 넉넉하게 시작 → 점진적 빨라짐
     const base = 800 - (stage * 40) - (wave * 15);
-    return Math.max(200, base); // 최소 200ms
+    return Math.max(200, base);
   },
   wavesPerStage: 5,
-  maxStage: 10,
+  maxStage: 6,  // 10 → 6: 세션 시간 40% 단축
 };
 
 // ===== 모바일 배치 UI 속성 데이터 =====

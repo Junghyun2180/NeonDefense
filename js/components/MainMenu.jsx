@@ -2,6 +2,7 @@
 // 게임 시작 전 모드 선택 및 저장 데이터 불러오기
 
 const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress, neonCrystals, onPurchaseUpgrade }) => {
+  const [showCollection, setShowCollection] = React.useState(false);
   const { useState } = React;
 
   const [selectedMode, setSelectedMode] = useState('campaign'); // 'campaign', 'run'
@@ -89,7 +90,22 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
           >
             🏆 순위
           </button>
+          <button
+            onClick={() => setShowCollection(true)}
+            className="flex-1 py-3 text-sm font-bold transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+            style={{ fontFamily: 'Orbitron, sans-serif' }}
+          >
+            🗂️ 도감
+            {typeof CollectionSystem !== 'undefined' && (() => {
+              const c = CollectionSystem.getCompletion();
+              return c.unlocked > 0 ? <span className="ml-1.5 text-xs text-cyan-300 font-normal">{c.percent}%</span> : null;
+            })()}
+          </button>
         </div>
+
+        {showCollection && typeof CollectionModal !== 'undefined' && (
+          <CollectionModal isOpen={showCollection} onClose={() => setShowCollection(false)} />
+        )}
 
         {/* ── 중간 스크롤 영역: 탭 콘텐츠 ── */}
         <div className="flex-1 overflow-y-auto min-h-0">

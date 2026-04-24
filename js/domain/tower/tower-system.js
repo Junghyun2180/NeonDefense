@@ -18,6 +18,10 @@ const TowerSystem = {
       lastShot: 0,
       isDebuffed: false,
     };
+    // 도감 기록 (loader 환경에선 CollectionSystem 없을 수 있음)
+    if (typeof CollectionSystem !== 'undefined') {
+      CollectionSystem.recordTower(colorIndex, tier);
+    }
     // Ability 할당
     return AbilitySystem.assignAbility(tower);
   },
@@ -84,6 +88,10 @@ const TowerSystem = {
       roleIcon: selectedRole.icon,
       special: selectedRole.special || {},
     };
+    // 도감 기록: T4 (tier 4) + 역할
+    if (typeof CollectionSystem !== 'undefined') {
+      CollectionSystem.recordTower(colorIndex, 4, roleId);
+    }
     // Ability 할당
     return AbilitySystem.assignAbility(tower);
   },
@@ -310,6 +318,9 @@ const TowerSystem = {
       buffValue: config.values[supportType],
       isSupport: true,
     };
+    if (typeof CollectionSystem !== 'undefined') {
+      CollectionSystem.recordSupport(supportType, tier);
+    }
     // Ability 할당
     return SupportAbilitySystem.assignAbility(support);
   },

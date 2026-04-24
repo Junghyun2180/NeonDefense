@@ -23,6 +23,7 @@ const FILES = [
   'js/infra/daily-challenge.js',
   'js/domain/progression/leaderboard.js',
   'js/domain/progression/achievement-system.js',
+  'js/domain/progression/collection-system.js',
   'js/infra/balance-logger.js',
   'js/domain/effect/status-effect.js',
   'js/domain/effect/synergy-system.js',
@@ -107,7 +108,7 @@ const EXPORT_NAMES = [
   'AbilitySystem', 'SupportAbilitySystem', 'EnemyAbilitySystem',
   'TowerSystem', 'EnemySystem', 'GameEngine',
   'StatusEffectSystem', 'StatusEffectManager', 'SynergySystem',
-  'PermanentBuffManager', 'GameStats',
+  'PermanentBuffManager', 'GameStats', 'CollectionSystem',
   'RunMode', 'DataResolver', 'ModeAbilityHelper', 'BuffHelper',
   // 상수
   'ELEMENT_TYPES', 'ELEMENT_EFFECTS', 'ELEMENT_UI', 'NEON_TYPES',

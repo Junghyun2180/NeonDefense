@@ -147,6 +147,7 @@ const GameEngine = {
           totalKilled++;
           totalGoldEarned += enemy.goldReward || 4;
           newEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'explosion', color: '#FF6B6B' });
+          if (typeof CollectionSystem !== 'undefined') CollectionSystem.recordEnemyKill(enemy.type);
           return null;
         }
         return { ...enemy, health: newHealth };
@@ -298,6 +299,7 @@ const GameEngine = {
           if (newHealth <= 0) {
             totalKilled++;
             totalGoldEarned += enemy.goldReward || 4;
+            if (typeof CollectionSystem !== 'undefined') CollectionSystem.recordEnemyKill(enemy.type);
             newEffects.push({
               id: Date.now() + Math.random(), x: enemy.x, y: enemy.y,
               type: 'explosion', color: EnemySystem.getExplosionColor(enemy),
