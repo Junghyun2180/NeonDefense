@@ -14,8 +14,11 @@ const NeonDefense = () => {
     : runModeState.campaignConfig;
   const gameState = useGameState(activeConfig);
 
+  // ===== 사용자 설정 훅 (속도감 개선 — 자동조합, T4 역할 프리셋) =====
+  const settings = useSettings();
+
   // ===== 인벤토리 훅 =====
-  const inventoryState = useInventory(gameState);
+  const inventoryState = useInventory(gameState, settings);
 
   // ===== 저장/불러오기 훅 =====
   const saveLoadState = useSaveLoad({
@@ -65,6 +68,9 @@ const NeonDefense = () => {
 
   // 도움말 모달 상태
   const [showHelp, setShowHelp] = useState(false);
+
+  // T4 역할 선택 모달: "이 역할 기억" 체크박스 상태
+  const [rememberT4Role, setRememberT4Role] = useState(false);
 
   // 사운드 상태
   const [bgmEnabled, setBgmEnabled] = useState(true);
@@ -580,8 +586,16 @@ const NeonDefense = () => {
             isInventoryFull={inventoryState.isInventoryFull}
             isSupportInventoryFull={inventoryState.isSupportInventoryFull}
             drawRandomNeon={inventoryState.drawRandomNeon}
+            drawRandomNeon10={inventoryState.drawRandomNeon10}
             drawRandomSupport={inventoryState.drawRandomSupport}
+            drawRandomSupport10={inventoryState.drawRandomSupport10}
             effectiveDrawCost={inventoryState.effectiveDrawCost}
+            autoCombine={settings.autoCombine}
+            setAutoCombine={settings.setAutoCombine}
+            autoSupportCombine={settings.autoSupportCombine}
+            setAutoSupportCombine={settings.setAutoSupportCombine}
+            clearAllT4RolePresets={settings.clearAllT4RolePresets}
+            t4RolePresets={settings.t4RolePresets}
             inventory={inventoryState.inventory}
             selectedInventory={inventoryState.selectedInventory}
             selectedTowerForPlacement={dragState.selectedTowerForPlacement}
@@ -636,9 +650,11 @@ const NeonDefense = () => {
           {/* T4 역할 선택 모달 */}
           <RoleSelectionModal
             pendingT4Choice={inventoryState.pendingT4Choice}
-            onSelectRole={inventoryState.confirmT4Role}
-            onCancel={inventoryState.cancelT4Choice}
+            onSelectRole={(roleId, remember) => { inventoryState.confirmT4Role(roleId, remember); setRememberT4Role(false); }}
+            onCancel={() => { inventoryState.cancelT4Choice(); setRememberT4Role(false); }}
             getElementInfo={getElementInfo}
+            rememberChoice={rememberT4Role}
+            setRememberChoice={setRememberT4Role}
           />
 
           {/* 치트 콘솔 */}

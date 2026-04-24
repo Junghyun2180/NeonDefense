@@ -1,8 +1,10 @@
 // useInventory - 인벤토리 및 조합 관리 훅
-const useInventory = (gameState) => {
+// settings: { autoCombine, autoSupportCombine, t4RolePresets } — useSettings 훅 결과
+const useInventory = (gameState, settings = {}) => {
     const { useState, useCallback, useMemo } = React;
 
     const { gold, setGold, towers, setTowers, supportTowers, setSupportTowers, setEffects, permanentBuffs = {}, gameStats, setGameStats } = gameState;
+    const { autoCombine = false, autoSupportCombine = false, t4RolePresets = {} } = settings;
 
     // 통계 업데이트 헬퍼
     const updateStats = useCallback((updater) => {
@@ -167,31 +169,93 @@ const useInventory = (gameState) => {
         if (gold < cost || inventory.length >= ECONOMY.maxInventory) return;
         const colorIndex = Math.floor(Math.random() * 6);
         const newNeon = TowerSystem.create(1, colorIndex);
-        setInventory(prev => [...prev, newNeon]);
+        setInventory(prev => {
+            const next = [...prev, newNeon];
+            return autoCombine ? TowerSystem.combineAll(next) : next;
+        });
         setGold(prev => prev - cost);
-        // 통계: 타워 뽑기, 골드 사용
         updateStats(prev => ({
             ...prev,
             towersDrawn: prev.towersDrawn + 1,
             totalGoldSpent: prev.totalGoldSpent + cost,
         }));
         soundManager.playDraw();
-    }, [gold, inventory.length, setGold, permanentBuffs, updateStats]);
+    }, [gold, inventory.length, setGold, permanentBuffs, updateStats, autoCombine]);
+
+    // 10연뽑 (한 번에 최대 10회)
+    const drawRandomNeon10 = useCallback(() => {
+        const cost = Math.max(1, ECONOMY.drawCost - BuffHelper.getDrawDiscount(permanentBuffs));
+        const remainingSlots = ECONOMY.maxInventory - inventory.length;
+        const maxByGold = Math.floor(gold / cost);
+        const count = Math.min(10, remainingSlots, maxByGold);
+        if (count <= 0) return;
+
+        const baseId = Date.now();
+        const newNeons = [];
+        for (let i = 0; i < count; i++) {
+            const colorIndex = Math.floor(Math.random() * 6);
+            const n = TowerSystem.create(1, colorIndex);
+            n.id = baseId + i + Math.random();
+            newNeons.push(n);
+        }
+        setInventory(prev => {
+            const next = [...prev, ...newNeons];
+            return autoCombine ? TowerSystem.combineAll(next) : next;
+        });
+        setGold(prev => prev - cost * count);
+        updateStats(prev => ({
+            ...prev,
+            towersDrawn: prev.towersDrawn + count,
+            totalGoldSpent: prev.totalGoldSpent + cost * count,
+        }));
+        soundManager.playDraw();
+    }, [gold, inventory.length, setGold, permanentBuffs, updateStats, autoCombine]);
 
     const drawRandomSupport = useCallback(() => {
         if (gold < ECONOMY.supportDrawCost || supportInventory.length >= ECONOMY.maxSupportInventory) return;
         const supportType = Math.floor(Math.random() * 4);
         const newSupport = TowerSystem.createSupport(1, supportType);
-        setSupportInventory(prev => [...prev, newSupport]);
+        setSupportInventory(prev => {
+            const next = [...prev, newSupport];
+            return autoSupportCombine ? TowerSystem.combineAllSupport(next) : next;
+        });
         setGold(prev => prev - ECONOMY.supportDrawCost);
-        // 통계: 서포트 뽑기, 골드 사용
         updateStats(prev => ({
             ...prev,
             supportTowersDrawn: prev.supportTowersDrawn + 1,
             totalGoldSpent: prev.totalGoldSpent + ECONOMY.supportDrawCost,
         }));
         soundManager.playDraw();
-    }, [gold, supportInventory.length, setGold, updateStats]);
+    }, [gold, supportInventory.length, setGold, updateStats, autoSupportCombine]);
+
+    // 서포트 10연뽑
+    const drawRandomSupport10 = useCallback(() => {
+        const cost = ECONOMY.supportDrawCost;
+        const remainingSlots = ECONOMY.maxSupportInventory - supportInventory.length;
+        const maxByGold = Math.floor(gold / cost);
+        const count = Math.min(10, remainingSlots, maxByGold);
+        if (count <= 0) return;
+
+        const baseId = Date.now();
+        const newSupports = [];
+        for (let i = 0; i < count; i++) {
+            const supportType = Math.floor(Math.random() * 4);
+            const s = TowerSystem.createSupport(1, supportType);
+            s.id = baseId + i + Math.random();
+            newSupports.push(s);
+        }
+        setSupportInventory(prev => {
+            const next = [...prev, ...newSupports];
+            return autoSupportCombine ? TowerSystem.combineAllSupport(next) : next;
+        });
+        setGold(prev => prev - cost * count);
+        updateStats(prev => ({
+            ...prev,
+            supportTowersDrawn: prev.supportTowersDrawn + count,
+            totalGoldSpent: prev.totalGoldSpent + cost * count,
+        }));
+        soundManager.playDraw();
+    }, [gold, supportInventory.length, setGold, updateStats, autoSupportCombine]);
 
     // ===== 조합 =====
     const combineNeons = useCallback(() => {
@@ -199,8 +263,19 @@ const useInventory = (gameState) => {
         const result = TowerSystem.combine(selectedInventory);
         if (!result) return;
 
-        // T3 → T4 조합 시 역할 선택 모달 표시
+        // T3 → T4 조합 시 역할 선택 모달 표시 (프리셋 있으면 자동 처리)
         if (result.pending) {
+            const presetRole = t4RolePresets[result.element];
+            if (presetRole) {
+                const t4Tower = TowerSystem.createT4WithRole(result.element, presetRole);
+                if (t4Tower) {
+                    const idsToRemove = selectedInventory.map(n => n.id);
+                    setInventory(prev => [...prev.filter(n => !idsToRemove.includes(n.id)), t4Tower]);
+                    setSelectedInventory([]);
+                    soundManager.playCombine();
+                    return;
+                }
+            }
             setPendingT4Choice({
                 ...result,
                 source: 'inventory',
@@ -213,7 +288,7 @@ const useInventory = (gameState) => {
         setInventory(prev => [...prev.filter(n => !idsToRemove.includes(n.id)), result]);
         setSelectedInventory([]);
         soundManager.playCombine();
-    }, [selectedInventory]);
+    }, [selectedInventory, t4RolePresets]);
 
     const combineAllNeons = useCallback(() => {
         setInventory(prev => TowerSystem.combineAll(prev));
@@ -230,9 +305,25 @@ const useInventory = (gameState) => {
         const result = TowerSystem.combine(allItems);
         if (!result) return;
 
-        // T3 → T4 조합 시 역할 선택 모달 표시
+        // T3 → T4 조합 시 역할 선택 모달 표시 (프리셋 있으면 자동 처리)
         if (result.pending) {
             const firstTower = selectedTowers[0];
+            const presetRole = t4RolePresets[result.element];
+            if (presetRole) {
+                const t4Tower = TowerSystem.createT4WithRole(result.element, presetRole);
+                if (t4Tower) {
+                    const placedTower = TowerSystem.placeOnGrid(t4Tower, firstTower.gridX, firstTower.gridY);
+                    const mapIds = selectedTowers.map(t => t.id);
+                    const invIds = selectedInventory.map(t => t.id);
+                    setTowers(prev => [...prev.filter(t => !mapIds.includes(t.id)), placedTower]);
+                    setInventory(prev => prev.filter(t => !invIds.includes(t.id)));
+                    setSelectedTowers([]);
+                    setSelectedInventory([]);
+                    setEffects(prev => [...prev, { id: Date.now(), x: firstTower.x, y: firstTower.y, type: 'explosion', color: t4Tower.color }]);
+                    soundManager.playCombine();
+                    return;
+                }
+            }
             setPendingT4Choice({
                 ...result,
                 source: 'map',
@@ -261,11 +352,16 @@ const useInventory = (gameState) => {
         setSelectedInventory([]);
         setEffects(prev => [...prev, { id: Date.now(), x: firstTower.x, y: firstTower.y, type: 'explosion', color: result.color }]);
         soundManager.playCombine();
-    }, [selectedTowers, selectedInventory, setTowers, setInventory, setEffects]);
+    }, [selectedTowers, selectedInventory, setTowers, setInventory, setEffects, t4RolePresets]);
 
     // T4 역할 선택 완료 핸들러
-    const confirmT4Role = useCallback((roleId) => {
+    // rememberChoice=true 시 settings.setT4RolePreset 호출 (App.jsx에서 주입)
+    const confirmT4Role = useCallback((roleId, rememberChoice = false) => {
         if (!pendingT4Choice) return;
+
+        if (rememberChoice && typeof settings.setT4RolePreset === 'function') {
+            settings.setT4RolePreset(pendingT4Choice.element, roleId);
+        }
 
         const t4Tower = TowerSystem.createT4WithRole(pendingT4Choice.element, roleId);
         if (!t4Tower) {
@@ -434,7 +530,9 @@ const useInventory = (gameState) => {
         toggleSupportTowerSelect,
         // 뽑기
         drawRandomNeon,
+        drawRandomNeon10,
         drawRandomSupport,
+        drawRandomSupport10,
         // 조합
         combineNeons,
         combineAllNeons,
