@@ -1,7 +1,8 @@
 // Neon Defense - 냉기(WATER) 속성 Ability
 // 슬로우 + T4 빙결/광역 슬로우/넉백
 
-// ===== 기본 냉기 (T1~T3): 슬로우 =====
+// ===== 기본 냉기 (T1~T3): 슬로우 + 3적중마다 빙결 (차별화) =====
+// 적 객체에 slowChargeMap을 두고, 같은 적에 3번 적중하면 짧은 빙결 발동 후 카운터 리셋
 class SlowAbility extends Ability {
   static TYPE = 'slow';
 
@@ -11,7 +12,7 @@ class SlowAbility extends Ability {
   }
 
   onHit(context) {
-    const { hit, permanentBuffs } = context;
+    const { hit, target, permanentBuffs } = context;
     const result = {
       damageModifier: 1.0,
       additionalDamage: 0,
@@ -20,20 +21,65 @@ class SlowAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      targetMutations: [],   // 엔진이 적 상태를 변경하도록 요청
     };
 
-    // 영구 버프 적용
     const permSlowMult = BuffHelper.getSlowPowerMultiplier(permanentBuffs);
-
     const slowPercent = this.getTierValue('slowPercent') * permSlowMult;
     const slowDuration = this.getTierValue('slowDuration');
 
+    // Water는 CC 의존이라 단일 DPS가 낮음 → 기본 공격에 +15% 보정 (단독 플레이 밸런스)
+    result.damageModifier = 1.15;
+
+    // 슬로우 적용 (기존 동작 유지 — 더 강한 값이면 갱신)
     result.statusEffects.push({
       enemyId: hit.enemyId,
       type: 'slow',
       percent: slowPercent,
       duration: slowDuration,
     });
+
+    // 슬로우 스택: 대상의 _slowCharge를 증가시키고 5에 도달하면 freeze + 빙결 폭발 AoE
+    // 5스택 기준: 적이 너무 자주 정지해 누적되는 문제를 완화
+    const prevCharge = (target && target._slowCharge) || 0;
+    const nextCharge = prevCharge + 1;
+    if (nextCharge >= 4) {
+      result.statusEffects.push({
+        enemyId: hit.enemyId,
+        type: 'freeze',
+        duration: 600,
+      });
+      // 빙결 폭발 — 주변 적에게 AoE 데미지 (Water의 유일한 burst damage)
+      const { enemies = [] } = context;
+      const explosionRadius = 70;
+      const explosionDamage = Math.floor(hit.damage * 0.85);
+      for (const e of enemies) {
+        if (!e || e.id === hit.enemyId) continue;
+        const dx = e.x - hit.x, dy = e.y - hit.y;
+        if (dx * dx + dy * dy <= explosionRadius * explosionRadius) {
+          result.aoeTargets.push({
+            enemy: e,
+            damage: explosionDamage,
+            statusEffects: [{
+              enemyId: e.id,
+              type: 'slow',
+              percent: slowPercent * 0.7,
+              duration: slowDuration * 0.6,
+            }],
+          });
+        }
+      }
+      result.targetMutations.push({ enemyId: hit.enemyId, set: { _slowCharge: 0 } });
+      result.visualEffects.push({
+        id: Date.now() + Math.random(),
+        x: hit.x,
+        y: hit.y,
+        type: 'water-freeze-burst',
+        color: '#00FFFF',
+      });
+    } else {
+      result.targetMutations.push({ enemyId: hit.enemyId, set: { _slowCharge: nextCharge } });
+    }
 
     result.visualEffects.push({
       id: Date.now() + Math.random(),
@@ -47,7 +93,7 @@ class SlowAbility extends Ability {
   }
 
   getDescription() {
-    return `슬로우 (${this.getTierValue('slowPercent') * 100}% 감속)`;
+    return `슬로우 (${this.getTierValue('slowPercent') * 100}% 감속 · 3적중 빙결)`;
   }
 }
 

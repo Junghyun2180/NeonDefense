@@ -80,6 +80,7 @@ const GameEngine = {
           y: target.y,
           towerX: proj.towerX,
           towerY: proj.towerY,
+          towerId: proj.towerId,   // 속성 스택 추적
           color: proj.color,
           // T4 특수 능력 정보 전달
           special: proj.special || {},
@@ -219,6 +220,19 @@ const GameEngine = {
             updatedEnemy = EnemySystem.applyStatusEffect(updatedEnemy, effect, now);
           });
           return updatedEnemy;
+        });
+      }
+
+      // 적 상태 직접 변경 요청 적용 (속성 스택 카운터 등)
+      if (resolved.targetMutations && resolved.targetMutations.length > 0) {
+        movedEnemies = movedEnemies.map(enemy => {
+          const muts = resolved.targetMutations.filter(m => m.enemyId === enemy.id);
+          if (muts.length === 0) return enemy;
+          let next = enemy;
+          for (const m of muts) {
+            if (m.set) next = { ...next, ...m.set };
+          }
+          return next;
         });
       }
 

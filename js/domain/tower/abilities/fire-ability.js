@@ -1,7 +1,7 @@
 // Neon Defense - 화염(FIRE) 속성 Ability
 // 화상 DoT + T4 특수 능력
 
-// ===== 기본 화염 (T1~T3): 화상 =====
+// ===== 기본 화염 (T1~T3): 화상 + 3적중마다 범위 폭발 (차별화) =====
 class BurnAbility extends Ability {
   static TYPE = 'burn';
 
@@ -11,7 +11,7 @@ class BurnAbility extends Ability {
   }
 
   onHit(context) {
-    const { hit, permanentBuffs } = context;
+    const { hit, target, enemies = [], permanentBuffs } = context;
     const result = {
       damageModifier: 1.0,
       additionalDamage: 0,
@@ -20,11 +20,10 @@ class BurnAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      targetMutations: [],
     };
 
-    // 영구 버프 적용
     const permBurnMult = BuffHelper.getBurnDurationMultiplier(permanentBuffs);
-
     const burnDamage = Math.floor(hit.damage * this.getTierValue('burnDamagePercent'));
     const burnDuration = Math.floor(this.getTierValue('burnDuration') * permBurnMult);
 
@@ -34,6 +33,39 @@ class BurnAbility extends Ability {
       damage: burnDamage,
       duration: burnDuration,
     });
+
+    // 화상 스택: _burnCharge 누적, 3에 도달하면 폭발
+    const prevCharge = (target && target._burnCharge) || 0;
+    const nextCharge = prevCharge + 1;
+    if (nextCharge >= 3) {
+      const explosionRadius = 65;
+      const explosionDamage = Math.floor(hit.damage * 0.55);
+      for (const e of enemies) {
+        if (!e || e.id === hit.enemyId) continue;
+        const dx = e.x - hit.x, dy = e.y - hit.y;
+        if (dx * dx + dy * dy <= explosionRadius * explosionRadius) {
+          result.aoeTargets.push({
+            enemy: e,
+            damage: explosionDamage,
+            statusEffects: [{
+              enemyId: e.id,
+              type: 'burn',
+              damage: Math.floor(burnDamage * 0.6),
+              duration: burnDuration * 0.5,
+            }],
+          });
+        }
+      }
+      result.targetMutations.push({ enemyId: hit.enemyId, set: { _burnCharge: 0 } });
+      result.visualEffects.push({
+        id: Date.now() + Math.random(),
+        x: hit.x, y: hit.y,
+        type: 'fire-burst',
+        color: '#FF4500',
+      });
+    } else {
+      result.targetMutations.push({ enemyId: hit.enemyId, set: { _burnCharge: nextCharge } });
+    }
 
     result.visualEffects.push({
       id: Date.now() + Math.random(),
@@ -47,7 +79,7 @@ class BurnAbility extends Ability {
   }
 
   getDescription() {
-    return `화상 (${this.getTierValue('burnDamagePercent') * 100}% 지속 피해)`;
+    return `화상 (${this.getTierValue('burnDamagePercent') * 100}% 지속 · 3스택 폭발)`;
   }
 }
 

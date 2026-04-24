@@ -24,7 +24,7 @@ class ExecuteAbility extends Ability {
 
     // 처형 보너스: HP가 임계값 이하면 추가 피해
     if (target) {
-      const hpRatio = target.hp / target.maxHp;
+      const hpRatio = target.health / target.maxHealth;
       const threshold = this.getTierValue('executeThreshold', 0.2);
       if (hpRatio <= threshold) {
         result.damageModifier = this.getTierValue('executeBonus', 1.5);
@@ -86,7 +86,7 @@ class CriticalAbility extends Ability {
     } else {
       // 크리티컬 실패시에도 처형 보너스 체크
       if (target) {
-        const hpRatio = target.hp / target.maxHp;
+        const hpRatio = target.health / target.maxHealth;
         const threshold = this.getTierValue('executeThreshold', 0.35);
         if (hpRatio <= threshold) {
           result.damageModifier = this.getTierValue('executeBonus', 2.5);
@@ -160,7 +160,7 @@ class LightKnockbackAbility extends Ability {
 
     // 처형 보너스도 체크
     if (target) {
-      const hpRatio = target.hp / target.maxHp;
+      const hpRatio = target.health / target.maxHealth;
       const threshold = this.getTierValue('executeThreshold', 0.35);
       if (hpRatio <= threshold) {
         result.damageModifier = this.getTierValue('executeBonus', 2.5);
@@ -229,7 +229,7 @@ class RushBlockerAbility extends Ability {
 
     // 처형 보너스도 체크
     if (target) {
-      const hpRatio = target.hp / target.maxHp;
+      const hpRatio = target.health / target.maxHealth;
       const threshold = this.getTierValue('executeThreshold', 0.35);
       if (hpRatio <= threshold) {
         // 빠른 적 보너스와 처형 보너스 중 더 높은 것 적용
