@@ -204,17 +204,18 @@ const SPAWN_RULES = [
 // Stage 5 W5 normal: 30*2.6*1.6*1.2 = 150 HP → T4+T3 조합 필요
 const HEALTH_SCALING = {
   base: 30,
-  stageGrowth: 0.4,
-  waveGrowth: 0.15,
+  stageGrowth: 0.32,       // 0.40 → 0.32 (Stage 4~6 난이도 완화)
+  waveGrowth: 0.13,        // 0.15 → 0.13
   lateWaveThreshold: 4,
-  lateWaveBonus: 1.2,
+  lateWaveBonus: 1.15,     // 1.2 → 1.15
   bossFormula: (stage) => 10 + stage * 1.5,
 };
 
 // ===== 경제 설정 =====
 const ECONOMY = {
   startGold: 100,
-  startLives: 20,
+  startLives: 30,              // 20 → 30 (agent 플레이테스트에서 Stage 1~2에서 조기 탈락 해소)
+  stageClearLivesRecover: 3,   // 스테이지 클리어 시 lives 회복 (새 필드)
   drawCost: 20,
   maxInventory: 30, // 5행 x 6열
   sellRefundRate: 0.5,

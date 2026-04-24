@@ -589,6 +589,12 @@ const useGameState = (configOverride = null) => {
             goldFromStages: prev.goldFromStages + stageBonus,
         }));
 
+        // 스테이지 클리어 시 lives 회복 (agent 플레이테스트 피드백 대응)
+        const livesRecover = activeCfg.ECONOMY.stageClearLivesRecover || 0;
+        if (livesRecover > 0) {
+            setLives(prev => prev + livesRecover);
+        }
+
         // 최대 목숨 버프 적용
         const bonusLives = PermanentBuffManager.getBonusMaxLives(permanentBuffs);
         if (bonusLives > 0 && lives < activeCfg.ECONOMY.startLives + bonusLives) {

@@ -154,15 +154,59 @@ const CollectionSystem = {
   },
 
   // 타워 생성 기록
+  // 반환: newMilestone — 이번 기록으로 달성된 마일스톤 ('element-3' 등) 또는 null
   recordTower(element, tier, role = null) {
     const state = this.load();
     const elementKey = ['fire', 'water', 'electric', 'wind', 'void', 'light'][element];
-    if (!elementKey) return;
+    if (!elementKey) return null;
+    const prevElemSet = this._distinctElementsUsed(state);
     this._touch(state.tower, `${elementKey}-${tier}`);
     if (tier === 4 && role) {
       this._touch(state.towerRole, `${elementKey}-${role}`);
     }
+    const newElemSet = this._distinctElementsUsed(state);
+    let milestone = null;
+    if (newElemSet > prevElemSet) {
+      if (newElemSet === 3 && !state.milestones?.elem3) {
+        state.milestones = { ...(state.milestones || {}), elem3: Date.now() };
+        state.freeDrawTickets = (state.freeDrawTickets || 0) + 1;
+        milestone = 'elem3';
+      } else if (newElemSet === 6 && !state.milestones?.elem6) {
+        state.milestones = { ...(state.milestones || {}), elem6: Date.now() };
+        state.freeDrawTickets = (state.freeDrawTickets || 0) + 3;
+        milestone = 'elem6';
+      }
+    }
     this.save(state);
+    return milestone;
+  },
+
+  _distinctElementsUsed(state) {
+    const tower = state.tower || {};
+    const set = new Set();
+    Object.keys(tower).forEach(k => {
+      const [elem] = k.split('-');
+      set.add(elem);
+    });
+    return set.size;
+  },
+
+  // 무료 뽑기권 관리 (도감 마일스톤 보상)
+  getFreeDrawTickets() {
+    const state = this.load();
+    return (state.freeDrawTickets || 0);
+  },
+  addFreeDrawTicket(count = 1) {
+    const state = this.load();
+    state.freeDrawTickets = (state.freeDrawTickets || 0) + count;
+    this.save(state);
+  },
+  useFreeDrawTicket() {
+    const state = this.load();
+    if (!state.freeDrawTickets || state.freeDrawTickets <= 0) return false;
+    state.freeDrawTickets -= 1;
+    this.save(state);
+    return true;
   },
 
   // 서포트 생성 기록

@@ -86,6 +86,38 @@ const NeonDefense = () => {
   // T4 역할 선택 모달: "이 역할 기억" 체크박스 상태
   const [rememberT4Role, setRememberT4Role] = useState(false);
 
+  // ===== 힌트 토스트 (Agent 플레이테스트 피드백 기반) =====
+  const [hintToast, setHintToast] = useState({ visible: false, message: '', icon: '💡' });
+  const [lastHintAt, setLastHintAt] = useState(0);
+  const prevLivesRef = useRef(null);
+  const prevMilestoneRef = useRef(null);
+
+  useEffect(() => {
+    const now = Date.now();
+    const prev = prevLivesRef.current;
+    prevLivesRef.current = gameState.lives;
+    if (prev === null) return;
+    // 라이프 5 이상 급격 손실 시 배치 힌트
+    if (prev - gameState.lives >= 5 && now - lastHintAt > 15000 && gameState.lives > 0) {
+      setHintToast({ visible: true, message: '라이프 손실이 큽니다. 경로 교차점/전방에 T2~T3 타워를 추가 배치해 보세요.', icon: '⚠️' });
+      setLastHintAt(now);
+    }
+  }, [gameState.lives]);
+
+  // 도감 마일스톤 감지 (속성 3/6, 6/6 달성 시 뽑기권 지급 알림)
+  useEffect(() => {
+    if (typeof CollectionSystem === 'undefined') return;
+    const state = CollectionSystem.load();
+    const ms = state.milestones || {};
+    const prev = prevMilestoneRef.current || {};
+    if (!prev.elem3 && ms.elem3) {
+      setHintToast({ visible: true, message: '3가지 속성 수집! 무료 뽑기권 1장을 받았습니다.', icon: '🎁' });
+    } else if (!prev.elem6 && ms.elem6) {
+      setHintToast({ visible: true, message: '6속성 컴플리트! 무료 뽑기권 3장을 받았습니다.', icon: '🏆' });
+    }
+    prevMilestoneRef.current = ms;
+  }, [inventoryState.inventory.length, gameState.towers.length]);
+
   // ===== 튜토리얼 단계 (Stage 0 경량) =====
   // step: 'none' | 'draw' | 'combine' | 'place' | 'start' | 'done' | 'done-closed'
   const [tutorialStep, setTutorialStep] = useState('none');
@@ -859,6 +891,14 @@ const NeonDefense = () => {
           onClose={handleTutorialClose}
         />
       )}
+
+      {/* 힌트 토스트 (라이프 급감/도감 진행 등 상황형) */}
+      <HintToast
+        visible={hintToast.visible}
+        message={hintToast.message}
+        icon={hintToast.icon}
+        onClose={() => setHintToast(prev => ({ ...prev, visible: false }))}
+      />
     </div>
   );
 };
