@@ -270,6 +270,56 @@ const generateMultiplePaths = (seed, stage = 1) => {
   return { paths, startPoints, endPoints };
 };
 
+// ===== 모듈러 타일 선택 유틸리티 =====
+// pathData → 셀 Set → (x,y) 이웃 4비트 마스크(UDLR) → 타일 파일명
+//   U=8, D=4, L=2, R=1
+
+const buildPathCellsSet = (pathData) => {
+  const set = new Set();
+  if (!pathData || !pathData.paths) return set;
+  for (const p of pathData.paths) {
+    for (const tile of p.tiles) set.add(`${tile.x},${tile.y}`);
+  }
+  return set;
+};
+
+const getPathTileMask = (x, y, pathCellsSet) => {
+  let mask = 0;
+  if (pathCellsSet.has(`${x},${y - 1}`)) mask |= 8; // U
+  if (pathCellsSet.has(`${x},${y + 1}`)) mask |= 4; // D
+  if (pathCellsSet.has(`${x - 1},${y}`)) mask |= 2; // L
+  if (pathCellsSet.has(`${x + 1},${y}`)) mask |= 1; // R
+  return mask;
+};
+
+const PATH_TILE_BY_MASK = {
+  0b0011: 'str-h',  // LR
+  0b1100: 'str-v',  // UD
+  0b1111: 'cross',  // UDLR
+  0b1001: 'cor-ne', // UR  ┗
+  0b1010: 'cor-nw', // UL  ┛
+  0b0101: 'cor-se', // DR  ┏
+  0b0110: 'cor-sw', // DL  ┓
+  0b1011: 't-n',    // ULR ┻
+  0b0111: 't-s',    // DLR ┳
+  0b1101: 't-e',    // UDR ┣
+  0b1110: 't-w',    // UDL ┫
+};
+
+// 단방향(dead-end)은 start/end 마커가 덮으므로 보이지 않지만 안전 폴백 제공
+const getPathTileName = (mask) => {
+  if (PATH_TILE_BY_MASK[mask]) return PATH_TILE_BY_MASK[mask];
+  switch (mask) {
+    case 0b1000: case 0b0100: return 'str-v';
+    case 0b0010: case 0b0001: return 'str-h';
+    default: return 'cross';
+  }
+};
+
+window.buildPathCellsSet = buildPathCellsSet;
+window.getPathTileMask = getPathTileMask;
+window.getPathTileName = getPathTileName;
+
 // ===== 버프 매니저 안전 접근 헬퍼 =====
 // PermanentBuffManager가 로드되지 않았을 때 기본값 반환
 

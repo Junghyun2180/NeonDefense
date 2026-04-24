@@ -13,3 +13,6 @@ Saved/Preview/
 
 # Windows 잔여 파일
 nul
+
+# E2E 테스트 아티팩트
+tests/screenshots/

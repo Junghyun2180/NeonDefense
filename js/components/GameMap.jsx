@@ -37,6 +37,9 @@ const GameMap = ({
     }, [maxGameSpeed]);
     const { useMemo } = React;
 
+    // 모듈러 타일 선택용: 전체 path 셀의 {x,y} Set (이웃 탐색용)
+    const pathCellsSet = useMemo(() => buildPathCellsSet(pathData), [pathData]);
+
     // 속성 인덱스 → orb 이미지 URL
     const ELEMENT_KEYS = ['fire', 'water', 'electric', 'wind', 'void', 'light'];
     const getElementOrbUrl = (element) => `assets/icons/elements/${ELEMENT_KEYS[element]}.png`;
@@ -114,14 +117,19 @@ const GameMap = ({
                                 let extraClass = '';
                                 if (isDropPreview) extraClass = dropPreview.valid ? 'drop-preview-valid' : 'drop-preview-invalid';
                                 if (isSelectedTile) extraClass = 'ring-2 ring-white ring-opacity-80';
-                                // 경로별 색상 틴트 — path-tile.png 위에 inset shadow로 은은하게 덧칠
-                                const pathStyle = isPath && pathInfo ? { boxShadow: `inset 0 0 0 9999px ${pathInfo.color}20, inset 0 0 0 1px ${pathInfo.color}60` } : {};
+
+                                // 모듈러 타일 선택: 이웃 기반 마스크 → 타일 종류
+                                const tileClass = isPath
+                                    ? 'tile-path ' + getPathTileName(getPathTileMask(x, y, pathCellsSet))
+                                    : 'tile-grass';
+                                // 경로별 색상 틴트는 제거 — 타일 이미지 자체의 네온 색상 유지 (셀 박스 사라지게)
+                                const pathStyle = {};
 
                                 const startPath = startPoint && pathData.paths.find(p => p.startPoint.id === startPoint.id);
                                 const endPaths = endPoint && pathData.paths.filter(p => p.endPoint.id === endPoint.id);
 
                                 return (
-                                    <div key={x + '-' + y} className={'absolute ' + (isPath ? 'path-tile' : 'grass-tile') + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => handleTileClick(x, y)}>
+                                    <div key={x + '-' + y} className={'absolute ' + tileClass + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => handleTileClick(x, y)}>
                                         {startPoint && startPath && (() => {
                                             // 경로 방향에 따른 화살표 결정
                                             const tiles = startPath.tiles;
@@ -136,15 +144,13 @@ const GameMap = ({
                                             }
                                             const arrowColor = startPath.id === 'A' ? '#FFD700' : startPath.color;
                                             return (
-                                                <div className="w-full h-full flex items-center justify-center relative"
-                                                     style={{ backgroundImage: 'url(assets/tiles/start-point.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                                                <div className="tile-start w-full h-full flex items-center justify-center relative">
                                                     <span className="text-lg font-bold relative z-10" style={{ color: arrowColor, textShadow: '0 0 8px ' + arrowColor + ', 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000', filter: 'drop-shadow(0 0 6px ' + arrowColor + ')' }}>{startArrow}</span>
                                                 </div>
                                             );
                                         })()}
                                         {endPoint && endPaths && endPaths.length > 0 && !pathData.isSquareMap && (
-                                            <div className="w-full h-full"
-                                                 style={{ backgroundImage: 'url(assets/tiles/end-point.png)', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                                            <div className="tile-end w-full h-full" />
                                         )}
                                         {!startPoint && !endPoint && pathArrows[`${x},${y}`] && pathArrows[`${x},${y}`].length > 0 && (
                                             <div className="w-full h-full flex items-center justify-center pointer-events-none flex-wrap gap-0" style={{ opacity: 0.9 }}>
