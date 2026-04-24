@@ -116,6 +116,7 @@ const AbilitySystem = {
     const visualEffects = [];
     let allChainLightnings = [];
     const chainDamagesAll = new Map();
+    const targetMutations = [];  // 적 상태 직접 변경 요청 (속성 스택 카운터 등)
 
     hits.forEach(hit => {
       let finalDamage = hit.damage;
@@ -160,6 +161,11 @@ const AbilitySystem = {
         damageMap.set(pierce.enemy.id, (damageMap.get(pierce.enemy.id) || 0) + pierce.damage);
       });
 
+      // 적 상태 변경 요청 수집 (속성 스택 카운터 등)
+      if (result.targetMutations && result.targetMutations.length > 0) {
+        targetMutations.push(...result.targetMutations);
+      }
+
       // 체인 라이트닝 처리
       if (result.chainData) {
         allChainLightnings = allChainLightnings.concat(result.chainData.chains);
@@ -190,6 +196,7 @@ const AbilitySystem = {
       statusEffects,
       visualEffects,
       chainLightnings: allChainLightnings,
+      targetMutations,
     };
   },
 

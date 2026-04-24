@@ -18,6 +18,7 @@ const GameMap = ({
     selectedSupportTowers,
     gameSpeed,
     setGameSpeed,
+    maxGameSpeed = 5,
     bgmEnabled,
     sfxEnabled,
     toggleBgm,
@@ -28,6 +29,12 @@ const GameMap = ({
     handleTileClick,
     getElementInfo,
 }) => {
+    const speedOptions = React.useMemo(() => {
+        const max = Math.max(3, Math.min(5, maxGameSpeed));
+        const opts = [];
+        for (let i = 1; i <= max; i++) opts.push(i);
+        return opts;
+    }, [maxGameSpeed]);
     const { useMemo } = React;
 
     return (
@@ -36,11 +43,11 @@ const GameMap = ({
             <div className="flex justify-between items-center mb-2 px-1">
                 {/* 좌: 배속 */}
                 <div className="flex gap-1">
-                    {[1, 2, 3].map(s => (
+                    {speedOptions.map(s => (
                         <button
                             key={s}
                             onClick={() => setGameSpeed(s)}
-                            className={'px-3 py-1 rounded text-sm font-bold transition-all ' + (gameSpeed === s ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
+                            className={'px-2.5 py-1 rounded text-sm font-bold transition-all ' + (gameSpeed === s ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
                             style={gameSpeed === s ? { boxShadow: '0 0 10px rgba(0,255,255,0.5)' } : {}}
                         >
                             {s}x

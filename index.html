@@ -7,10 +7,10 @@
   <title>⚡ NEON DEFENSE ⚡</title>
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+  <link rel="stylesheet" href="vendor/tailwind.css">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -42,6 +42,7 @@
 
   <!-- Effect Domain (Config, COMBAT, SUPPORT_CAPS에 의존) -->
   <script src="js/domain/effect/status-effect.js"></script>
+  <script src="js/domain/effect/synergy-system.js"></script>
 
   <!-- Progression Domain (Effect에 의존) -->
   <script src="js/domain/progression/permanent-buff.js"></script>
@@ -70,6 +71,7 @@
   <script src="js/domain/combat/game-engine.js"></script>
 
   <!-- 커스텀 훅 (Babel JSX 변환) -->
+  <script type="text/babel" src="js/hooks/useSettings.jsx"></script>
   <script type="text/babel" src="js/hooks/useGameLoop.jsx"></script>
   <script type="text/babel" src="js/hooks/useGameState.jsx"></script>
   <script type="text/babel" src="js/hooks/useInventory.jsx"></script>

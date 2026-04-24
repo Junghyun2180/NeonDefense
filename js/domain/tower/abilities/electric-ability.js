@@ -11,7 +11,7 @@ class ChainLightningAbility extends Ability {
   }
 
   onHit(context) {
-    const { hit, enemies, permanentBuffs } = context;
+    const { hit, target, enemies, permanentBuffs } = context;
     const result = {
       damageModifier: 1.0,
       additionalDamage: 0,
@@ -22,18 +22,31 @@ class ChainLightningAbility extends Ability {
       pierceTargets: [],
     };
 
-    // 영구 버프 적용
     const chainBonus = BuffHelper.getChainBonus(permanentBuffs);
 
-    // 체인 라이트닝 처리
+    // 시너지: 전격+동결=감전 (피해 +50%)
+    const syn = (typeof SynergySystem !== 'undefined')
+      ? SynergySystem.evaluate(ELEMENT_TYPES.ELECTRIC, target)
+      : { damageMult: 1.0, tags: [] };
+    result.damageModifier = syn.damageMult;
+
     const chainResult = this.processChain(
-      hit.towerX, hit.towerY, hit.enemyId, hit.damage, enemies, chainBonus
+      hit.towerX, hit.towerY, hit.enemyId, hit.damage * syn.damageMult, enemies, chainBonus
     );
 
     result.chainData = {
       chains: chainResult.chains,
       damages: chainResult.chainDamages,
     };
+
+    if (syn.tags.includes('shock')) {
+      result.visualEffects.push({
+        id: Date.now() + Math.random(),
+        x: hit.x, y: hit.y,
+        type: 'shock-synergy',
+        color: '#FFD700',
+      });
+    }
 
     return result;
   }

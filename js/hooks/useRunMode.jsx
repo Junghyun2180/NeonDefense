@@ -38,6 +38,9 @@ const useRunMode = () => {
     if (runMode === 'endless') {
       return RunMode.buildEndlessConfig(metaSnapshot);
     }
+    if (runMode === 'rush') {
+      return RunMode.buildRushConfig(metaSnapshot);
+    }
     if (runMode === 'daily' && runModifiers.length > 0) {
       return RunMode.buildDailyConfig(metaSnapshot, runModifiers);
     }

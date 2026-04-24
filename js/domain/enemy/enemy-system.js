@@ -107,6 +107,11 @@ const EnemySystem = {
       // 힐러 전용
       lastHealTime: 0,
     };
+    // 보스면 패턴 지정 (스테이지 기반 순환: splitter → regen → berserk)
+    if (type === 'boss') {
+      const patterns = ['splitter', 'regen', 'berserk'];
+      enemy.bossPattern = patterns[(Math.max(1, stage) - 1) % patterns.length];
+    }
     // Ability 할당
     return EnemyAbilitySystem.assignAbility(enemy);
   },

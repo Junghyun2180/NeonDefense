@@ -199,6 +199,7 @@ const TowerSystem = {
       speed: COMBAT.projectileBaseSpeed * gameSpeed,
       element: tower.element,
       tier: tower.tier,
+      towerId: tower.id,       // 속성 스택 추적용 (SlowAbility 3스택→빙결)
       towerX: tower.x,
       towerY: tower.y,
       // T4 특수 능력 정보

@@ -22,18 +22,22 @@ class ExecuteAbility extends Ability {
       pierceTargets: [],
     };
 
-    // 처형 보너스: HP가 임계값 이하면 추가 피해
+    // 시너지: 광휘+슬로우=집중 처형 (임계치 +10%)
+    const syn = (typeof SynergySystem !== 'undefined')
+      ? SynergySystem.evaluate(ELEMENT_TYPES.LIGHT, target)
+      : { executeThresholdBonus: 0, tags: [] };
+
     if (target) {
-      const hpRatio = target.hp / target.maxHp;
-      const threshold = this.getTierValue('executeThreshold', 0.2);
+      const hpRatio = target.health / target.maxHealth;
+      const threshold = this.getTierValue('executeThreshold', 0.2) + syn.executeThresholdBonus;
       if (hpRatio <= threshold) {
         result.damageModifier = this.getTierValue('executeBonus', 1.5);
         result.visualEffects.push({
           id: Date.now() + Math.random(),
           x: hit.x,
           y: hit.y,
-          type: 'execute',
-          color: '#FFD700',
+          type: syn.tags.includes('focused-exec') ? 'focused-execute' : 'execute',
+          color: syn.tags.includes('focused-exec') ? '#FFFFFF' : '#FFD700',
         });
       }
     }
@@ -44,7 +48,7 @@ class ExecuteAbility extends Ability {
   getDescription() {
     const threshold = this.getTierValue('executeThreshold', 0.2) * 100;
     const bonus = this.getTierValue('executeBonus', 1.5);
-    return `처형 (HP ${threshold}% 이하 시 ${bonus}x 피해)`;
+    return `처형 (HP ${threshold}% 이하 시 ${bonus}x · 슬로우 시 임계 +10%)`;
   }
 }
 
@@ -86,7 +90,7 @@ class CriticalAbility extends Ability {
     } else {
       // 크리티컬 실패시에도 처형 보너스 체크
       if (target) {
-        const hpRatio = target.hp / target.maxHp;
+        const hpRatio = target.health / target.maxHealth;
         const threshold = this.getTierValue('executeThreshold', 0.35);
         if (hpRatio <= threshold) {
           result.damageModifier = this.getTierValue('executeBonus', 2.5);
@@ -160,7 +164,7 @@ class LightKnockbackAbility extends Ability {
 
     // 처형 보너스도 체크
     if (target) {
-      const hpRatio = target.hp / target.maxHp;
+      const hpRatio = target.health / target.maxHealth;
       const threshold = this.getTierValue('executeThreshold', 0.35);
       if (hpRatio <= threshold) {
         result.damageModifier = this.getTierValue('executeBonus', 2.5);
@@ -229,7 +233,7 @@ class RushBlockerAbility extends Ability {
 
     // 처형 보너스도 체크
     if (target) {
-      const hpRatio = target.hp / target.maxHp;
+      const hpRatio = target.health / target.maxHealth;
       const threshold = this.getTierValue('executeThreshold', 0.35);
       if (hpRatio <= threshold) {
         // 빠른 적 보너스와 처형 보너스 중 더 높은 것 적용

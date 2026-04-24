@@ -4,6 +4,8 @@ const RoleSelectionModal = ({
     onSelectRole,
     onCancel,
     getElementInfo,
+    rememberChoice,
+    setRememberChoice,
 }) => {
     if (!pendingT4Choice) return null;
 
@@ -30,7 +32,7 @@ const RoleSelectionModal = ({
                     {roles.map((role, idx) => (
                         <div
                             key={role.id}
-                            onClick={() => onSelectRole(role.id)}
+                            onClick={() => onSelectRole(role.id, rememberChoice)}
                             className="relative bg-gray-800 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-gray-750 border-2 border-transparent hover:border-white group"
                             style={{
                                 boxShadow: `0 4px 20px ${elementUI?.color}20`,
@@ -73,8 +75,17 @@ const RoleSelectionModal = ({
                     ))}
                 </div>
 
-                {/* 하단 */}
-                <div className="p-4 border-t border-gray-700 flex justify-center">
+                {/* 하단: 기억하기 + 취소 */}
+                <div className="p-4 border-t border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={!!rememberChoice}
+                            onChange={(e) => setRememberChoice && setRememberChoice(e.target.checked)}
+                            className="w-4 h-4 accent-cyan-400"
+                        />
+                        <span>이 속성은 앞으로 같은 역할로 자동 선택</span>
+                    </label>
                     <button
                         onClick={onCancel}
                         className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold text-gray-300 transition-all"

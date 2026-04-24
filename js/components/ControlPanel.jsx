@@ -58,7 +58,9 @@ const InventoryPanel = ({
     isInventoryFull,
     isSupportInventoryFull,
     drawRandomNeon,
+    drawRandomNeon10,
     drawRandomSupport,
+    drawRandomSupport10,
     effectiveDrawCost,
     // 인벤토리
     inventory,
@@ -83,13 +85,29 @@ const InventoryPanel = ({
     selectedSupportTowers,
     totalSupportSellPrice,
     canCombineSupportTowers,
+    // 속도감 설정
+    autoCombine,
+    setAutoCombine,
+    autoSupportCombine,
+    setAutoSupportCombine,
+    clearAllT4RolePresets,
+    t4RolePresets,
+    autoNextWave,
+    setAutoNextWave,
+    maxGameSpeed,
+    setMaxGameSpeed,
 }) => {
     const [activeTab, setActiveTab] = React.useState('tower');
 
     // --- 통합 뽑기 ---
     const drawHandler = activeTab === 'tower' ? drawRandomNeon : drawRandomSupport;
+    const drawHandler10 = activeTab === 'tower' ? drawRandomNeon10 : drawRandomSupport10;
     const drawCost = activeTab === 'tower' ? effectiveDrawCost : ECONOMY.supportDrawCost;
+    const drawCost10 = drawCost * 10;
     const isFull = activeTab === 'tower' ? isInventoryFull : isSupportInventoryFull;
+    const activeAutoCombine = activeTab === 'tower' ? autoCombine : autoSupportCombine;
+    const setActiveAutoCombine = activeTab === 'tower' ? setAutoCombine : setAutoSupportCombine;
+    const presetCount = Object.keys(t4RolePresets || {}).length;
 
     // --- 통합 조합 ---
     const handleCombine = () => {
@@ -123,29 +141,69 @@ const InventoryPanel = ({
 
     return (
         <div className="max-w-4xl mx-auto mt-3 space-y-1.5">
-            {/* 버튼 행: 시작 / 뽑기 / 조합 / 전체 조합 / 판매 */}
-            <div className="flex gap-1.5">
+            {/* 버튼 행: 시작 / 뽑기 x1 / 뽑기 x10 / 조합 / 전체 조합 / 판매 */}
+            <div className="flex gap-1.5 flex-wrap">
                 <button type="button" onClick={startWave} disabled={isPlaying}
                     className="btn-neon px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-cyan-400/30 text-sm whitespace-nowrap shrink-0">
                     {isPlaying ? '⏳ 전투 중' : '▶ 시작'}
                 </button>
                 <button type="button" onClick={drawHandler} disabled={gold < drawCost || isFull}
-                    className={'flex-1 btn-neon px-3 py-1.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap border ' + (activeTab === 'tower' ? 'bg-gradient-to-r from-pink-600 to-purple-600 border-pink-400/30' : 'bg-gradient-to-r from-orange-500 to-amber-500 border-orange-400/30')}>
-                    {isFull ? '📦 가득 참' : '🎲 뽑기 (' + drawCost + 'G)'}
+                    className={'flex-1 btn-neon px-2 py-1.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap border ' + (activeTab === 'tower' ? 'bg-gradient-to-r from-pink-600 to-purple-600 border-pink-400/30' : 'bg-gradient-to-r from-orange-500 to-amber-500 border-orange-400/30')}>
+                    {isFull ? '📦 가득 참' : '🎲 x1 (' + drawCost + 'G)'}
+                </button>
+                <button type="button" onClick={drawHandler10} disabled={gold < drawCost || isFull}
+                    className={'flex-1 btn-neon px-2 py-1.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap border ' + (activeTab === 'tower' ? 'bg-gradient-to-r from-fuchsia-700 to-purple-700 border-fuchsia-400/50' : 'bg-gradient-to-r from-orange-600 to-rose-600 border-orange-400/50')}
+                    title={'최대 10회 뽑기 (' + drawCost10 + 'G 기준, 가능한 만큼)'}>
+                    🎲 x10
                 </button>
                 <div className="w-px bg-gray-700 self-stretch" />
                 <button type="button" onClick={handleCombine} disabled={!canCombine}
-                    className="flex-1 btn-neon px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400/30 text-sm whitespace-nowrap">
-                    {isMaxTier ? '⚡ 최대 티어' : '⚡ 조합 (' + combineCount + '/3)'}
+                    className="flex-1 btn-neon px-2 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400/30 text-sm whitespace-nowrap">
+                    {isMaxTier ? '⚡ 최대' : '⚡ 조합 (' + combineCount + '/3)'}
                 </button>
                 <button type="button" onClick={handleCombineAll} disabled={combinableCount === 0}
-                    className="flex-1 btn-neon px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-amber-400/30 text-sm whitespace-nowrap">
+                    className="flex-1 btn-neon px-2 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-amber-400/30 text-sm whitespace-nowrap">
                     🔄 전체 ({combinableCount})
                 </button>
                 <button type="button" onClick={handleSell} disabled={!canSell}
-                    className="flex-1 btn-neon px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm whitespace-nowrap">
+                    className="flex-1 btn-neon px-2 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm whitespace-nowrap">
                     💰 판매 {canSell ? '(+' + sellPrice + 'G)' : ''}
                 </button>
+            </div>
+
+            {/* 자동화 옵션 행 */}
+            <div className="flex gap-3 items-center text-xs text-gray-400 px-1 flex-wrap">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200">
+                    <input type="checkbox" checked={!!activeAutoCombine}
+                        onChange={(e) => setActiveAutoCombine && setActiveAutoCombine(e.target.checked)}
+                        className="w-3.5 h-3.5 accent-cyan-400" />
+                    <span>뽑기 후 자동 조합</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200">
+                    <input type="checkbox" checked={!!autoNextWave}
+                        onChange={(e) => setAutoNextWave && setAutoNextWave(e.target.checked)}
+                        className="w-3.5 h-3.5 accent-cyan-400" />
+                    <span>자동 다음 웨이브</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200" title="최대 배속 슬라이더">
+                    <span>최대 배속</span>
+                    <select
+                        value={maxGameSpeed ?? 5}
+                        onChange={(e) => setMaxGameSpeed && setMaxGameSpeed(Number(e.target.value))}
+                        className="bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 text-gray-200 text-xs"
+                    >
+                        <option value={3}>3x</option>
+                        <option value={4}>4x</option>
+                        <option value={5}>5x</option>
+                    </select>
+                </label>
+                {presetCount > 0 && (
+                    <button type="button" onClick={clearAllT4RolePresets}
+                        className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2"
+                        title="저장된 T4 역할 프리셋 초기화">
+                        T4 역할 기억 초기화 ({presetCount})
+                    </button>
+                )}
             </div>
 
             {/* 탭 + 인벤토리 그리드 */}
