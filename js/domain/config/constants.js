@@ -204,17 +204,18 @@ const SPAWN_RULES = [
 // Stage 5 W5 normal: 30*2.6*1.6*1.2 = 150 HP → T4+T3 조합 필요
 const HEALTH_SCALING = {
   base: 30,
-  stageGrowth: 0.4,
-  waveGrowth: 0.15,
+  stageGrowth: 0.32,       // 0.40 → 0.32 (Stage 4~6 난이도 완화)
+  waveGrowth: 0.13,        // 0.15 → 0.13
   lateWaveThreshold: 4,
-  lateWaveBonus: 1.2,
+  lateWaveBonus: 1.15,     // 1.2 → 1.15
   bossFormula: (stage) => 10 + stage * 1.5,
 };
 
 // ===== 경제 설정 =====
 const ECONOMY = {
   startGold: 100,
-  startLives: 20,
+  startLives: 30,              // 20 → 30 (agent 플레이테스트에서 Stage 1~2에서 조기 탈락 해소)
+  stageClearLivesRecover: 3,   // 스테이지 클리어 시 lives 회복 (새 필드)
   drawCost: 20,
   maxInventory: 30, // 5행 x 6열
   sellRefundRate: 0.5,
@@ -251,20 +252,22 @@ const COMBAT = {
 };
 
 // ===== 스폰 설정 (점진적 증가) =====
+// 캠페인 목표: 10-19분 (optimal 10분대, casual 30분 이내)
+// 기존 10스테이지 × 5웨이브 = 50웨이브 → 6스테이지 × 5웨이브 = 30웨이브로 단축
 const SPAWN = {
   enemiesPerWave: (stage, wave) => {
     // 기본: 8 + 웨이브당 2 + 스테이지당 3
-    // S1W1: 10, S1W5: 18, S2W1: 13, S5W1: 22, S10W5: 40
+    // S1W1: 10, S1W5: 18, S2W1: 13, S6W5: 31
     const base = 8 + wave * 2 + (stage - 1) * 3;
-    return Math.min(base, 50); // 최대 50마리 캡
+    return Math.min(base, 50);
   },
   spawnDelay: (stage, wave) => {
     // 넉넉하게 시작 → 점진적 빨라짐
     const base = 800 - (stage * 40) - (wave * 15);
-    return Math.max(200, base); // 최소 200ms
+    return Math.max(200, base);
   },
   wavesPerStage: 5,
-  maxStage: 10,
+  maxStage: 6,  // 10 → 6: 세션 시간 40% 단축
 };
 
 // ===== 모바일 배치 UI 속성 데이터 =====

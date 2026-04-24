@@ -54,6 +54,7 @@ const useGameState = (configOverride = null) => {
     const [gameStats, setGameStats] = useState(() => GameStats.createEmpty());
     const gameStatsRef = useRef(gameStats);
     const livesAtWaveStart = useRef(cfg.ECONOMY.startLives);
+    const livesAtStageStart = useRef(cfg.ECONOMY.startLives);
 
     // 보스 페이즈 상태
     const [isBossPhase, setIsBossPhase] = useState(false);
@@ -346,8 +347,25 @@ const useGameState = (configOverride = null) => {
             // 통계: 스테이지 클리어
             setGameStats(prev => ({ ...prev, stagesCleared: prev.stagesCleared + 1 }));
 
+            // 스테이지 별점 기록 (livesAtStageStart 기준)
+            if (typeof StarRating !== 'undefined') {
+                const stageStartLives = livesAtStageStart.current;
+                const livesLost = Math.max(0, stageStartLives - lives);
+                const stars = StarRating.evaluate({ cleared: true, maxLives: stageStartLives, livesLost });
+                const res = StarRating.recordStage(stage, stars);
+                if (res.newBest && typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('neon-stage-star', { detail: { stage, stars, prev: res.prevStars } }));
+                }
+            }
+
             // 최종 스테이지 클리어 체크
             if (stage >= activeCfg.SPAWN.maxStage) {
+                if (typeof StarRating !== 'undefined') {
+                    const completion = StarRating.checkAllThreeStar(activeCfg.SPAWN.maxStage);
+                    if (completion && completion.firstTime && typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('neon-all-three-star', { detail: {} }));
+                    }
+                }
                 setGameStats(prev => GameStats.finalize(prev));
                 setGameCleared(true);
                 soundManager.stopBGM();
@@ -413,6 +431,7 @@ const useGameState = (configOverride = null) => {
         // cfg를 직접 사용 (cfgRef.current는 stale할 수 있음)
         setGold(cfg.ECONOMY.startGold);
         setLives(cfg.ECONOMY.startLives);
+        livesAtStageStart.current = cfg.ECONOMY.startLives;
         setStage(1);
         setWave(1);
         setIsPlaying(false);
@@ -570,6 +589,8 @@ const useGameState = (configOverride = null) => {
         const nextStage = stage + 1;
         setStage(nextStage);
         setWave(1);
+        // 별점 평가 기준점 갱신 (lives 회복 반영 후)
+        livesAtStageStart.current = lives + (cfg.ECONOMY?.stageClearLivesRecover || 0);
         setIsBossPhase(false);
         const activeCfgLocal = cfgRef.current;
         if (activeCfgLocal.mapType === 'square') {
@@ -588,6 +609,12 @@ const useGameState = (configOverride = null) => {
             totalGoldEarned: prev.totalGoldEarned + stageBonus,
             goldFromStages: prev.goldFromStages + stageBonus,
         }));
+
+        // 스테이지 클리어 시 lives 회복 (agent 플레이테스트 피드백 대응)
+        const livesRecover = activeCfg.ECONOMY.stageClearLivesRecover || 0;
+        if (livesRecover > 0) {
+            setLives(prev => prev + livesRecover);
+        }
 
         // 최대 목숨 버프 적용
         const bonusLives = PermanentBuffManager.getBonusMaxLives(permanentBuffs);

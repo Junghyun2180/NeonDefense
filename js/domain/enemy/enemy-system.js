@@ -88,6 +88,16 @@ const EnemySystem = {
       ? economy.bossGoldReward(stage, wave)
       : config.goldReward;
 
+    // Danger Wave 판정 — 각 스테이지의 마지막 웨이브 (wave === wavesPerStage)
+    // 적 이동속도 +15%, HP +12% — 스테이지 클라이맥스 느낌
+    const spawnCfg = DataResolver.getSpawn(modeId);
+    const wavesPerStage = spawnCfg?.wavesPerStage || 5;
+    const isDangerWave = (wave === wavesPerStage) && type !== 'boss';
+    if (isDangerWave) {
+      speed = Math.round(speed * 1.15 * 100) / 100;
+      health = Math.floor(health * 1.12);
+    }
+
     const enemy = {
       id: Date.now() + Math.random(),
       type,
@@ -100,6 +110,7 @@ const EnemySystem = {
       speed,
       debuffRange: config.debuffRange || 0,
       goldReward,
+      isDangerWave,
       x: pathTiles[0].x * GAME_DATA.shared.grid.tileSize + GAME_DATA.shared.grid.tileSize / 2,
       y: pathTiles[0].y * GAME_DATA.shared.grid.tileSize + GAME_DATA.shared.grid.tileSize / 2,
       // 상태이상 (StatusEffectSystem에서 기본값 가져옴)

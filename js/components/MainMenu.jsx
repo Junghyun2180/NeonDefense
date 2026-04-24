@@ -1,7 +1,21 @@
 // Neon Defense - 메인 메뉴 화면
 // 게임 시작 전 모드 선택 및 저장 데이터 불러오기
 
-const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress, neonCrystals, onPurchaseUpgrade }) => {
+const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress, neonCrystals, onPurchaseUpgrade, onDailyLoginReward }) => {
+  const [showCollection, setShowCollection] = React.useState(false);
+  const [showDailyLogin, setShowDailyLogin] = React.useState(false);
+  const dailyStatus = typeof DailyLogin !== 'undefined' ? DailyLogin.getStatus() : { canClaim: false };
+
+  // 첫 진입 시 오늘 보상 있으면 자동 오픈 (한 번만)
+  React.useEffect(() => {
+    if (dailyStatus.canClaim && !showDailyLogin) {
+      const opened = sessionStorage.getItem('__dailyLoginOpened');
+      if (!opened) {
+        sessionStorage.setItem('__dailyLoginOpened', '1');
+        setShowDailyLogin(true);
+      }
+    }
+  }, []);
   const { useState } = React;
 
   const [selectedMode, setSelectedMode] = useState('campaign'); // 'campaign', 'run'
@@ -89,7 +103,39 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
           >
             🏆 순위
           </button>
+          <button
+            onClick={() => setShowCollection(true)}
+            className="flex-1 py-3 text-sm font-bold transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+            style={{ fontFamily: 'Orbitron, sans-serif' }}
+          >
+            🗂️ 도감
+            {typeof CollectionSystem !== 'undefined' && (() => {
+              const c = CollectionSystem.getCompletion();
+              return c.unlocked > 0 ? <span className="ml-1.5 text-xs text-cyan-300 font-normal">{c.percent}%</span> : null;
+            })()}
+          </button>
+          <button
+            onClick={() => setShowDailyLogin(true)}
+            className="relative flex-1 py-3 text-sm font-bold transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
+            style={{ fontFamily: 'Orbitron, sans-serif' }}
+          >
+            📅 출석
+            {dailyStatus.canClaim && (
+              <span className="absolute top-1.5 right-4 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+            )}
+          </button>
         </div>
+
+        {showCollection && typeof CollectionModal !== 'undefined' && (
+          <CollectionModal isOpen={showCollection} onClose={() => setShowCollection(false)} />
+        )}
+        {showDailyLogin && typeof DailyLoginModal !== 'undefined' && (
+          <DailyLoginModal
+            isOpen={showDailyLogin}
+            onClose={() => setShowDailyLogin(false)}
+            onClaim={onDailyLoginReward}
+          />
+        )}
 
         {/* ── 중간 스크롤 영역: 탭 콘텐츠 ── */}
         <div className="flex-1 overflow-y-auto min-h-0">
@@ -118,7 +164,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                       </div>
                       <div className="flex items-center justify-between text-gray-300">
                         <span>⏱️ 예상 시간</span>
-                        <span className="font-bold text-blue-300">50~70분</span>
+                        <span className="font-bold text-blue-300">{SPAWN.maxStage * 2}~{SPAWN.maxStage * 4}분</span>
                       </div>
                       <div className="flex items-center justify-between text-gray-300">
                         <span>💎 크리스탈 보상</span>
@@ -128,7 +174,38 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                         <span>💾 자동 저장</span>
                         <span className="font-bold text-green-300">30초마다</span>
                       </div>
+                      {/* 별점 진척도 */}
+                      {typeof StarRating !== 'undefined' && (() => {
+                        const total = StarRating.totalStars();
+                        const max = SPAWN.maxStage * 3;
+                        return (
+                          <div className="flex items-center justify-between text-gray-300 pt-1 border-t border-gray-700/70">
+                            <span>🌟 획득 별점</span>
+                            <span className="font-bold text-amber-300">{total}/{max}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
+                    {/* 스테이지별 별점 그리드 */}
+                    {typeof StarRating !== 'undefined' && (
+                      <div className="w-full bg-gray-900/40 rounded-lg px-2 py-2 text-xs" style={{ pointerEvents: 'none' }}>
+                        <div className="text-gray-400 mb-1 text-center">스테이지 별 진척도</div>
+                        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(SPAWN.maxStage, 6)}, 1fr)` }}>
+                          {Array.from({ length: SPAWN.maxStage }, (_, idx) => {
+                            const s = idx + 1;
+                            const stars = StarRating.getStars(s);
+                            return (
+                              <div key={s} className="flex flex-col items-center px-1 py-1 rounded bg-gray-800/60">
+                                <div className="text-[10px] text-gray-400">S{s}</div>
+                                <div className="text-[13px] font-bold" style={{ color: stars === 3 ? '#FDE047' : stars === 2 ? '#FBBF24' : stars === 1 ? '#A3A3A3' : '#4B5563' }}>
+                                  {stars === 3 ? '★★★' : stars === 2 ? '★★☆' : stars === 1 ? '★☆☆' : '☆☆☆'}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     <div className="text-yellow-400 text-xs">💡 언제든지 저장하고 나갈 수 있습니다</div>
                   </div>
                 </button>

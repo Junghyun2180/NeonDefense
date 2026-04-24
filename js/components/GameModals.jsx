@@ -62,12 +62,7 @@ const GameModals = ({
                 </div>
             )}
 
-            {/* 도움말 모달 - HelpModal 컴포넌트 사용 */}
-            <HelpModal
-                showHelp={showHelp}
-                setShowHelp={setShowHelp}
-                getElementInfo={getElementInfo}
-            />
+            {/* 도움말 모달은 App.jsx 최상위에서 렌더 (메인메뉴/게임 공용) */}
         </>
     );
 };

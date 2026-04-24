@@ -24,7 +24,7 @@ const DIST = path.join(ROOT, 'dist');
 const ZIP_PATH = path.join(ROOT, 'neon-defense.zip');
 
 // 복사할 디렉토리/파일 목록 (jsx 제외한 모든 정적 파일)
-const STATIC_DIRS = ['css', 'audio'];
+const STATIC_DIRS = ['css', 'audio', 'assets', 'vendor'];
 
 // ─────────────────────────────────────────────
 // 메인

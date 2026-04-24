@@ -25,6 +25,9 @@
 
   <!-- Infrastructure (Config에 의존) -->
   <script src="js/infra/utils.js"></script>
+  <script src="js/infra/tower-sprite.js"></script>
+  <script src="js/infra/enemy-sprite.js"></script>
+  <script src="js/infra/support-sprite.js"></script>
   <script src="js/infra/sound.js"></script>
   <script src="js/infra/save-system.js"></script>
   <script src="js/domain/config/run-mode-constants.js"></script>
@@ -38,6 +41,9 @@
   <!-- Progression Domain -->
   <script src="js/domain/progression/leaderboard.js"></script>
   <script src="js/domain/progression/achievement-system.js"></script>
+  <script src="js/domain/progression/collection-system.js"></script>
+  <script src="js/domain/progression/star-rating.js"></script>
+  <script src="js/domain/progression/daily-login.js"></script>
   <script src="js/infra/balance-logger.js"></script>
 
   <!-- Effect Domain (Config, COMBAT, SUPPORT_CAPS에 의존) -->
@@ -82,11 +88,17 @@
 
   <!-- UI 컴포넌트 (Babel JSX 변환) -->
   <script type="text/babel" src="js/components/LeaderboardTab.jsx"></script>
+  <script type="text/babel" src="js/components/CollectionModal.jsx"></script>
+  <script type="text/babel" src="js/components/DailyLoginModal.jsx"></script>
   <script type="text/babel" src="js/components/MainMenu.jsx"></script>
   <script type="text/babel" src="js/components/GameHeader.jsx"></script>
   <script type="text/babel" src="js/components/GameMap.jsx"></script>
   <script type="text/babel" src="js/components/ControlPanel.jsx"></script>
   <script type="text/babel" src="js/components/HelpModal.jsx"></script>
+  <script type="text/babel" src="js/components/TutorialOverlay.jsx"></script>
+  <script type="text/babel" src="js/components/HintToast.jsx"></script>
+  <script type="text/babel" src="js/components/ComboIndicator.jsx"></script>
+  <script type="text/babel" src="js/components/DangerVignette.jsx"></script>
   <script type="text/babel" src="js/components/GameModals.jsx"></script>
   <script type="text/babel" src="js/components/CheatConsole.jsx"></script>
   <script type="text/babel" src="js/components/DragPreview.jsx"></script>

@@ -86,6 +86,163 @@ const NeonDefense = () => {
   // T4 역할 선택 모달: "이 역할 기억" 체크박스 상태
   const [rememberT4Role, setRememberT4Role] = useState(false);
 
+  // ===== 힌트 토스트 (Agent 플레이테스트 피드백 기반) =====
+  const [hintToast, setHintToast] = useState({ visible: false, message: '', icon: '💡' });
+  const [lastHintAt, setLastHintAt] = useState(0);
+  const prevLivesRef = useRef(null);
+  const prevMilestoneRef = useRef(null);
+
+  useEffect(() => {
+    const now = Date.now();
+    const prev = prevLivesRef.current;
+    prevLivesRef.current = gameState.lives;
+    if (prev === null) return;
+    // 라이프 5 이상 급격 손실 시 배치 힌트
+    if (prev - gameState.lives >= 5 && now - lastHintAt > 15000 && gameState.lives > 0) {
+      setHintToast({ visible: true, message: '라이프 손실이 큽니다. 경로 교차점/전방에 T2~T3 타워를 추가 배치해 보세요.', icon: '⚠️' });
+      setLastHintAt(now);
+    }
+  }, [gameState.lives]);
+
+  // 도감 마일스톤 감지 (속성 3/6, 6/6 달성 시 뽑기권 지급 알림)
+  useEffect(() => {
+    if (typeof CollectionSystem === 'undefined') return;
+    const state = CollectionSystem.load();
+    const ms = state.milestones || {};
+    const prev = prevMilestoneRef.current || {};
+    if (!prev.elem3 && ms.elem3) {
+      setHintToast({ visible: true, message: '3가지 속성 수집! 무료 뽑기권 1장을 받았습니다.', icon: '🎁' });
+    } else if (!prev.elem6 && ms.elem6) {
+      setHintToast({ visible: true, message: '6속성 컴플리트! 무료 뽑기권 3장을 받았습니다.', icon: '🏆' });
+    }
+    prevMilestoneRef.current = ms;
+  }, [inventoryState.inventory.length, gameState.towers.length]);
+
+  // Prism 드랍 이벤트 감지 → 대박 토스트
+  useEffect(() => {
+    const handler = (e) => {
+      const count = e.detail?.count || 1;
+      setHintToast({
+        visible: true,
+        message: count > 1
+          ? `✨ PRISM ${count}개 획득! 스탯 +30% 레어 타워!`
+          : '✨ PRISM 타워 획득! 스탯 +30%의 레어 드랍!',
+        icon: '🌈',
+      });
+    };
+    window.addEventListener('neon-prism-drop', handler);
+    return () => window.removeEventListener('neon-prism-drop', handler);
+  }, []);
+
+  // 스테이지 별점 새 기록 시 토스트
+  useEffect(() => {
+    const starHandler = (e) => {
+      const { stage: s, stars, prev } = e.detail || {};
+      const starText = stars === 3 ? '★★★' : stars === 2 ? '★★☆' : '★☆☆';
+      const msg = prev === 0
+        ? `Stage ${s} 클리어! ${starText} 획득!`
+        : `Stage ${s} 별점 갱신! ${starText} (이전 ${prev}★)`;
+      setHintToast({ visible: true, message: msg, icon: stars === 3 ? '🌟' : '⭐' });
+    };
+    const allThreeHandler = () => {
+      setHintToast({ visible: true, message: '🏆 모든 스테이지 ★★★ 달성! 마스터 등극!', icon: '🏆' });
+    };
+    window.addEventListener('neon-stage-star', starHandler);
+    window.addEventListener('neon-all-three-star', allThreeHandler);
+    return () => {
+      window.removeEventListener('neon-stage-star', starHandler);
+      window.removeEventListener('neon-all-three-star', allThreeHandler);
+    };
+  }, []);
+
+  // ===== 킬 콤보 카운터 (2초 내 연속 킬 = 콤보) =====
+  const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
+  const comboTimerRef = useRef(null);
+  const prevKilledRef = useRef(0);
+
+  useEffect(() => {
+    const killed = gameState.killedCount;
+    const prev = prevKilledRef.current;
+    prevKilledRef.current = killed;
+
+    if (killed > prev) {
+      // 새 킬 감지
+      setCombo(prevCombo => {
+        const next = prevCombo + (killed - prev);
+        if (next > maxCombo) setMaxCombo(next);
+        return next;
+      });
+      // 2초 후 리셋 타이머 갱신
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      comboTimerRef.current = setTimeout(() => setCombo(0), 2000);
+    }
+  }, [gameState.killedCount, maxCombo]);
+
+  // 게임 종료/스테이지 전환 시 콤보 리셋
+  useEffect(() => {
+    if (!gameState.isPlaying || gameState.gameOver) {
+      if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+      setCombo(0);
+    }
+  }, [gameState.isPlaying, gameState.gameOver]);
+
+  // ===== 튜토리얼 단계 (Stage 0 경량) =====
+  // step: 'none' | 'draw' | 'combine' | 'place' | 'start' | 'done' | 'done-closed'
+  const [tutorialStep, setTutorialStep] = useState('none');
+
+  // 튜토리얼 시작 조건: 게임 시작 + tutorialDone=false + 런모드 아님 (첫 캠페인만)
+  useEffect(() => {
+    if (saveLoadState.gameStarted && !saveLoadState.showMainMenu
+        && !settings.tutorialDone && !runModeState.runActive
+        && tutorialStep === 'none') {
+      setTutorialStep('draw');
+    }
+  }, [saveLoadState.gameStarted, saveLoadState.showMainMenu, settings.tutorialDone, runModeState.runActive]);
+
+  // 튜토리얼 자동 진행: 인벤토리/타워/isPlaying 감지
+  // draw: 뽑기 1회 완료 시 → combine (수동 "다음" 대기)
+  // place: 맵 타워 1개 이상 → start
+  // start: isPlaying=true → done
+  useEffect(() => {
+    if (tutorialStep === 'draw' && inventoryState.inventory.length > 0) {
+      setTutorialStep('combine');
+    }
+  }, [inventoryState.inventory.length, tutorialStep]);
+
+  useEffect(() => {
+    if (tutorialStep === 'place' && gameState.towers.length > 0) {
+      setTutorialStep('start');
+    }
+  }, [gameState.towers.length, tutorialStep]);
+
+  useEffect(() => {
+    if (tutorialStep === 'start' && gameState.isPlaying) {
+      setTutorialStep('done');
+    }
+  }, [gameState.isPlaying, tutorialStep]);
+
+  // 사용자가 중간에 타워 배치하면 combine → place 건너뛰고 start로
+  useEffect(() => {
+    if (tutorialStep === 'combine' && gameState.towers.length > 0) {
+      setTutorialStep('start');
+    }
+  }, [gameState.towers.length, tutorialStep]);
+
+  const handleTutorialNext = () => {
+    const order = ['draw', 'combine', 'place', 'start', 'done'];
+    const idx = order.indexOf(tutorialStep);
+    if (idx >= 0 && idx < order.length - 1) setTutorialStep(order[idx + 1]);
+  };
+  const handleTutorialSkip = () => {
+    setTutorialStep('done-closed');
+    settings.setTutorialDone(true);
+  };
+  const handleTutorialClose = () => {
+    setTutorialStep('done-closed');
+    settings.setTutorialDone(true);
+  };
+
   // 사운드 상태
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [sfxEnabled, setSfxEnabled] = useState(true);
@@ -547,6 +704,18 @@ const NeonDefense = () => {
           metaProgress={runModeState.metaProgress}
           neonCrystals={runModeState.neonCrystals}
           onPurchaseUpgrade={runModeState.purchaseUpgrade}
+          onDailyLoginReward={({ crystals, tickets }) => {
+            if (crystals && runModeState.setMetaProgress) {
+              runModeState.setMetaProgress(prev => {
+                const updated = { ...prev, crystals: (prev.crystals || 0) + crystals };
+                if (typeof RunSaveSystem !== 'undefined') RunSaveSystem.saveMeta(updated);
+                return updated;
+              });
+            }
+            if (tickets && typeof CollectionSystem !== 'undefined') {
+              CollectionSystem.addFreeDrawTicket(tickets);
+            }
+          }}
         />
       )}
 
@@ -785,6 +954,41 @@ const NeonDefense = () => {
             saveInfo={saveLoadState.saveInfo}
           />
         </div>
+      )}
+
+      {/* 도움말 모달 (어디서든 접근 가능, 메인메뉴/게임화면/런모드 공용, 최상단 z-index) */}
+      <HelpModal
+        showHelp={showHelp}
+        setShowHelp={setShowHelp}
+        getElementInfo={getElementInfo}
+      />
+
+      {/* 튜토리얼 오버레이 (첫 게임 진입 시) */}
+      {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
+        <TutorialOverlay
+          step={tutorialStep}
+          onNext={handleTutorialNext}
+          onSkip={handleTutorialSkip}
+          onClose={handleTutorialClose}
+        />
+      )}
+
+      {/* 힌트 토스트 (라이프 급감/도감 진행 등 상황형) */}
+      <HintToast
+        visible={hintToast.visible}
+        message={hintToast.message}
+        icon={hintToast.icon}
+        onClose={() => setHintToast(prev => ({ ...prev, visible: false }))}
+      />
+
+      {/* 킬 콤보 카운터 (게임 중 화면 중앙 상단) */}
+      {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
+        <ComboIndicator combo={combo} maxCombo={maxCombo} />
+      )}
+
+      {/* Near-miss 위험 vignette (lives ≤ 5) */}
+      {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
+        <DangerVignette lives={gameState.lives} maxLives={30} isPlaying={gameState.isPlaying} />
       )}
     </div>
   );

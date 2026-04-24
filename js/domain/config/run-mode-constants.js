@@ -74,8 +74,9 @@ const BOSS_RUSH_SPAWN = {
 };
 
 // ===== 런 모드 경제 설정 =====
+// Standard casual 클리어율 53% → 70% 조정: 웨이브 보상 + 시작 자원 상향
 const RUN_ECONOMY = {
-  startGold: 80,
+  startGold: 100,              // 80 → 100
   startLives: 15,
   drawCost: 20,
   supportDrawCost: 40,
@@ -84,9 +85,9 @@ const RUN_ECONOMY = {
   sellRefundRate: 0.5,
   towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
   supportBaseValues: { 1: 40, 2: 120, 3: 360 },
-  waveReward: (wave) => 18 + wave * 6 + (wave === 5 ? 20 : 0),
-  stageClearBonus: (stage) => 50 + stage * 12,
-  bossGoldReward: (stage, wave) => 25 + stage * 8 + wave * 4,
+  waveReward: (wave) => 24 + wave * 7 + (wave === 5 ? 25 : 0),  // 18+6→24+7
+  stageClearBonus: (stage) => 60 + stage * 14,
+  bossGoldReward: (stage, wave) => 30 + stage * 8 + wave * 4,
 };
 
 // ===== 보스 러시 경제 설정 =====

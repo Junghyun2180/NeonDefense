@@ -36,6 +36,22 @@ const GameMap = ({
         return opts;
     }, [maxGameSpeed]);
     const { useMemo } = React;
+    // 스프라이트 로드 완료 감지 → 리렌더 트리거 (preload 비동기)
+    const [spritesReady, setSpritesReady] = React.useState(() =>
+        (typeof TowerSprite !== 'undefined' && TowerSprite._available?.size > 0)
+        || (typeof EnemySprite !== 'undefined' && EnemySprite._available?.size > 0)
+        || (typeof SupportSprite !== 'undefined' && SupportSprite._available?.size > 0));
+    React.useEffect(() => {
+        const h = () => setSpritesReady(true);
+        window.addEventListener('tower-sprites-ready', h);
+        window.addEventListener('enemy-sprites-ready', h);
+        window.addEventListener('support-sprites-ready', h);
+        return () => {
+            window.removeEventListener('tower-sprites-ready', h);
+            window.removeEventListener('enemy-sprites-ready', h);
+            window.removeEventListener('support-sprites-ready', h);
+        };
+    }, []);
 
     return (
         <div className="relative">
@@ -174,20 +190,43 @@ const GameMap = ({
                             const isSelected = selectedTowers.some(t => t.id === tower.id);
                             const elementInfo = getElementInfo(tower.element);
                             const displayRange = tower.effectiveRange || tower.range;
+                            const spriteUrl = spritesReady && typeof TowerSprite !== 'undefined' ? TowerSprite.getUrl(tower.element, tower.tier) : null;
+                            const SPRITE_SIZE = tower.tier === 4 ? 48 : tower.tier === 3 ? 42 : tower.tier === 2 ? 38 : 34;
                             return (
                                 <div key={tower.id}>
                                     {isSelected && <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - displayRange, top: tower.y - displayRange, width: displayRange * 2, height: displayRange * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />}
-                                    <div onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (selectedTowerForPlacement) {
-                                            cancelPlacementMode();
-                                        } else {
-                                            toggleTowerSelect(tower);
-                                        }
-                                    }} className={'absolute neon-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: tower.x - 15, top: tower.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + tower.color + ' 0%, ' + tower.color + '80 50%, transparent 70%)', borderRadius: '50%', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + tower.color : undefined, color: tower.color, opacity: tower.isDebuffed ? 0.6 : 1, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
-                                        <span className="text-xs font-black text-white drop-shadow-lg">{elementInfo.icon}</span>
-                                    </div>
-                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: tower.x - 8, top: tower.y + 12, textShadow: '0 0 3px black' }}>T{tower.tier}</div>
+                                    {spriteUrl ? (
+                                        <div onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (selectedTowerForPlacement) cancelPlacementMode();
+                                            else toggleTowerSelect(tower);
+                                        }} className={'absolute ' + (isSelected ? 'tower-selected' : '')}
+                                        style={{
+                                            left: tower.x - SPRITE_SIZE / 2,
+                                            top: tower.y - SPRITE_SIZE / 2,
+                                            width: SPRITE_SIZE,
+                                            height: SPRITE_SIZE,
+                                            opacity: tower.isDebuffed ? 0.6 : 1,
+                                            cursor: selectedTowerForPlacement ? 'default' : 'pointer',
+                                            filter: isSelected ? 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px ' + tower.color + ')' : 'drop-shadow(0 0 4px ' + tower.color + '80)',
+                                        }}>
+                                            <img src={spriteUrl} alt={tower.name} draggable={false}
+                                                 style={{ width: '100%', height: '100%', imageRendering: 'auto', pointerEvents: 'none' }} />
+                                            {tower.isPrism && (
+                                                <div className="absolute inset-0 pointer-events-none"
+                                                     style={{ background: 'conic-gradient(from 0deg, #ff0080, #ffff00, #00ff80, #00ffff, #8000ff, #ff0080)', opacity: 0.25, mixBlendMode: 'screen', borderRadius: '50%' }} />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (selectedTowerForPlacement) cancelPlacementMode();
+                                            else toggleTowerSelect(tower);
+                                        }} className={'absolute neon-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: tower.x - 15, top: tower.y - 15, width: 30, height: 30, background: 'radial-gradient(circle, ' + tower.color + ' 0%, ' + tower.color + '80 50%, transparent 70%)', borderRadius: '50%', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + tower.color : undefined, color: tower.color, opacity: tower.isDebuffed ? 0.6 : 1, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
+                                            <span className="text-xs font-black text-white drop-shadow-lg">{elementInfo.icon}</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: tower.x - 8, top: tower.y + SPRITE_SIZE / 2 - 2, textShadow: '0 0 3px black' }}>T{tower.tier}{tower.isPrism ? '★' : ''}</div>
                                     {tower.isDebuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬇️</div>}
                                     {tower.isBuffed && <div className="absolute text-xs pointer-events-none" style={{ left: tower.x + 8, top: tower.y - 15 }}>⬆️</div>}
                                 </div>
@@ -198,13 +237,32 @@ const GameMap = ({
                         {supportTowers.map(support => {
                             const isSelected = selectedSupportTowers.some(t => t.id === support.id);
                             const supportInfo = SUPPORT_UI[support.supportType];
+                            const supUrl = typeof SupportSprite !== 'undefined' ? SupportSprite.getUrl(support.supportType, support.tier) : null;
+                            const SPR_SIZE = support.tier === 3 ? 44 : support.tier === 2 ? 38 : 34;
                             return (
                                 <div key={support.id}>
                                     {isSelected && <div className="absolute rounded-full support-range pointer-events-none" style={{ left: support.x - support.range, top: support.y - support.range, width: support.range * 2, height: support.range * 2, border: '2px dashed ' + (isSelected ? '#ffffff' : support.color) + '60', background: 'radial-gradient(circle, ' + support.color + '15 0%, transparent 70%)' }} />}
-                                    <div onClick={(e) => { e.stopPropagation(); if (selectedTowerForPlacement) { cancelPlacementMode(); } else { toggleSupportTowerSelect(support); } }} className={'absolute support-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: support.x - 15, top: support.y - 15, width: 30, height: 30, background: 'linear-gradient(135deg, ' + support.color + ' 0%, ' + support.color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + support.color : '0 0 10px ' + support.color, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
-                                        <span className="text-sm">{supportInfo.icon}</span>
-                                    </div>
-                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: support.x - 6, top: support.y + 12, textShadow: '0 0 3px black' }}>S{support.tier}</div>
+                                    {supUrl ? (
+                                        <div onClick={(e) => { e.stopPropagation(); if (selectedTowerForPlacement) { cancelPlacementMode(); } else { toggleSupportTowerSelect(support); } }}
+                                             className={'absolute ' + (isSelected ? 'tower-selected' : '')}
+                                             style={{
+                                                 left: support.x - SPR_SIZE / 2,
+                                                 top: support.y - SPR_SIZE / 2,
+                                                 width: SPR_SIZE, height: SPR_SIZE,
+                                                 cursor: selectedTowerForPlacement ? 'default' : 'pointer',
+                                                 filter: isSelected
+                                                     ? 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px ' + support.color + ')'
+                                                     : 'drop-shadow(0 0 4px ' + support.color + '90)',
+                                             }}>
+                                            <img src={supUrl} alt={supportInfo.name} draggable={false}
+                                                 style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
+                                        </div>
+                                    ) : (
+                                        <div onClick={(e) => { e.stopPropagation(); if (selectedTowerForPlacement) { cancelPlacementMode(); } else { toggleSupportTowerSelect(support); } }} className={'absolute support-glow flex items-center justify-center ' + (isSelected ? 'tower-selected' : '')} style={{ left: support.x - 15, top: support.y - 15, width: 30, height: 30, background: 'linear-gradient(135deg, ' + support.color + ' 0%, ' + support.color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', border: isSelected ? '3px solid #ffffff' : 'none', boxShadow: isSelected ? '0 0 20px #ffffff, 0 0 30px ' + support.color : '0 0 10px ' + support.color, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}>
+                                            <span className="text-sm">{supportInfo.icon}</span>
+                                        </div>
+                                    )}
+                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: support.x - 6, top: support.y + SPR_SIZE / 2 - 2, textShadow: '0 0 3px black' }}>S{support.tier}</div>
                                 </div>
                             );
                         })}
@@ -217,23 +275,45 @@ const GameMap = ({
                                 return null;
                             }
                             const now = Date.now();
-                            // StatusEffectManager를 통해 상태이상 확인
                             const isBurning = StatusEffectManager.hasEffect(enemy, 'burn', now);
                             const isSlowed = StatusEffectManager.hasEffect(enemy, 'slow', now);
                             const isFrozen = StatusEffectManager.hasEffect(enemy, 'freeze', now);
+                            const enemyUrl = typeof EnemySprite !== 'undefined' ? EnemySprite.getUrl(enemy.type) : null;
+                            // 적 크기 — boss는 크게, 일반은 기본, fast는 약간 작게
+                            const SIZE = enemy.type === 'boss' ? 48
+                                : enemy.type === 'elite' ? 38
+                                : enemy.type === 'fast' ? 26
+                                : enemy.type === 'splitter' ? 28
+                                : 32;
                             return (
-                                <div key={enemy.id} className="absolute" style={{ left: enemy.x - 12, top: enemy.y - 12 }}>
+                                <div key={enemy.id} className="absolute" style={{ left: enemy.x - SIZE / 2, top: enemy.y - SIZE / 2 }}>
                                     {EnemySystem.isDebuffer(enemy) && (
-                                        <div className="absolute rounded-full opacity-20 pointer-events-none" style={{ left: 12 - (enemy.debuffRange || 80), top: 12 - (enemy.debuffRange || 80), width: (enemy.debuffRange || 80) * 2, height: (enemy.debuffRange || 80) * 2, background: enemy.type === 'jammer' ? 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)' : 'radial-gradient(circle, #ec4899 0%, transparent 70%)' }} />
+                                        <div className="absolute rounded-full opacity-20 pointer-events-none" style={{ left: SIZE / 2 - (enemy.debuffRange || 80), top: SIZE / 2 - (enemy.debuffRange || 80), width: (enemy.debuffRange || 80) * 2, height: (enemy.debuffRange || 80) * 2, background: enemy.type === 'jammer' ? 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)' : 'radial-gradient(circle, #ec4899 0%, transparent 70%)' }} />
                                     )}
-                                    <div className={config.size + ' ' + config.color + ' rounded-sm transform rotate-45'} style={{ boxShadow: config.shadow }} />
+                                    {enemyUrl ? (
+                                        <img
+                                            src={enemyUrl}
+                                            alt={enemy.type}
+                                            draggable={false}
+                                            style={{
+                                                width: SIZE, height: SIZE,
+                                                imageRendering: 'auto',
+                                                filter: isFrozen ? 'hue-rotate(200deg) brightness(1.3)'
+                                                      : isBurning ? 'drop-shadow(0 0 6px #FF6B6B)'
+                                                      : isSlowed ? 'drop-shadow(0 0 4px #45B7D1) brightness(0.85)'
+                                                      : 'drop-shadow(0 0 3px rgba(0,0,0,0.8))',
+                                                pointerEvents: 'none',
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className={config.size + ' ' + config.color + ' rounded-sm transform rotate-45'} style={{ boxShadow: config.shadow }} />
+                                    )}
                                     <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-gray-800 rounded">
                                         <div className="h-full bg-green-500 rounded enemy-health-bar" style={{ width: (enemy.health / enemy.maxHealth * 100) + '%' }} />
                                     </div>
                                     {isBurning && <div className="absolute -top-4 left-0 text-xs burning-effect">🔥</div>}
                                     {isSlowed && !isFrozen && <div className="absolute -top-4 right-0 text-xs slowed-effect">❄️</div>}
                                     {isFrozen && <div className="absolute -top-4 right-0 text-xs frozen-effect">🧊</div>}
-                                    {config.icon && <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs">{config.icon}</div>}
                                 </div>
                             );
                         })}

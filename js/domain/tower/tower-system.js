@@ -3,22 +3,28 @@
 
 const TowerSystem = {
   // 타워/네온 생성 팩토리 (단일 진실의 원천)
-  create(tier, colorIndex) {
+  // opts.isPrism: 레어 Prism 변종 (스탯 ×1.3, 무지개 색)
+  create(tier, colorIndex, opts = {}) {
     const neonData = NEON_TYPES[tier];
+    const isPrism = !!opts.isPrism;
+    const prismMult = isPrism ? 1.30 : 1.0;
     const tower = {
       id: Date.now() + Math.random(),
       tier,
       colorIndex,
-      color: neonData.colors[colorIndex],
-      name: neonData.names[colorIndex],
-      damage: neonData.damage,
-      range: neonData.range,
-      speed: neonData.speed,
+      color: isPrism ? '#FFFFFF' : neonData.colors[colorIndex],
+      name: isPrism ? 'Prism ' + neonData.names[colorIndex] : neonData.names[colorIndex],
+      damage: Math.floor(neonData.damage * prismMult),
+      range: Math.floor(neonData.range * prismMult),
+      speed: Math.floor(neonData.speed / prismMult),   // 짧은 cooldown = 더 자주 공격
       element: colorIndex,
+      isPrism,
       lastShot: 0,
       isDebuffed: false,
     };
-    // Ability 할당
+    if (typeof CollectionSystem !== 'undefined') {
+      CollectionSystem.recordTower(colorIndex, tier);
+    }
     return AbilitySystem.assignAbility(tower);
   },
 
@@ -37,6 +43,7 @@ const TowerSystem = {
 
   // 3개 조합 → 상위 티어 (인벤토리 / 맵 타워 공용)
   // T3 → T4 조합 시에는 { pending: true } 반환하여 역할 선택 UI 표시
+  // Prism 1개라도 포함되면 결과도 Prism 계승
   combine(items) {
     if (items.length !== 3) return null;
     const baseTier = items[0].tier;
@@ -44,17 +51,19 @@ const TowerSystem = {
     const allSame = items.every(t => t.tier === baseTier && t.colorIndex === baseColorIndex);
     if (!allSame || baseTier >= 4) return null;
 
-    // T3 → T4 조합 시 역할 선택 필요
+    const hasPrism = items.some(t => t.isPrism);
+
     if (baseTier === 3) {
       return {
         pending: true,
         element: baseColorIndex,
         roles: T4_ROLES[baseColorIndex] || [],
         items: items,
+        hasPrism,
       };
     }
 
-    return this.create(baseTier + 1, baseColorIndex);
+    return this.create(baseTier + 1, baseColorIndex, { isPrism: hasPrism });
   },
 
   // T4 타워 생성 (역할 선택 후 호출)
@@ -84,6 +93,10 @@ const TowerSystem = {
       roleIcon: selectedRole.icon,
       special: selectedRole.special || {},
     };
+    // 도감 기록: T4 (tier 4) + 역할
+    if (typeof CollectionSystem !== 'undefined') {
+      CollectionSystem.recordTower(colorIndex, 4, roleId);
+    }
     // Ability 할당
     return AbilitySystem.assignAbility(tower);
   },
@@ -310,6 +323,9 @@ const TowerSystem = {
       buffValue: config.values[supportType],
       isSupport: true,
     };
+    if (typeof CollectionSystem !== 'undefined') {
+      CollectionSystem.recordSupport(supportType, tier);
+    }
     // Ability 할당
     return SupportAbilitySystem.assignAbility(support);
   },
