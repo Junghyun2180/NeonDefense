@@ -25,6 +25,7 @@ const FILES = [
   'js/domain/progression/achievement-system.js',
   'js/infra/balance-logger.js',
   'js/domain/effect/status-effect.js',
+  'js/domain/effect/synergy-system.js',
   'js/domain/progression/permanent-buff.js',
   'js/domain/progression/game-stats.js',
   'js/infra/help-data.js',
@@ -105,7 +106,7 @@ const EXPORT_NAMES = [
   // 시스템
   'AbilitySystem', 'SupportAbilitySystem', 'EnemyAbilitySystem',
   'TowerSystem', 'EnemySystem', 'GameEngine',
-  'StatusEffectSystem', 'StatusEffectManager',
+  'StatusEffectSystem', 'StatusEffectManager', 'SynergySystem',
   'PermanentBuffManager', 'GameStats',
   'RunMode', 'DataResolver', 'ModeAbilityHelper', 'BuffHelper',
   // 상수

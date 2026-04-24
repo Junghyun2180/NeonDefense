@@ -11,7 +11,7 @@ class PierceAbility extends Ability {
   }
 
   onHit(context) {
-    const { hit, enemies } = context;
+    const { hit, target, enemies } = context;
     const result = {
       damageModifier: 1.0,
       additionalDamage: 0,
@@ -22,9 +22,15 @@ class PierceAbility extends Ability {
       pierceTargets: [],
     };
 
+    // 시너지: 공허+화상=에너지 파열 (pierceRange +40%, damageMult +10%)
+    const syn = (typeof SynergySystem !== 'undefined')
+      ? SynergySystem.evaluate(ELEMENT_TYPES.VOID, target)
+      : { damageMult: 1.0, pierceRangeMult: 1.0, tags: [] };
+    result.damageModifier = syn.damageMult;
+
     const pierceCount = this.getTierValue('pierceCount', 1);
     const pierceDamageDecay = this.getTierValue('pierceDamageDecay', 0.5);
-    const pierceRange = this.getTierValue('pierceRange', 80);
+    const pierceRange = this.getTierValue('pierceRange', 80) * syn.pierceRangeMult;
 
     // 관통 대상 찾기
     let pierced = 0;
@@ -36,7 +42,7 @@ class PierceAbility extends Ability {
 
     sortedEnemies.forEach(({ enemy }) => {
       if (pierced >= pierceCount) return;
-      const pierceDmg = Math.floor(hit.damage * pierceDamageDecay);
+      const pierceDmg = Math.floor(hit.damage * pierceDamageDecay * syn.damageMult);
       result.pierceTargets.push({
         enemy: enemy,
         damage: pierceDmg,
@@ -50,6 +56,15 @@ class PierceAbility extends Ability {
       });
       pierced++;
     });
+
+    if (syn.tags.includes('energy-burst')) {
+      result.visualEffects.push({
+        id: Date.now() + Math.random(),
+        x: hit.x, y: hit.y,
+        type: 'energy-burst',
+        color: '#C77DFF',
+      });
+    }
 
     return result;
   }

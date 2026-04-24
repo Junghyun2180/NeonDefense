@@ -24,11 +24,16 @@ class SlowAbility extends Ability {
       targetMutations: [],   // 엔진이 적 상태를 변경하도록 요청
     };
 
+    // 시너지: 냉기+넉백=빙판 (슬로우 지속시간 ×1.5)
+    const syn = (typeof SynergySystem !== 'undefined')
+      ? SynergySystem.evaluate(ELEMENT_TYPES.WATER, target)
+      : { slowDurationMult: 1.0, tags: [] };
+
     const permSlowMult = BuffHelper.getSlowPowerMultiplier(permanentBuffs);
     const slowPercent = this.getTierValue('slowPercent') * permSlowMult;
-    const slowDuration = this.getTierValue('slowDuration');
+    const slowDuration = this.getTierValue('slowDuration') * syn.slowDurationMult;
 
-    // Water는 CC 의존이라 단일 DPS가 낮음 → 기본 공격에 +15% 보정 (단독 플레이 밸런스)
+    // Water는 CC 의존이라 단일 DPS가 낮음 → 기본 공격에 +15% 보정
     result.damageModifier = 1.15;
 
     // 슬로우 적용 (기존 동작 유지 — 더 강한 값이면 갱신)

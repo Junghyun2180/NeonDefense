@@ -23,9 +23,14 @@ class BurnAbility extends Ability {
       targetMutations: [],
     };
 
+    // 시너지: 화염+슬로우=증폭 화상 (burn duration ×1.5)
+    const syn = (typeof SynergySystem !== 'undefined')
+      ? SynergySystem.evaluate(ELEMENT_TYPES.FIRE, target)
+      : { burnDurationMult: 1.0, tags: [] };
+
     const permBurnMult = BuffHelper.getBurnDurationMultiplier(permanentBuffs);
     const burnDamage = Math.floor(hit.damage * this.getTierValue('burnDamagePercent'));
-    const burnDuration = Math.floor(this.getTierValue('burnDuration') * permBurnMult);
+    const burnDuration = Math.floor(this.getTierValue('burnDuration') * permBurnMult * syn.burnDurationMult);
 
     result.statusEffects.push({
       enemyId: hit.enemyId,
