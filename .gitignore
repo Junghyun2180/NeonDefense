@@ -9,7 +9,7 @@ node_modules/
 npm-debug.log*
 
 # 로컬 에셋 소스/프리뷰 (분할 전 원본 및 승인 전 프리뷰)
-Saved/
+Saved/Preview/
 
 # Windows 잔여 파일
 nul
