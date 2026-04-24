@@ -21,19 +21,20 @@ const RUN_SPAWN = {
 
 // ===== Rush Mode (초단기 세션, 5-8분 목표) =====
 // 3스테이지 × 3웨이브 = 9웨이브. 캐주얼 진입로용
+// E2E 시뮬 결과 기반으로 튜닝 (2026-04-24): poor AI에도 난이도 제공 + optimal은 여유
 const RUSH_SPAWN = {
   wavesPerStage: 3,
   maxStage: 3,
-  enemiesPerWave: (stage, wave) => 12,
-  spawnDelay: (stage, wave) => 900,
-  waveDurationMs: 35000,        // 35초/웨이브 (stardard 60초 대비 단축)
+  enemiesPerWave: (stage, wave) => 16 + Math.floor(stage * 2) + wave,  // 19~27마리
+  spawnDelay: (stage, wave) => Math.max(500, 850 - stage * 50 - wave * 20),
+  waveDurationMs: 35000,
   waveAutoStart: true,
-  defeatThreshold: 60,          // 맵 위 적 60마리 이상 = 패배
+  defeatThreshold: 45,          // 60→45: 타워 적게 배치하면 즉시 패배
   bossPhaseDurationMs: 45000,
 };
 
 const RUSH_ECONOMY = {
-  startGold: 120,
+  startGold: 100,                // 120→100: 초반 여유 축소
   startLives: 10,
   drawCost: 20,
   supportDrawCost: 40,
@@ -42,18 +43,18 @@ const RUSH_ECONOMY = {
   sellRefundRate: 0.5,
   towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
   supportBaseValues: { 1: 40, 2: 120, 3: 360 },
-  waveReward: (wave) => 25 + wave * 5,
+  waveReward: (wave) => 22 + wave * 4,
   stageClearBonus: (stage) => 40 + stage * 10,
   bossGoldReward: (stage, wave) => 20 + stage * 5,
 };
 
 const RUSH_HEALTH_SCALING = {
-  base: 25,
-  stageGrowth: 0.4,
-  waveGrowth: 0.25,
+  base: 45,                      // 25→45: 낮은 티어 타워로는 처리 부담
+  stageGrowth: 0.50,             // 0.40→0.50
+  waveGrowth: 0.30,              // 0.25→0.30
   lateWaveThreshold: 3,
   lateWaveBonus: 1.3,
-  bossFormula: (stage) => 10 + stage * 2,
+  bossFormula: (stage) => 15 + stage * 3,
 };
 
 const RUSH_CARRYOVER = {

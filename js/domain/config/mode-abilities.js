@@ -38,6 +38,40 @@ const MODE_ABILITIES = {
         },
     },
 
+    // ===== Rush Mode 어빌리티 (초단기 세션) =====
+    rush: {
+        id: 'rush',
+        name: 'Rush Mode',
+        icon: '⚡',
+        mapType: 'square',
+        defeatCondition: 'enemyCount',
+        defeatThreshold: 45,
+        waveAutoStart: true,
+        waveDurationMs: 35000,
+        bossPhaseDurationMs: 45000,
+        loopingPath: true,
+
+        // Rush는 run과 같은 스폰 규칙 사용 (스테이지별 난이도 상승 포함)
+        spawnRules: [
+            { type: 'elite', condition: (idx, total, wave, stage) => stage >= 2 && wave >= 2 && idx % 6 === 0, chance: 1.0 },
+            { type: 'healer', condition: (idx, total, wave, stage) => stage >= 2 && wave >= 2, chanceBase: 0.08, chancePerStage: 0.04 },
+            { type: 'jammer', condition: (idx, total, wave, stage) => stage >= 2, chanceBase: 0.05, chancePerStage: 0.03 },
+            { type: 'splitter', condition: (idx, total, wave, stage) => stage >= 3, chanceBase: 0.08 },
+            { type: 'fast', condition: () => true, chanceBase: 0.40 },
+            { type: 'normal', condition: () => true, chance: 1.0 },
+        ],
+
+        // 체력 스케일링 — run보다 후반부 부담 ↑ (짧지만 매움)
+        healthScaling: {
+            base: 45,
+            stageGrowth: 0.55,
+            waveGrowth: 0.30,
+            lateWaveThreshold: 3,
+            lateWaveBonus: 1.35,
+            bossFormula: (stage) => 15 + stage * 3,
+        },
+    },
+
     // ===== 보스 러시 어빌리티 =====
     bossRush: {
         id: 'bossRush',

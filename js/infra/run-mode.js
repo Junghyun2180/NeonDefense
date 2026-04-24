@@ -70,7 +70,7 @@ const RunMode = {
         ...RUSH_CARRYOVER,
         maxTowers: RUSH_CARRYOVER.maxTowers + carryoverBonus,
       },
-      modeAbility: 'run',      // Rush도 기존 auto-wave 엔진 재사용
+      modeAbility: 'rush',
       mapType: 'square',
     };
   },

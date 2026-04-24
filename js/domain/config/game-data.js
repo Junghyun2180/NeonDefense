@@ -65,6 +65,26 @@ const GAME_DATA = {
             spawnRules: MODE_ABILITIES.run.spawnRules,
         },
 
+        // --- Rush Mode (초단기 5-8분) ---
+        rush: {
+            id: 'rush',
+            name: 'Rush Mode',
+            icon: '⚡',
+            mapType: 'square',
+            defeatCondition: 'enemyCount',
+            defeatThreshold: 45,
+            waveAutoStart: true,
+            waveDurationMs: 35000,
+            bossPhaseDurationMs: 45000,
+            loopingPath: true,
+
+            spawn: RUSH_SPAWN,
+            economy: RUSH_ECONOMY,
+            healthScaling: RUSH_HEALTH_SCALING,
+            carryover: RUSH_CARRYOVER,
+            spawnRules: MODE_ABILITIES.rush.spawnRules,
+        },
+
         // --- 보스 러시 모드 ---
         bossRush: {
             id: 'bossRush',
