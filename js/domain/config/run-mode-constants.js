@@ -19,6 +19,50 @@ const RUN_SPAWN = {
   bossPhaseDurationMs: 60000,    // 보스 페이즈 제한시간: 1분
 };
 
+// ===== Rush Mode (초단기 세션, 5-8분 목표) =====
+// 3스테이지 × 3웨이브 = 9웨이브. 캐주얼 진입로용
+const RUSH_SPAWN = {
+  wavesPerStage: 3,
+  maxStage: 3,
+  enemiesPerWave: (stage, wave) => 12,
+  spawnDelay: (stage, wave) => 900,
+  waveDurationMs: 35000,        // 35초/웨이브 (stardard 60초 대비 단축)
+  waveAutoStart: true,
+  defeatThreshold: 60,          // 맵 위 적 60마리 이상 = 패배
+  bossPhaseDurationMs: 45000,
+};
+
+const RUSH_ECONOMY = {
+  startGold: 120,
+  startLives: 10,
+  drawCost: 20,
+  supportDrawCost: 40,
+  maxInventory: 30,
+  maxSupportInventory: 15,
+  sellRefundRate: 0.5,
+  towerBaseValues: { 1: 20, 2: 60, 3: 180, 4: 540 },
+  supportBaseValues: { 1: 40, 2: 120, 3: 360 },
+  waveReward: (wave) => 25 + wave * 5,
+  stageClearBonus: (stage) => 40 + stage * 10,
+  bossGoldReward: (stage, wave) => 20 + stage * 5,
+};
+
+const RUSH_HEALTH_SCALING = {
+  base: 25,
+  stageGrowth: 0.4,
+  waveGrowth: 0.25,
+  lateWaveThreshold: 3,
+  lateWaveBonus: 1.3,
+  bossFormula: (stage) => 10 + stage * 2,
+};
+
+const RUSH_CARRYOVER = {
+  maxTowers: 2,
+  maxSupports: 1,
+  minTowerTier: 2,
+  minSupportTier: 2,
+};
+
 // ===== 보스 러시 스폰 설정 =====
 const BOSS_RUSH_SPAWN = {
   wavesPerStage: 999,            // 사실상 무한 (죽을 때까지)
@@ -101,6 +145,8 @@ const BOSS_RUSH_CARRYOVER = {
 const CRYSTAL_REWARDS = {
   // 런 모드
   standardClear: 50,       // Standard Run 클리어
+  rushClear: 25,           // Rush Mode 클리어 (짧은 세션)
+  rushSpeedBonus: 10,      // 5분 이내 클리어
   dailyClear: 100,         // Daily Challenge 클리어
   perfectBonus: 30,        // 목숨 손실 없이 클리어
   speedBonus: 20,          // 15분 이내 클리어
@@ -246,12 +292,16 @@ const DAILY_MODIFIERS = {
 
 // 전역 등록
 window.RUN_SPAWN = RUN_SPAWN;
+window.RUSH_SPAWN = RUSH_SPAWN;
 window.BOSS_RUSH_SPAWN = BOSS_RUSH_SPAWN;
 window.RUN_ECONOMY = RUN_ECONOMY;
+window.RUSH_ECONOMY = RUSH_ECONOMY;
 window.BOSS_RUSH_ECONOMY = BOSS_RUSH_ECONOMY;
 window.RUN_HEALTH_SCALING = RUN_HEALTH_SCALING;
+window.RUSH_HEALTH_SCALING = RUSH_HEALTH_SCALING;
 window.BOSS_RUSH_HEALTH_SCALING = BOSS_RUSH_HEALTH_SCALING;
 window.RUN_CARRYOVER = RUN_CARRYOVER;
+window.RUSH_CARRYOVER = RUSH_CARRYOVER;
 window.BOSS_RUSH_CARRYOVER = BOSS_RUSH_CARRYOVER;
 window.CRYSTAL_REWARDS = CRYSTAL_REWARDS;
 window.META_UPGRADES = META_UPGRADES;

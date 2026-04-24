@@ -50,6 +50,31 @@ const RunMode = {
     };
   },
 
+  // ===== Rush Mode 설정 빌드 (5-8분 초단기 세션) =====
+  buildRushConfig(metaUpgrades = {}) {
+    const startGoldBonus = META_UPGRADES.startingGold.effect(metaUpgrades.startingGold || 0);
+    const startLivesBonus = META_UPGRADES.startingLives.effect(metaUpgrades.startingLives || 0);
+    const carryoverBonus = META_UPGRADES.carryoverSlots.effect(metaUpgrades.carryoverSlots || 0);
+    const discountBonus = META_UPGRADES.drawDiscount.effect(metaUpgrades.drawDiscount || 0);
+
+    return {
+      SPAWN: { ...RUSH_SPAWN },
+      ECONOMY: {
+        ...RUSH_ECONOMY,
+        startGold: RUSH_ECONOMY.startGold + startGoldBonus,
+        startLives: RUSH_ECONOMY.startLives + startLivesBonus,
+        drawCost: Math.max(1, RUSH_ECONOMY.drawCost - discountBonus),
+      },
+      HEALTH_SCALING: { ...RUSH_HEALTH_SCALING },
+      CARRYOVER: {
+        ...RUSH_CARRYOVER,
+        maxTowers: RUSH_CARRYOVER.maxTowers + carryoverBonus,
+      },
+      modeAbility: 'run',      // Rush도 기존 auto-wave 엔진 재사용
+      mapType: 'square',
+    };
+  },
+
   // ===== 보스 러시 모드 설정 빌드 =====
   buildBossRushConfig(metaUpgrades = {}) {
     const discountBonus = META_UPGRADES.drawDiscount.effect(metaUpgrades.drawDiscount || 0);
@@ -155,6 +180,8 @@ const RunMode = {
       // 모드별 기본 보상
       if (result.mode === 'daily') {
         crystals += CRYSTAL_REWARDS.dailyClear;
+      } else if (result.mode === 'rush') {
+        crystals += CRYSTAL_REWARDS.rushClear;
       } else {
         crystals += CRYSTAL_REWARDS.standardClear;
       }
@@ -162,8 +189,12 @@ const RunMode = {
       if (result.isPerfect) {
         crystals += CRYSTAL_REWARDS.perfectBonus;
       }
-      // 스피드 보너스 (15분 이내)
-      if (result.playTimeMs && result.playTimeMs < 15 * 60 * 1000) {
+      // 스피드 보너스
+      if (result.mode === 'rush') {
+        if (result.playTimeMs && result.playTimeMs < 5 * 60 * 1000) {
+          crystals += CRYSTAL_REWARDS.rushSpeedBonus;
+        }
+      } else if (result.playTimeMs && result.playTimeMs < 15 * 60 * 1000) {
         crystals += CRYSTAL_REWARDS.speedBonus;
       }
     } else {

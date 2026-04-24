@@ -108,6 +108,32 @@ const RunModeMenu = ({
 
               {/* 모드 카드들 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Rush Mode (신규, 짧은 세션) */}
+                <button
+                  onClick={() => onStartRun('rush')}
+                  className="group bg-gray-900/60 border-2 border-cyan-500/40 hover:border-cyan-400 rounded-xl p-5 transition-all hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/20 text-left"
+                >
+                  <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">⚡</div>
+                  <h3 className="text-lg font-bold text-cyan-300 mb-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    Rush Mode
+                  </h3>
+                  <p className="text-gray-400 text-xs mb-3">3 스테이지 x 3 웨이브 | 5-8분</p>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between text-gray-300">
+                      <span>보상</span>
+                      <span className="text-cyan-300">💎 25+</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>난이도</span>
+                      <span className="text-cyan-300">★★☆☆☆</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>특징</span>
+                      <span className="text-cyan-300">캐주얼 / 빠른 한 판</span>
+                    </div>
+                  </div>
+                </button>
+
                 {/* Standard Run */}
                 <button
                   onClick={() => onStartRun('standard')}
