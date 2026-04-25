@@ -44,6 +44,20 @@ const GameMap = ({
     const ELEMENT_KEYS = ['fire', 'water', 'electric', 'wind', 'void', 'light'];
     const getElementOrbUrl = (element) => `assets/icons/elements/${ELEMENT_KEYS[element]}.png`;
     const getStatusIconUrl = (type) => `assets/icons/status/${type}.png`;
+    // 방향 화살표 (▶◀▲▼) PNG 옵션 — assets/icons/arrows/{right,left,down,up}.png 가 있으면 사용
+    const ARROW_DIR = { '▶': 'right', '◀': 'left', '▼': 'down', '▲': 'up' };
+    const [arrowPng, setArrowPng] = React.useState(() => ({ right: null, left: null, down: null, up: null }));
+    React.useEffect(() => {
+        const probe = (dir) => new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(`assets/icons/arrows/${dir}.png`);
+            img.onerror = () => resolve(null);
+            img.src = `assets/icons/arrows/${dir}.png`;
+        });
+        Promise.all(['right', 'left', 'down', 'up'].map(probe)).then(([r, l, d, u]) => {
+            if (r || l || d || u) setArrowPng({ right: r, left: l, down: d, up: u });
+        });
+    }, []);
     // 스프라이트 로드 완료 감지 → 리렌더 트리거 (preload 비동기)
     const [spritesReady, setSpritesReady] = React.useState(() =>
         (typeof TowerSprite !== 'undefined' && TowerSprite._available?.size > 0)
@@ -144,9 +158,17 @@ const GameMap = ({
                                                 else if (dy < 0) startArrow = '▲';
                                             }
                                             const arrowColor = startPath.id === 'A' ? '#FFD700' : startPath.color;
+                                            const arrowDir = ARROW_DIR[startArrow];
+                                            const arrowImg = arrowPng[arrowDir];
                                             return (
                                                 <div className="tile-start w-full h-full flex items-center justify-center relative">
-                                                    <span className="text-lg font-bold relative z-10" style={{ color: arrowColor, textShadow: '0 0 8px ' + arrowColor + ', 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000', filter: 'drop-shadow(0 0 6px ' + arrowColor + ')' }}>{startArrow}</span>
+                                                    {arrowImg ? (
+                                                        <img src={arrowImg} alt="" draggable={false}
+                                                            className="relative z-10"
+                                                            style={{ width: 18, height: 18, filter: `drop-shadow(0 0 6px ${arrowColor})` }} />
+                                                    ) : (
+                                                        <span className="text-lg font-bold relative z-10" style={{ color: arrowColor, textShadow: '0 0 8px ' + arrowColor + ', 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000', filter: 'drop-shadow(0 0 6px ' + arrowColor + ')' }}>{startArrow}</span>
+                                                    )}
                                                 </div>
                                             );
                                         })()}
@@ -155,11 +177,25 @@ const GameMap = ({
                                         )}
                                         {!startPoint && !endPoint && pathArrows[`${x},${y}`] && pathArrows[`${x},${y}`].length > 0 && (
                                             <div className="w-full h-full flex items-center justify-center pointer-events-none flex-wrap gap-0" style={{ opacity: 0.9 }}>
-                                                {pathArrows[`${x},${y}`].map((arrowInfo, idx) => (
-                                                    <span key={idx} style={{ color: arrowInfo.color, fontSize: pathArrows[`${x},${y}`].length > 1 ? '11px' : '14px', lineHeight: 1, fontWeight: 'bold', textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 6px ' + arrowInfo.color }}>
-                                                        {arrowInfo.arrow}
-                                                    </span>
-                                                ))}
+                                                {pathArrows[`${x},${y}`].map((arrowInfo, idx) => {
+                                                    // 화살표 방향 판별 (→←↓↑) → PNG 매핑
+                                                    const turnDir = arrowInfo.arrow === '→' ? 'right'
+                                                        : arrowInfo.arrow === '←' ? 'left'
+                                                        : arrowInfo.arrow === '↓' ? 'down'
+                                                        : arrowInfo.arrow === '↑' ? 'up'
+                                                        : ARROW_DIR[arrowInfo.arrow];
+                                                    const png = arrowPng[turnDir];
+                                                    if (png) {
+                                                        const sz = pathArrows[`${x},${y}`].length > 1 ? 12 : 16;
+                                                        return <img key={idx} src={png} alt="" draggable={false}
+                                                            style={{ width: sz, height: sz, filter: `drop-shadow(0 0 4px ${arrowInfo.color})` }} />;
+                                                    }
+                                                    return (
+                                                        <span key={idx} style={{ color: arrowInfo.color, fontSize: pathArrows[`${x},${y}`].length > 1 ? '11px' : '14px', lineHeight: 1, fontWeight: 'bold', textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 6px ' + arrowInfo.color }}>
+                                                            {arrowInfo.arrow}
+                                                        </span>
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                         {/* 클릭 배치 모드 타워 프리뷰 — 실제 설치될 스프라이트와 동일 (스킨 교체 호환) */}
@@ -464,10 +500,30 @@ const GameMap = ({
                                 effectClass = ''; // CSS 클래스 대신 인라인 애니메이션 사용
                             }
 
-                            return (
+                            // 스킨 호환: assets/effects/<type>.png 가 있으면 PNG 기반,
+                            // 없으면 기존 CSS radial-gradient 폴백
+                            const effectImgUrl = (typeof EffectSprite !== 'undefined') ? EffectSprite.getUrl(effect.type) : null;
+                            return effectImgUrl ? (
+                                <img
+                                    key={effect.id}
+                                    src={effectImgUrl}
+                                    alt=""
+                                    draggable={false}
+                                    className={'absolute pointer-events-none ' + effectClass}
+                                    style={{
+                                        left: effect.x - size / 2,
+                                        top: effect.y - size / 2,
+                                        width: size,
+                                        height: size,
+                                        objectFit: 'contain',
+                                        filter: `drop-shadow(0 0 6px ${effect.color}) drop-shadow(0 0 12px ${effect.color}80)`,
+                                        ...extraStyle
+                                    }}
+                                />
+                            ) : (
                                 <div
                                     key={effect.id}
-                                    className={'absolute rounded-full ' + effectClass}
+                                    className={'absolute rounded-full pointer-events-none ' + effectClass}
                                     style={{
                                         left: effect.x - size / 2,
                                         top: effect.y - size / 2,
