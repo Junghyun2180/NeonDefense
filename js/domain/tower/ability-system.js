@@ -111,84 +111,64 @@ const AbilitySystem = {
    * @returns {Object} { damageMap, statusEffects, visualEffects, chainLightnings }
    */
   resolveAllHits(hits, currentEnemies, permanentBuffs = {}) {
+    // 합의 06: damageMap 구조 = Map<enemyId, Array<{damage, armorPierce, shieldDamageMult}>>
+    // entry 별로 Shield → Armor → HP 처리해야 광휘 관통/전격 실드 ×2 가 정확히 적용됨
     const damageMap = new Map();
+    const pushEntry = (id, damage, opts = {}) => {
+      if (damage <= 0) return;
+      const list = damageMap.get(id) || [];
+      list.push({
+        damage: Math.floor(damage),
+        armorPierce: opts.armorPierce || 0,
+        shieldDamageMult: opts.shieldDamageMult || 1,
+      });
+      damageMap.set(id, list);
+    };
+
     const statusEffects = [];
     const visualEffects = [];
     let allChainLightnings = [];
-    const chainDamagesAll = new Map();
-    const targetMutations = [];  // 적 상태 직접 변경 요청 (속성 스택 카운터 등)
+    const targetMutations = [];
 
     hits.forEach(hit => {
       let finalDamage = hit.damage;
 
-      // 크리티컬 이펙트 (기존 로직 유지)
       if (hit.isCrit) {
-        visualEffects.push({
-          id: Date.now() + Math.random(),
-          x: hit.x,
-          y: hit.y,
-          type: 'crit',
-          color: '#FFD700',
-        });
+        visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'crit', color: '#FFD700' });
       }
 
-      // Ability 실행
       const result = this.resolveHit(hit, currentEnemies, permanentBuffs);
+      const dmgOpts = result.damageOptions || {};
 
-      // 데미지 배율 적용
       finalDamage = Math.floor(finalDamage * result.damageModifier);
       finalDamage += result.additionalDamage;
 
-      // 주 대상 데미지
-      damageMap.set(hit.enemyId, (damageMap.get(hit.enemyId) || 0) + finalDamage);
+      pushEntry(hit.enemyId, finalDamage, dmgOpts);
 
-      // 상태이상 수집
       statusEffects.push(...result.statusEffects);
-
-      // 시각 효과 수집
       visualEffects.push(...result.visualEffects);
 
-      // 광역 대상 처리
       result.aoeTargets.forEach(aoe => {
-        damageMap.set(aoe.enemy.id, (damageMap.get(aoe.enemy.id) || 0) + aoe.damage);
-        if (aoe.statusEffects) {
-          statusEffects.push(...aoe.statusEffects);
-        }
+        pushEntry(aoe.enemy.id, aoe.damage, dmgOpts);
+        if (aoe.statusEffects) statusEffects.push(...aoe.statusEffects);
       });
 
-      // 관통 대상 처리
       result.pierceTargets.forEach(pierce => {
-        damageMap.set(pierce.enemy.id, (damageMap.get(pierce.enemy.id) || 0) + pierce.damage);
+        pushEntry(pierce.enemy.id, pierce.damage, dmgOpts);
       });
 
-      // 적 상태 변경 요청 수집 (속성 스택 카운터 등)
       if (result.targetMutations && result.targetMutations.length > 0) {
         targetMutations.push(...result.targetMutations);
       }
 
-      // 체인 라이트닝 처리
       if (result.chainData) {
         allChainLightnings = allChainLightnings.concat(result.chainData.chains);
-        result.chainData.damages.forEach((dmg, id) => {
-          chainDamagesAll.set(id, (chainDamagesAll.get(id) || 0) + dmg);
-        });
+        result.chainData.damages.forEach((dmg, id) => pushEntry(id, dmg, dmgOpts));
       }
 
-      // 기본 hit 이펙트 (T4가 아닐 때)
       if (hit.tier !== 4) {
-        visualEffects.push({
-          id: Date.now() + Math.random(),
-          x: hit.x,
-          y: hit.y,
-          type: 'hit',
-          color: hit.color,
-        });
+        visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'hit', color: hit.color });
       }
-    });
-
-    // 체인 데미지 병합
-    chainDamagesAll.forEach((dmg, id) => {
-      damageMap.set(id, (damageMap.get(id) || 0) + dmg);
     });
 
     return {

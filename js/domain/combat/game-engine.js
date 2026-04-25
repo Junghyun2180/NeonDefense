@@ -137,20 +137,20 @@ const GameEngine = {
       return moveResult.enemy;
     }).filter(Boolean);
 
-    // 화상 데미지 적용
+    // 화상 데미지 적용 — DoT 는 Shield/Armor 우회 (합의 06)
     if (burnDamages.size > 0) {
       movedEnemies = movedEnemies.map(enemy => {
         const damage = burnDamages.get(enemy.id);
         if (!damage) return enemy;
-        const newHealth = enemy.health - damage;
-        if (newHealth <= 0) {
+        const r = EnemySystem.applyDamage(enemy, damage, { bypassShield: true, bypassArmor: true });
+        if (r.killed) {
           totalKilled++;
           totalGoldEarned += enemy.goldReward || 4;
           newEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'explosion', color: '#FF6B6B' });
           if (typeof CollectionSystem !== 'undefined') CollectionSystem.recordEnemyKill(enemy.type);
           return null;
         }
-        return { ...enemy, health: newHealth };
+        return r.enemy;
       }).filter(Boolean);
     }
 
@@ -187,10 +187,12 @@ const GameEngine = {
       }
     }
 
-    // 1.7단계: 보스 패턴 (splitter 분신, regen 자가힐, berserk 속도 증가)
+    // 1.7단계: 보스 패턴 + 이지스 실드 재생 등 onTick 어빌리티
     const bossPatternResults = [];
-    const bossEnemies = movedEnemies.filter(e => e.type === 'boss' && e.bossPattern && e.ability);
-    for (const boss of bossEnemies) {
+    const tickableEnemies = movedEnemies.filter(e =>
+      ((e.type === 'boss' && e.bossPattern) || e.type === 'aegis') && e.ability
+    );
+    for (const boss of tickableEnemies) {
       if (typeof boss.ability.onTick !== 'function') continue;
       const r = boss.ability.onTick({ enemy: boss, towers, enemies: movedEnemies, now });
       if (r) bossPatternResults.push(r);
@@ -284,19 +286,36 @@ const GameEngine = {
         });
       }
 
-      // 데미지 적용 (서포트 방감 타워 취약도 포함)
+      // 데미지 적용 — entry 별로 Shield → Armor → HP (합의 06)
       const splitSpawns = []; // 분열체가 죽으면 여기에 새 적 추가
       if (resolved.damageMap.size > 0) {
         movedEnemies = movedEnemies.map(enemy => {
-          let damage = resolved.damageMap.get(enemy.id);
-          if (!damage) return enemy;
+          const entries = resolved.damageMap.get(enemy.id);
+          if (!entries || entries.length === 0) return enemy;
 
-          // 서포트 타워 방어력 감소 적용 (적이 추가 피해를 받음)
+          // 서포트 방감 타워 취약도 — 모든 엔트리 데미지에 곱연산 (기존 정책 유지)
           const vulnerability = TowerSystem.calcEnemyVulnerability(enemy, supportTowers || []);
-          damage = Math.floor(damage * (1 + vulnerability));
+          const vulnMult = 1 + vulnerability;
 
-          const newHealth = enemy.health - damage;
-          if (newHealth <= 0) {
+          let working = enemy;
+          let killed = false;
+          let anyShieldBroken = false;
+          for (const entry of entries) {
+            const dmg = Math.floor(entry.damage * vulnMult);
+            const r = EnemySystem.applyDamage(working, dmg, {
+              armorPierce: entry.armorPierce,
+              shieldDamageMult: entry.shieldDamageMult,
+            });
+            working = r.enemy;
+            if (r.shieldBrokenNow) anyShieldBroken = true;
+            if (r.killed) { killed = true; break; }
+          }
+
+          if (anyShieldBroken) {
+            newEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'shield-break', color: '#0ea5e9' });
+          }
+
+          if (killed) {
             totalKilled++;
             totalGoldEarned += enemy.goldReward || 4;
             if (typeof CollectionSystem !== 'undefined') CollectionSystem.recordEnemyKill(enemy.type);
@@ -306,7 +325,6 @@ const GameEngine = {
             });
             soundEvents.push({ method: 'playKill', args: [enemy.type === 'boss'] });
 
-            // 분열체 처리: 죽으면 작은 적 2마리로 분열
             if (EnemySystem.isSplitter(enemy)) {
               const splitChildren = EnemySystem.createSplitEnemies(enemy);
               splitSpawns.push(...splitChildren);
@@ -319,10 +337,9 @@ const GameEngine = {
             return null;
           }
           soundEvents.push({ method: 'playHit', args: [] });
-          return { ...enemy, health: newHealth };
+          return working;
         }).filter(Boolean);
 
-        // 분열된 새 적 추가
         if (splitSpawns.length > 0) {
           movedEnemies = [...movedEnemies, ...splitSpawns];
         }
