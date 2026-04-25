@@ -1,4 +1,17 @@
-// ControlPanel - 맵 우측 사이드 패널 (선택된 타워/서포트 정보만)
+// 적 타입별 한글 이름·간단 설명 (정보 카드용)
+const ENEMY_INFO = {
+    normal:     { label: '일반',        icon: '👾', desc: '기본 적' },
+    fast:       { label: '빠른 적',     icon: '💨', desc: '이동 속도 높음' },
+    elite:      { label: '엘리트',      icon: '⭐', desc: '고체력 + 방어력' },
+    boss:       { label: '보스',        icon: '👑', desc: '실드 + 방어력 + 패턴' },
+    jammer:     { label: '재머',        icon: '📡', desc: '주변 타워 공속 감소' },
+    suppressor: { label: '서프레서',    icon: '🛡️', desc: '주변 타워 공격력 감소 + 두꺼운 방어' },
+    healer:     { label: '힐러',        icon: '💚', desc: '주변 적 회복' },
+    splitter:   { label: '분열체',      icon: '💠', desc: '사망 시 분열' },
+    aegis:      { label: '이지스',      icon: '🛡', desc: '큰 실드 + 깨진 후 1회 재생' },
+};
+
+// ControlPanel - 맵 우측 사이드 패널 (선택된 타워/서포트/적 정보)
 const ControlPanel = ({
     // 인벤토리 (조합용 카운트)
     inventory,
@@ -10,8 +23,11 @@ const ControlPanel = ({
     selectedSupportInventory,
     selectedSupportTowers,
     totalSupportSellPrice,
+    // 적 (신규)
+    selectedEnemy,
+    clearSelectedEnemy,
 }) => {
-    const hasSelection = selectedTowers.length > 0 || selectedSupportTowers.length > 0;
+    const hasSelection = selectedTowers.length > 0 || selectedSupportTowers.length > 0 || !!selectedEnemy;
 
     return (
         <div className="flex flex-col gap-2 w-40 shrink-0" style={{ visibility: hasSelection ? 'visible' : 'hidden' }}>
@@ -30,6 +46,82 @@ const ControlPanel = ({
                     <p className="text-xs text-gray-500 mt-1">판매 시 {totalSellPrice}G 환급</p>
                 </div>
             )}
+
+            {/* 선택된 적 정보 (신규) */}
+            {selectedEnemy && (() => {
+                const info = ENEMY_INFO[selectedEnemy.type] || { label: selectedEnemy.type, icon: '❓', desc: '' };
+                const hpPct = Math.round((selectedEnemy.health / selectedEnemy.maxHealth) * 100);
+                const shieldPct = (selectedEnemy.shieldMax || 0) > 0
+                    ? Math.round(Math.max(0, selectedEnemy.shield) / selectedEnemy.shieldMax * 100)
+                    : null;
+                const abilityDesc = selectedEnemy.ability && typeof selectedEnemy.ability.getDescription === 'function'
+                    ? selectedEnemy.ability.getDescription()
+                    : null;
+                return (
+                    <div className="bg-gray-900/80 rounded-lg p-2 border border-rose-500/50">
+                        <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-bold text-rose-400">👾 선택 적</p>
+                            <button onClick={clearSelectedEnemy} className="text-gray-500 hover:text-gray-200 text-xs leading-none px-1">✕</button>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-base leading-none">{info.icon}</span>
+                            <span className="text-gray-200 text-xs font-bold truncate">{info.label}</span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{info.desc}</p>
+
+                        {/* HP */}
+                        <div className="mt-1.5">
+                            <div className="flex items-center justify-between text-[10px] text-gray-400">
+                                <span>HP</span>
+                                <span className="text-green-300">{Math.max(0, Math.floor(selectedEnemy.health))}/{selectedEnemy.maxHealth}</span>
+                            </div>
+                            <div className="w-full h-1 bg-gray-800 rounded mt-0.5 overflow-hidden">
+                                <div className="h-full bg-green-500" style={{ width: hpPct + '%' }} />
+                            </div>
+                        </div>
+
+                        {/* Shield */}
+                        {shieldPct !== null && (
+                            <div className="mt-1">
+                                <div className="flex items-center justify-between text-[10px] text-gray-400">
+                                    <span>실드</span>
+                                    <span className="text-cyan-300">{Math.max(0, Math.floor(selectedEnemy.shield))}/{selectedEnemy.shieldMax}</span>
+                                </div>
+                                <div className="w-full h-1 bg-gray-800 rounded mt-0.5 overflow-hidden">
+                                    <div className="h-full bg-cyan-400" style={{ width: shieldPct + '%' }} />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Armor */}
+                        {(selectedEnemy.armor || 0) > 0 && (
+                            <div className="mt-1 flex items-center justify-between text-[10px]">
+                                <span className="text-gray-400">방어력</span>
+                                <span className="text-yellow-300 font-bold">{selectedEnemy.armor}</span>
+                            </div>
+                        )}
+
+                        {/* Speed */}
+                        <div className="mt-0.5 flex items-center justify-between text-[10px]">
+                            <span className="text-gray-400">이동 속도</span>
+                            <span className="text-gray-300">{(selectedEnemy.speed || selectedEnemy.baseSpeed || 0).toFixed(2)}</span>
+                        </div>
+
+                        {/* Gold reward */}
+                        {selectedEnemy.goldReward != null && (
+                            <div className="mt-0.5 flex items-center justify-between text-[10px]">
+                                <span className="text-gray-400">처치 보상</span>
+                                <span className="text-yellow-200">{selectedEnemy.goldReward}G</span>
+                            </div>
+                        )}
+
+                        {/* Ability description */}
+                        {abilityDesc && (
+                            <p className="text-[10px] text-purple-300 mt-1 leading-tight">{abilityDesc}</p>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* 선택된 서포트 타워 정보 */}
             {selectedSupportTowers.length > 0 && (

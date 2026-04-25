@@ -28,6 +28,8 @@ const GameMap = ({
     toggleSupportTowerSelect,
     handleTileClick,
     getElementInfo,
+    selectedEnemyId,
+    setSelectedEnemyId,
 }) => {
     const speedOptions = React.useMemo(() => {
         const max = Math.max(3, Math.min(5, maxGameSpeed));
@@ -327,8 +329,26 @@ const GameMap = ({
                                 : enemy.type === 'fast' ? 26
                                 : enemy.type === 'splitter' ? 28
                                 : 32;
+                            const isEnemySelected = selectedEnemyId === enemy.id;
                             return (
-                                <div key={enemy.id} className="absolute" style={{ left: enemy.x - SIZE / 2, top: enemy.y - SIZE / 2 }}>
+                                <div
+                                    key={enemy.id}
+                                    data-enemy-id={enemy.id}
+                                    data-enemy-type={enemy.type}
+                                    className="absolute enemy-clickable"
+                                    style={{ left: enemy.x - SIZE / 2, top: enemy.y - SIZE / 2, cursor: selectedTowerForPlacement ? 'default' : 'pointer' }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (selectedTowerForPlacement) { cancelPlacementMode(); return; }
+                                        setSelectedEnemyId && setSelectedEnemyId(prev => prev === enemy.id ? null : enemy.id);
+                                    }}
+                                >
+                                    {isEnemySelected && (
+                                        <div className="absolute pointer-events-none rounded-full" style={{
+                                            left: -4, top: -4, width: SIZE + 8, height: SIZE + 8,
+                                            border: '2px solid #fbbf24', boxShadow: '0 0 12px #fbbf24, 0 0 24px #fbbf24aa'
+                                        }} />
+                                    )}
                                     {EnemySystem.isDebuffer(enemy) && (
                                         <div className="absolute rounded-full opacity-20 pointer-events-none" style={{ left: SIZE / 2 - (enemy.debuffRange || 80), top: SIZE / 2 - (enemy.debuffRange || 80), width: (enemy.debuffRange || 80) * 2, height: (enemy.debuffRange || 80) * 2, background: enemy.type === 'jammer' ? 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)' : 'radial-gradient(circle, #ec4899 0%, transparent 70%)' }} />
                                     )}

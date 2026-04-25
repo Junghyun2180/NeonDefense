@@ -89,6 +89,7 @@ const NeonDefense = () => {
   // ===== 힌트 토스트 (Agent 플레이테스트 피드백 기반) =====
   const [hintToast, setHintToast] = useState({ visible: false, message: '', icon: '💡' });
   const [lastHintAt, setLastHintAt] = useState(0);
+  const [selectedEnemyId, setSelectedEnemyId] = useState(null);
   const prevLivesRef = useRef(null);
   const prevMilestoneRef = useRef(null);
 
@@ -782,9 +783,11 @@ const NeonDefense = () => {
               toggleSupportTowerSelect={inventoryState.toggleSupportTowerSelect}
               handleTileClick={dragState.handleTileClick}
               getElementInfo={getElementInfo}
+              selectedEnemyId={selectedEnemyId}
+              setSelectedEnemyId={setSelectedEnemyId}
             />
 
-            {/* 사이드 패널: 선택된 타워/서포트 정보만 */}
+            {/* 사이드 패널: 선택된 타워/서포트/적 정보 */}
             <ControlPanel
               inventory={inventoryState.inventory}
               selectedInventory={inventoryState.selectedInventory}
@@ -794,6 +797,8 @@ const NeonDefense = () => {
               selectedSupportInventory={inventoryState.selectedSupportInventory}
               selectedSupportTowers={inventoryState.selectedSupportTowers}
               totalSupportSellPrice={inventoryState.totalSupportSellPrice}
+              selectedEnemy={gameState.enemies.find(e => e.id === selectedEnemyId) || null}
+              clearSelectedEnemy={() => setSelectedEnemyId(null)}
             />
           </div>
 
