@@ -66,6 +66,12 @@ const ControlPanel = ({
                         <div className="flex items-center gap-1.5">
                             <span className="text-base leading-none">{info.icon}</span>
                             <span className="text-gray-200 text-xs font-bold truncate">{info.label}</span>
+                            {selectedEnemy.type === 'boss' && (
+                                <span className="text-[9px] font-black text-red-300 bg-red-900/60 px-1.5 py-0.5 rounded leading-none">BOSS</span>
+                            )}
+                            {selectedEnemy.isMiniboss && (
+                                <span className="text-[9px] font-black text-orange-300 bg-orange-900/60 px-1.5 py-0.5 rounded leading-none">MINI</span>
+                            )}
                         </div>
                         <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{info.desc}</p>
 

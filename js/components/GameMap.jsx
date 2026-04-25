@@ -324,7 +324,9 @@ const GameMap = ({
                             ].filter(Boolean);
                             const enemyUrl = typeof EnemySprite !== 'undefined' ? EnemySprite.getUrl(enemy.type) : null;
                             // 적 크기 — boss는 크게, 일반은 기본, fast는 약간 작게
+                            // 합의 10: W5 미니보스(elite)는 일반 elite 보다 크게
                             const SIZE = enemy.type === 'boss' ? 48
+                                : enemy.isMiniboss ? 44
                                 : enemy.type === 'elite' ? 38
                                 : enemy.type === 'fast' ? 26
                                 : enemy.type === 'splitter' ? 28

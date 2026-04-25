@@ -53,6 +53,12 @@ const useCheatConsole = (gameState, inventoryState, runModeState = null) => {
             case 'cw':
                 clearWave();
                 return '▶ 웨이브 클리어';
+            case 'wave':
+            case 'w':
+                if (!arg || arg < 1) return '❌ 사용법: wave [번호]';
+                clearWave();
+                gameState.setWave(arg);
+                return '▶ Wave ' + arg + '로 이동';
             case 'gold':
                 const goldAmt = arg || 500;
                 setGold(prev => prev + goldAmt);
