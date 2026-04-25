@@ -355,8 +355,12 @@ const NeonDefense = () => {
       const { crystals, breakdown } = RunMode.calculateCampaignCrystals(result);
       setCampaignCrystalResult({ crystals, breakdown });
 
-      // 메타 진행에 크리스탈 추가
+      // 합의 10: Floor 클리어 시 highestCampaignFloor 갱신
+      const clearedFloor = gameState.floor || 1;
+
+      // 메타 진행에 크리스탈 + Floor 진척 추가
       runModeState.setMetaProgress(prev => {
+        const prevHighest = prev.stats.highestCampaignFloor || 0;
         const updated = {
           ...prev,
           crystals: prev.crystals + crystals,
@@ -364,6 +368,7 @@ const NeonDefense = () => {
             ...prev.stats,
             campaignClears: (prev.stats.campaignClears || 0) + 1,
             totalCrystalsEarned: (prev.stats.totalCrystalsEarned || 0) + crystals,
+            highestCampaignFloor: Math.max(prevHighest, clearedFloor),
           },
         };
         RunSaveSystem.saveMeta(updated);
@@ -681,6 +686,10 @@ const NeonDefense = () => {
     setCampaignCrystalResult(null);
     setNewAchievements([]);
 
+    // 합의 10: 새 게임 시작 시 floor = 다음 도전 floor (highestCampaignFloor + 1)
+    const highest = runModeState.metaProgress?.stats?.highestCampaignFloor || 0;
+    gameState.setFloor(highest + 1);
+
     // 밸런스 로거 세션 시작
     if (typeof BalanceLogger !== 'undefined') {
       BalanceLogger.startSession();
@@ -699,6 +708,9 @@ const NeonDefense = () => {
             gameState.resetGame();
             inventoryState.resetInventory();
             dragState.resetDragState();
+            // 합의 10: 새 게임 = 다음 도전 floor (highestCampaignFloor + 1)
+            const highest = runModeState.metaProgress?.stats?.highestCampaignFloor || 0;
+            gameState.setFloor(highest + 1);
           }}
           onLoadGame={saveLoadState.handleLoadGame}
           onSelectMode={handleSelectMode}
@@ -740,6 +752,7 @@ const NeonDefense = () => {
           <GameHeader
             stage={gameState.stage}
             wave={gameState.wave}
+            floor={gameState.floor}
             gold={gameState.gold}
             lives={gameState.lives}
             pathCount={gameState.pathData.paths.length}

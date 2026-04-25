@@ -29,6 +29,8 @@ const RunSaveSystem = {
         fastestClear: null,
         highestEndlessStage: 0,
         campaignClears: 0,
+        // 합의 10: Floor 시스템 — 캠페인 클리어한 최고 floor (default 0 = 한 번도 못 깸)
+        highestCampaignFloor: 0,
       },
     };
   },
