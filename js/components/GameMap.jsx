@@ -162,25 +162,33 @@ const GameMap = ({
                                                 ))}
                                             </div>
                                         )}
-                                        {/* 클릭 배치 모드 타워 프리뷰 */}
+                                        {/* 클릭 배치 모드 타워 프리뷰 — 실제 설치될 스프라이트와 동일 (스킨 교체 호환) */}
                                         {isDropPreview && selectedTowerForPlacement && (() => {
                                             const neon = selectedTowerForPlacement;
                                             if (neon.isSupport) {
                                                 const supportType = SUPPORT_UI[neon.supportType];
+                                                const url = (typeof SupportSprite !== 'undefined') ? SupportSprite.getUrl(neon.supportType, neon.tier) : null;
                                                 return (
                                                     <div className="w-full h-full flex flex-col items-center justify-center pointer-events-none relative">
                                                         <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${supportType.color}40 0%, transparent 70%)`, animation: 'pulse 1s ease-in-out infinite' }} />
-                                                        <span className="text-2xl relative z-10" style={{ filter: `drop-shadow(0 0 8px ${supportType.color})` }}>{supportType.icon}</span>
-                                                        <span className="text-xs font-bold text-white relative z-10" style={{ textShadow: '0 0 4px #000, 1px 1px 0 #000' }}>S{neon.tier}</span>
+                                                        {url
+                                                            ? <img src={url} alt="" draggable={false} className="relative z-10" style={{ width: '85%', height: '85%', objectFit: 'contain', filter: `drop-shadow(0 0 8px ${supportType.color})` }} />
+                                                            : <span className="text-2xl relative z-10" style={{ filter: `drop-shadow(0 0 8px ${supportType.color})` }}>{supportType.icon}</span>
+                                                        }
+                                                        <span className="text-xs font-bold text-white absolute bottom-0 right-0 z-10" style={{ textShadow: '0 0 4px #000, 1px 1px 0 #000' }}>S{neon.tier}</span>
                                                     </div>
                                                 );
                                             } else {
                                                 const elementInfo = getElementInfo(neon.colorIndex);
+                                                const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(neon.colorIndex, neon.tier) : null;
                                                 return (
                                                     <div className="w-full h-full flex flex-col items-center justify-center pointer-events-none relative">
                                                         <div className="absolute inset-0 rounded-full" style={{ background: `radial-gradient(circle, ${elementInfo.color}40 0%, transparent 70%)`, animation: 'pulse 1s ease-in-out infinite' }} />
-                                                        <span className="text-2xl relative z-10" style={{ filter: `drop-shadow(0 0 8px ${elementInfo.color})` }}>{elementInfo.icon}</span>
-                                                        <span className="text-xs font-bold text-white relative z-10" style={{ textShadow: '0 0 4px #000, 1px 1px 0 #000' }}>T{neon.tier}</span>
+                                                        {url
+                                                            ? <img src={url} alt="" draggable={false} className="relative z-10" style={{ width: '85%', height: '85%', objectFit: 'contain', filter: `drop-shadow(0 0 8px ${elementInfo.color})` }} />
+                                                            : <span className="text-2xl relative z-10" style={{ filter: `drop-shadow(0 0 8px ${elementInfo.color})` }}>{elementInfo.icon}</span>
+                                                        }
+                                                        <span className="text-xs font-bold text-white absolute bottom-0 right-0 z-10" style={{ textShadow: '0 0 4px #000, 1px 1px 0 #000' }}>T{neon.tier}</span>
                                                     </div>
                                                 );
                                             }

@@ -79,15 +79,22 @@ const PlacementUI = ({
                         const x = Math.cos(angle) * radius - 22;
                         const y = Math.sin(angle) * radius - 22;
                         const tierColor = NEON_TYPES[tier].colors[placementMode.element];
+                        // 실제 설치될 타워와 동일 스프라이트 사용 (스킨 교체 시 PNG만 바꾸면 적용)
+                        const spriteUrl = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(placementMode.element, tier) : null;
                         return (
                             <div
                                 key={tier}
-                                className="absolute w-11 h-11 rounded-full flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-all"
-                                style={{ left: x, top: y, background: `radial-gradient(circle, ${tierColor} 0%, ${tierColor}80 70%)`, boxShadow: `0 0 15px ${tierColor}80`, border: `2px solid ${tierColor}` }}
+                                className="absolute w-11 h-11 rounded-full flex flex-col items-center justify-center cursor-pointer hover:scale-110 transition-all overflow-hidden"
+                                style={{ left: x, top: y, background: `radial-gradient(circle, ${tierColor}80 0%, ${tierColor}40 70%)`, boxShadow: `0 0 15px ${tierColor}80`, border: `2px solid ${tierColor}` }}
                                 onClick={() => handleTierSelect(tier)}
                             >
-                                <span className="text-xs font-black text-white drop-shadow">T{tier}</span>
-                                <span className="text-xs text-white/80">x{count}</span>
+                                {spriteUrl && (
+                                    <img src={spriteUrl} alt="" draggable={false}
+                                        className="absolute inset-0 m-auto pointer-events-none"
+                                        style={{ width: '85%', height: '85%', objectFit: 'contain', filter: `drop-shadow(0 0 4px ${tierColor})` }} />
+                                )}
+                                <span className="text-[10px] font-black text-white drop-shadow leading-none relative z-10" style={{ textShadow: '0 0 3px #000, 1px 1px 0 #000' }}>T{tier}</span>
+                                <span className="text-[10px] text-white drop-shadow leading-none relative z-10" style={{ textShadow: '0 0 3px #000, 1px 1px 0 #000' }}>x{count}</span>
                             </div>
                         );
                     })}
