@@ -11,6 +11,7 @@ const useGameLoop = (config) => {
         gameOver,
         stage,
         wave,
+        floor = 1, // 합의 10: 캠페인 floor (HP 스케일 곱연산)
         gold,
         lives,
         // 설정 (런 모드에서 주입, null이면 캠페인 기본값)
@@ -61,7 +62,7 @@ const useGameLoop = (config) => {
             if (localSpawnedCount >= totalEnemies) return;
             const paths = pathDataRef.current.paths;
             const selectedPath = paths[Math.floor(Math.random() * paths.length)];
-            const newEnemy = EnemySystem.create(stage, wave, localSpawnedCount, totalEnemies, selectedPath.tiles, selectedPath.id, modeAbility);
+            const newEnemy = EnemySystem.create(stage, wave, localSpawnedCount, totalEnemies, selectedPath.tiles, selectedPath.id, modeAbility, floor);
             if (newEnemy) {
                 // 순환 경로인 경우 표시
                 if (isLooping) {

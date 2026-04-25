@@ -1,5 +1,5 @@
 // GameHeader - 상단 정보 바 컴포넌트
-const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null, onMainMenu = null }) => {
+const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null, onMainMenu = null }) => {
     const { useState } = React;
     const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -28,6 +28,13 @@ const GameHeader = ({ stage, wave, gold, lives, pathCount, isPlaying, killedCoun
                             <span className="font-bold text-orange-300 text-xs" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                                 {gameMode === 'endless' ? '♾️ ENDLESS' : gameMode === 'daily' ? '📅 DAILY' : '🎲 RUN'}
                             </span>
+                        </div>
+                    )}
+                    {/* 합의 10: Floor 표시 (캠페인만) */}
+                    {!isRunMode && floor > 0 && (
+                        <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-purple-500/50 flex items-center gap-1" title={`Floor ${floor} — HP ×${Math.pow(1.15, floor - 1).toFixed(2)}`}>
+                            <span className="text-purple-400">🏯</span>
+                            <span className="font-bold text-purple-300 whitespace-nowrap">F{floor}</span>
                         </div>
                     )}
                     <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-emerald-500/50 flex items-center gap-1">
