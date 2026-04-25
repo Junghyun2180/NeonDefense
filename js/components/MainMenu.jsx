@@ -157,12 +157,11 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                     <div className="text-6xl group-hover:scale-110 transition-transform">🆕</div>
                     <h2 className="text-2xl font-bold text-purple-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>새 게임 시작</h2>
                     <p className="text-gray-400 text-sm text-center">처음부터 도전하기<br />Stage 1-1부터 시작</p>
+                    {/* 합의 10: NEON TOWER — 계단형 floor 시각화 */}
+                    {typeof FloorTower !== 'undefined' && (
+                      <FloorTower highestFloor={metaProgress?.stats?.highestCampaignFloor || 0} />
+                    )}
                     <div className="w-full bg-gray-900/50 rounded-lg p-3 space-y-2 text-sm">
-                      {/* 합의 10: 다음 도전 Floor 표시 */}
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>🏯 다음 Floor</span>
-                        <span className="font-bold text-purple-300">F{(metaProgress?.stats?.highestCampaignFloor || 0) + 1} {(metaProgress?.stats?.highestCampaignFloor || 0) > 0 && <span className="text-xs text-gray-500">(최고 F{metaProgress.stats.highestCampaignFloor})</span>}</span>
-                      </div>
                       <div className="flex items-center justify-between text-gray-300">
                         <span>📊 1 Floor 분량</span>
                         <span className="font-bold text-emerald-300">{SPAWN.maxStage}스테이지 × {SPAWN.wavesPerStage}웨이브</span>
