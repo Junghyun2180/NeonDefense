@@ -22,7 +22,12 @@ const ControlPanel = ({
                     <div className="flex items-center gap-1.5">
                         <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
                             style={{ background: 'radial-gradient(circle, ' + selectedTowers[0].color + ' 0%, ' + selectedTowers[0].color + '80 50%, transparent 70%)' }}>
-                            <span className="text-xs">{getElementInfo(selectedTowers[0].element).icon}</span>
+                            {(() => {
+                                const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(selectedTowers[0].element, selectedTowers[0].tier) : null;
+                                return url
+                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                    : <span className="text-xs">{getElementInfo(selectedTowers[0].element).icon}</span>;
+                            })()}
                         </div>
                         <span className="text-gray-300 text-xs truncate">{selectedTowers[0].name}</span>
                         <span className="text-gray-500 text-xs shrink-0">T{selectedTowers[0].tier}</span>
@@ -38,7 +43,12 @@ const ControlPanel = ({
                     <div className="flex items-center gap-1.5">
                         <div className="w-5 h-5 flex items-center justify-center shrink-0"
                             style={{ background: 'linear-gradient(135deg, ' + selectedSupportTowers[0].color + ' 0%, ' + selectedSupportTowers[0].color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
-                            <span className="text-xs">{SUPPORT_UI[selectedSupportTowers[0].supportType].icon}</span>
+                            {(() => {
+                                const url = (typeof SupportSprite !== 'undefined') ? SupportSprite.getUrl(selectedSupportTowers[0].supportType, selectedSupportTowers[0].tier) : null;
+                                return url
+                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                    : <span className="text-xs">{SUPPORT_UI[selectedSupportTowers[0].supportType].icon}</span>;
+                            })()}
                         </div>
                         <span className="text-gray-300 text-xs truncate">{selectedSupportTowers[0].name}</span>
                         <span className="text-gray-500 text-xs shrink-0">S{selectedSupportTowers[0].tier}</span>
@@ -247,7 +257,12 @@ const InventoryPanel = ({
                                             className={'inventory-item aspect-square rounded flex flex-col items-center justify-center border-2 cursor-pointer ' + borderClass}
                                             style={{ background: 'radial-gradient(circle, ' + neon.color + '80 0%, ' + neon.color + '40 70%)', color: neon.color, boxShadow }}
                                             title={neon.name + '\nTier ' + neon.tier + '\n' + elementInfo.icon + ' ' + elementInfo.name + ': ' + elementInfo.desc}>
-                                            <span className="text-xs leading-none">{elementInfo.icon}</span>
+                                            {(() => {
+                                                const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(neon.element, neon.tier) : null;
+                                                return url
+                                                    ? <img src={url} alt="" draggable={false} style={{ width: '85%', height: '85%', objectFit: 'contain', pointerEvents: 'none', filter: 'drop-shadow(0 0 3px ' + neon.color + ')' }} />
+                                                    : <span className="text-xs leading-none">{elementInfo.icon}</span>;
+                                            })()}
                                             <span className="text-[10px] font-black text-white drop-shadow leading-none">T{neon.tier}</span>
                                         </div>
                                     );
@@ -273,7 +288,12 @@ const InventoryPanel = ({
                                             className={'inventory-item aspect-square flex flex-col items-center justify-center border-2 cursor-pointer ' + borderClass}
                                             style={{ background: 'linear-gradient(135deg, ' + support.color + '80 0%, ' + support.color + '40 100%)', color: support.color, boxShadow, clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
                                             title={support.name + '\nS' + support.tier + '\n' + supportInfo.icon + ' ' + supportInfo.name}>
-                                            <span className="text-xs leading-none">{supportInfo.icon}</span>
+                                            {(() => {
+                                                const url = (typeof SupportSprite !== 'undefined') ? SupportSprite.getUrl(support.supportType, support.tier) : null;
+                                                return url
+                                                    ? <img src={url} alt="" draggable={false} style={{ width: '85%', height: '85%', objectFit: 'contain', pointerEvents: 'none', filter: 'drop-shadow(0 0 3px ' + support.color + ')' }} />
+                                                    : <span className="text-xs leading-none">{supportInfo.icon}</span>;
+                                            })()}
                                             <span className="text-[10px] font-black text-white drop-shadow leading-none">S{support.tier}</span>
                                         </div>
                                     );
