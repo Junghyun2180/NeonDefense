@@ -20,6 +20,7 @@ class ExecuteAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
     };
 
     // 시너지: 광휘+슬로우=집중 처형 (임계치 +10%)
@@ -75,6 +76,7 @@ class CriticalAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
     };
 
     // 크리티컬 확률
@@ -145,6 +147,7 @@ class LightKnockbackAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
     };
 
     // 넉백
@@ -217,6 +220,7 @@ class RushBlockerAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
     };
 
     // 빠른 적 추가 피해

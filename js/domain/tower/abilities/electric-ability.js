@@ -20,6 +20,7 @@ class ChainLightningAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
     };
 
     const chainBonus = BuffHelper.getChainBonus(permanentBuffs);
@@ -125,6 +126,7 @@ class ChainFocusAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
     };
 
     const permChainBonus = BuffHelper.getChainBonus(permanentBuffs);
@@ -225,6 +227,7 @@ class ChainStunAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
     };
 
     const chainBonus = BuffHelper.getChainBonus(permanentBuffs);
@@ -335,6 +338,7 @@ class FirstStrikeAbility extends Ability {
       aoeTargets: [],
       chainData: null,
       pierceTargets: [],
+      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
     };
 
     // 체인 페널티로 체인 수 감소

@@ -109,12 +109,21 @@ const EnemySystem = {
       health = Math.floor(health * 1.12);
     }
 
+    // 합의 06: Armor / Shield — Stage 2+ 에서만 적용 (S1은 진입 장벽 X)
+    const armor = (stage >= 2 && config.armor) ? config.armor : 0;
+    const shieldMax = (stage >= 2 && config.shieldRatio) ? Math.floor(health * config.shieldRatio) : 0;
+
     const initFacing = this._computeInitialFacing(pathTiles);
     const enemy = {
       id: Date.now() + Math.random(),
       type,
       health,
       maxHealth: health,
+      armor,
+      shield: shieldMax,
+      shieldMax,
+      shieldBrokenAt: 0,        // aegis 재생 트리거 시간
+      shieldRegenUsed: false,   // aegis 재생 1회만
       pathIndex: 0,
       pathId,
       pathTiles,
@@ -165,6 +174,8 @@ const EnemySystem = {
         // 약간 퍼지게 위치 조정
         x: parent.x + (Math.random() - 0.5) * 20,
         y: parent.y + (Math.random() - 0.5) * 20,
+        // 분열 자식: armor/shield 미적용 (잔여 처리 단순화)
+        armor: 0, shield: 0, shieldMax: 0, shieldBrokenAt: 0, shieldRegenUsed: true,
         // 상태이상 초기화
         ...StatusEffectSystem.getDefaultFields(),
         lastHealTime: 0,
@@ -351,5 +362,69 @@ const EnemySystem = {
   // 분열체인지 확인 (재분열 방지를 위해 isSplitChild 체크)
   isSplitter(enemy) {
     return enemy.type === 'splitter' && !enemy.isSplitChild;
+  },
+
+  // 데미지 적용 헬퍼: Shield → (overflow) → Armor → HP
+  // 합의 06: Shield 는 Armor 미적용. Burn 같은 DoT 는 둘 다 우회.
+  // opts: { armorPierce: 0~1, shieldDamageMult: number, bypassShield: bool, bypassArmor: bool }
+  // returns: { enemy, killed, shieldBrokenNow }
+  applyDamage(enemy, rawDamage, opts = {}) {
+    if (!enemy || rawDamage <= 0) return { enemy, killed: false, shieldBrokenNow: false };
+
+    const armorPierce = opts.armorPierce || 0;
+    const shieldDamageMult = opts.shieldDamageMult || 1;
+    const bypassShield = !!opts.bypassShield;
+    const bypassArmor = !!opts.bypassArmor;
+
+    let remaining = rawDamage; // 원시 데미지 단위 (실드 계수 적용 전)
+    let shield = enemy.shield || 0;
+    let shieldBrokenNow = false;
+    const next = { ...enemy };
+
+    // 1) 실드 단계 — Armor 미적용
+    if (!bypassShield && shield > 0) {
+      const shieldDmg = remaining * shieldDamageMult;
+      if (shieldDmg >= shield) {
+        // 실드 완전 파괴 + overflow 산출 (원시 데미지 기준)
+        const consumedRaw = shield / shieldDamageMult;
+        remaining = Math.max(0, remaining - consumedRaw);
+        next.shield = 0;
+        next.shieldBrokenAt = Date.now();
+        shieldBrokenNow = true;
+      } else {
+        next.shield = shield - shieldDmg;
+        remaining = 0; // 실드가 다 흡수
+      }
+    }
+
+    if (remaining <= 0) {
+      return { enemy: next, killed: false, shieldBrokenNow };
+    }
+
+    // 2) Armor 단계 — flat 차감, 광휘는 50% 관통, 최소 1 보장
+    let hpDamage = remaining;
+    if (!bypassArmor && (next.armor || 0) > 0) {
+      const effectiveArmor = next.armor * (1 - armorPierce);
+      hpDamage = Math.max(1, remaining - effectiveArmor);
+    }
+
+    next.health = enemy.health - Math.floor(hpDamage);
+    return {
+      enemy: next,
+      killed: next.health <= 0,
+      shieldBrokenNow,
+    };
+  },
+
+  // 이지스 실드 재생 처리: 깨진 후 일정 시간 경과 + 1회만
+  tickShieldRegen(enemy, now) {
+    if (enemy.type !== 'aegis') return enemy;
+    if (enemy.shieldRegenUsed) return enemy;
+    if (enemy.shield > 0) return enemy;
+    const config = ENEMY_CONFIG.aegis;
+    if (!enemy.shieldBrokenAt || now - enemy.shieldBrokenAt < config.shieldRegenDelay) return enemy;
+
+    const regen = Math.floor(enemy.shieldMax * config.shieldRegenPercent);
+    return { ...enemy, shield: regen, shieldRegenUsed: true };
   },
 };

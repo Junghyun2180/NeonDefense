@@ -384,6 +384,31 @@ class SplitterEnemyAbility extends EnemyAbility {
   }
 }
 
+// ===== 이지스 적 (실드 보유 + 재생) =====
+class AegisEnemyAbility extends EnemyAbility {
+  static TYPE = 'aegisEnemy';
+
+  constructor() {
+    super('aegis');
+    this.type = AegisEnemyAbility.TYPE;
+  }
+
+  onTick(context) {
+    const { enemy, now } = context;
+    const updated = EnemySystem.tickShieldRegen(enemy, now);
+    if (updated === enemy) return null;
+    return {
+      targetMutations: [{ enemyId: enemy.id, set: { shield: updated.shield, shieldRegenUsed: updated.shieldRegenUsed } }],
+      visualEffects: [{ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'shield-regen', color: '#0ea5e9' }],
+    };
+  }
+
+  getDescription() {
+    const config = ENEMY_CONFIG.aegis;
+    return `이지스 (실드 ${Math.round(config.shieldRatio * 100)}% · 깨진 후 ${config.shieldRegenDelay/1000}초 뒤 ${Math.round(config.shieldRegenPercent * 100)}% 재생 1회)`;
+  }
+}
+
 // ===== EnemyAbilitySystem =====
 const EnemyAbilitySystem = {
   // 적 타입 → Ability 클래스 매핑
@@ -396,6 +421,7 @@ const EnemyAbilitySystem = {
     'suppressor': SuppressorEnemyAbility,
     'healer': HealerEnemyAbility,
     'splitter': SplitterEnemyAbility,
+    'aegis': AegisEnemyAbility,
   },
 
   /**

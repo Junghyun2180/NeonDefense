@@ -122,6 +122,7 @@ const ENEMY_CONFIG = {
     goldReward: 3, livesLost: 2, // 10 -> 3 (P0-A 경제 긴축)
     color: 'bg-orange-500', shadow: '0 0 12px #ff6600', size: 'w-7 h-7',
     icon: '⭐', explosionColor: '#ff6600',
+    armor: 3, // 합의 06: MVP. Stage 2+ 에서만 적용 (enemy-system.create에서 게이팅)
   },
   boss: {
     healthMult: null, speedRange: null, speedWaveBonus: 0,
@@ -129,6 +130,8 @@ const ENEMY_CONFIG = {
     color: 'bg-red-600', shadow: '0 0 20px #ff0000, 0 0 30px #ff0000', size: 'w-8 h-8',
     icon: '👑', explosionColor: '#ff0000',
     speedBase: 0.25, speedGrowth: 0.02, // 속도 공식: speedBase + stage * speedGrowth
+    armor: 10,
+    shieldRatio: 0.30, // maxHealth × 0.30 = 초기 실드. Stage 2+ 게이팅
   },
   jammer: {
     healthMult: 2.2, speedRange: [0.4, 0.5], speedWaveBonus: 0.01,
@@ -143,6 +146,7 @@ const ENEMY_CONFIG = {
     color: 'bg-pink-500', shadow: '0 0 15px #ec4899, 0 0 30px #ec4899', size: 'w-7 h-7',
     icon: '🛡️', explosionColor: '#ec4899',
     debuffType: 'damage', debuffFactor: 0.5, debuffRange: 100,
+    armor: 8, // 우선 처리 시그널 강화. Stage 2+ 게이팅
   },
   // 새로운 적 타입: 힐러 - 주변 적 회복
   healer: {
@@ -162,18 +166,28 @@ const ENEMY_CONFIG = {
     icon: '💠', explosionColor: '#84cc16',
     splitCount: 2, splitHealthMult: 0.4, splitSpeedMult: 1.3,
   },
+  // 신규 적 타입: 이지스 - 큰 실드를 두르고 깨지면 일정 시간 후 재생
+  aegis: {
+    healthMult: 2.0, speedRange: [0.35, 0.45], speedWaveBonus: 0.01,
+    goldReward: 6, livesLost: 1,
+    color: 'bg-sky-500', shadow: '0 0 15px #0ea5e9, 0 0 30px #0ea5e9', size: 'w-7 h-7',
+    icon: '🛡', explosionColor: '#0ea5e9',
+    shieldRatio: 0.50,        // maxHealth × 0.50 초기 실드
+    shieldRegenDelay: 5000,   // 깨진 후 5초 비전투 → 재생
+    shieldRegenPercent: 0.50, // shieldMax × 0.50 회복 (1회)
+  },
 };
 
 // ===== 스테이지별 등장 몬스터 풀 (점진적 해금) =====
 const STAGE_ENEMY_POOL = {
-  1: ['normal', 'fast'],                                                          // 2종
-  2: ['normal', 'fast', 'elite', 'splitter'],                                     // 4종
-  3: ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer'],                 // 6종
-  4: ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer', 'suppressor'],   // 7종
-  // 5+ : 전체 8종
+  1: ['normal', 'fast'],                                                                     // 2종
+  2: ['normal', 'fast', 'elite', 'splitter'],                                                // 4종
+  3: ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer'],                            // 6종
+  4: ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer', 'suppressor', 'aegis'],     // 8종 (aegis 첫 등장)
+  // 5+ : 전체 9종
 };
 // stage >= 5 또는 정의 안 된 스테이지 → 전체 타입
-const ALL_ENEMY_TYPES = ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer', 'suppressor'];
+const ALL_ENEMY_TYPES = ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer', 'suppressor', 'aegis'];
 
 // 특수 몬스터 등장 확률 (웨이브가 오를수록 특수 몬스터 비율 증가)
 const SPECIAL_ENEMY_CHANCE = {
@@ -182,6 +196,7 @@ const SPECIAL_ENEMY_CHANCE = {
   healer:     { base: 0.05, perWave: 0.02 },
   jammer:     { base: 0.05, perWave: 0.02 },
   suppressor: { base: 0.04, perWave: 0.02 },
+  aegis:      { base: 0.03, perWave: 0.015 }, // 보수적 등장률 — 실드 누적 부담 방지
   fast:       { base: 0.25, perWave: 0.03 },
   // normal은 나머지 확률로 등장 (fallback)
 };

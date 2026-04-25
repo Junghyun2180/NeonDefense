@@ -367,9 +367,21 @@ const GameMap = ({
                                     })() : (
                                         <div className={config.size + ' ' + config.color + ' rounded-sm transform rotate-45'} style={{ boxShadow: config.shadow }} />
                                     )}
+                                    {/* 실드 게이지 (HP 바 위, 청록) — shieldMax > 0 일 때만 */}
+                                    {(enemy.shieldMax || 0) > 0 && (
+                                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-gray-800 rounded">
+                                            <div className="h-full bg-cyan-400 rounded" style={{ width: (Math.max(0, enemy.shield) / enemy.shieldMax * 100) + '%', boxShadow: enemy.shield > 0 ? '0 0 4px #22d3ee' : 'none' }} />
+                                        </div>
+                                    )}
                                     <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-gray-800 rounded">
                                         <div className="h-full bg-green-500 rounded enemy-health-bar" style={{ width: (enemy.health / enemy.maxHealth * 100) + '%' }} />
                                     </div>
+                                    {/* 방어력 표시 (HP 바 우측, 작은 숫자) */}
+                                    {(enemy.armor || 0) > 0 && (
+                                        <div className="absolute -top-2 left-1/2 ml-3.5 text-[8px] leading-none font-bold text-yellow-300" style={{ textShadow: '0 0 2px #000, 0 0 4px #000' }}>
+                                            {enemy.armor}
+                                        </div>
+                                    )}
                                     {activeStatusIcons.length > 0 && (
                                         <div className="absolute -top-5 left-1/2 flex gap-0.5 pointer-events-none" style={{ transform: 'translateX(-50%)' }}>
                                             {activeStatusIcons.map((type, idx) => (
