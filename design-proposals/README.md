@@ -5,12 +5,14 @@ Neon Defense 기획·밸런스 제안 모음.
 - `game-designer` 에이전트 → 신규 콘텐츠·시스템 기획안 (`NN-<topic>.md`)
 - `game-balancer` 에이전트 → 난이도·모드 진단 리포트 (`balance-NN-<topic>.md`)
 
+## ⭐ 단일 소스 (Single Source of Truth)
+
+**[FEATURE_BACKLOG.md](./FEATURE_BACKLOG.md)** — 모든 기획·밸런스·도파민·버그 항목을 통합한 마스터 백로그.
+신규 기능 착수 시 본 문서를 출발점으로 삼는다. 본 디렉토리의 개별 기획안/밸런스 리포트는 백로그 항목의 **상세 출처**로만 참조한다.
+
 ## Index
 
 <!-- 에이전트들이 새 문서를 추가할 때 이 목록을 갱신한다 -->
-
-### 통합 백로그
-- [FEATURE_BACKLOG.md](./FEATURE_BACKLOG.md) — 기획안·밸런스 리포트를 우선순위(P0/P1/P2)·마일스톤·도메인 영향도로 통합 정리한 구현 필요 목록.
 
 ### 기획안 (game-designer)
 

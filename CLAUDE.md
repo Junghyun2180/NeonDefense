@@ -283,6 +283,13 @@ const vulnMult = StatusEffectManager.getVulnerabilityMultiplier(target, now);
 | 저장/불러오기 | `hooks/useSaveLoad.jsx` | ✅ 완료 |
 | 런모드 | `hooks/useRunMode.jsx` | ✅ 완료 |
 
+## 기획·기능 백로그 (Single Source of Truth)
+
+신규 기능 착수 시 출발점:
+- **[`design-proposals/FEATURE_BACKLOG.md`](design-proposals/FEATURE_BACKLOG.md)** — 모든 기획·밸런스·도파민·버그 항목을 통합한 마스터 백로그.
+- 개별 상세 기획안: `design-proposals/01~03-*.md`, `balance-01-*.md`
+- 구버전 비전 문서(10웨이브, T4 2택, 카드 20종)는 `archive/vision-10wave/` 에 보존 — 현재 구현과 충돌하므로 직접 따르지 말 것.
+
 ## Skill 참조
 
 | 스킬 | 용도 |
