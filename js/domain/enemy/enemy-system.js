@@ -13,6 +13,11 @@ const EnemySystem = {
       }
     }
 
+    // 1.5. 캠페인 W5 미니보스 슬롯 (합의 10: W5 마지막 적 = elite 강제, create()에서 강화)
+    if ((modeId === 'campaign' || !modeId) && wave === 5 && enemyIndex === totalEnemies - 1) {
+      return 'elite';
+    }
+
     // 2. 캠페인 모드: 스테이지 풀 기반 타입 결정
     if (modeId === 'campaign' || !modeId) {
       const pool = STAGE_ENEMY_POOL[stage] || ALL_ENEMY_TYPES;
@@ -77,9 +82,19 @@ const EnemySystem = {
     const baseHealth = this.calcBaseHealth(stage, wave, modeId);
 
     // 체력 계산
+    // 합의 10: W5 마지막 적 = 미니보스 (elite 강화). W10 마지막 적 = 스테이지 보스.
+    const isMinibossSlot =
+      (modeId === 'campaign' || !modeId) &&
+      wave === 5 &&
+      enemyIndex === totalEnemies - 1 &&
+      type === 'elite';
     let health;
     if (type === 'boss') {
       health = DataResolver.getBossHealth(modeId, stage, wave);
+    } else if (isMinibossSlot) {
+      const hs = DataResolver.getHealthScaling(modeId);
+      const mult = hs.minibossHealthMult || 4;
+      health = Math.floor(baseHealth * config.healthMult * mult);
     } else {
       health = Math.floor(baseHealth * config.healthMult);
     }
@@ -110,7 +125,12 @@ const EnemySystem = {
     }
 
     // 합의 06: Armor / Shield — Stage 2+ 에서만 적용 (S1은 진입 장벽 X)
-    const armor = (stage >= 2 && config.armor) ? config.armor : 0;
+    // 합의 10: W5 미니보스 = armor 가산
+    let armor = (stage >= 2 && config.armor) ? config.armor : 0;
+    if (isMinibossSlot) {
+      const hs = DataResolver.getHealthScaling(modeId);
+      armor = (config.armor || 0) + (hs.minibossArmorBonus || 2);
+    }
     const shieldMax = (stage >= 2 && config.shieldRatio) ? Math.floor(health * config.shieldRatio) : 0;
 
     const initFacing = this._computeInitialFacing(pathTiles);
@@ -124,6 +144,7 @@ const EnemySystem = {
       shieldMax,
       shieldBrokenAt: 0,        // aegis 재생 트리거 시간
       shieldRegenUsed: false,   // aegis 재생 1회만
+      isMiniboss: isMinibossSlot, // 합의 10: W5 미니보스 표식 (UI/통계용)
       pathIndex: 0,
       pathId,
       pathTiles,

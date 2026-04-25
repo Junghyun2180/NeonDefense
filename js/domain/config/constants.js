@@ -178,15 +178,13 @@ const ENEMY_CONFIG = {
   },
 };
 
-// ===== 스테이지별 등장 몬스터 풀 (점진적 해금) =====
+// ===== 스테이지별 등장 몬스터 풀 (점진적 해금) — 3 stages × 10 waves =====
 const STAGE_ENEMY_POOL = {
-  1: ['normal', 'fast'],                                                                     // 2종
-  2: ['normal', 'fast', 'elite', 'splitter'],                                                // 4종
-  3: ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer'],                            // 6종
-  4: ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer', 'suppressor', 'aegis'],     // 8종 (aegis 첫 등장)
-  // 5+ : 전체 9종
+  1: ['normal', 'fast'],                                                                     // 2종 — 학습
+  2: ['normal', 'fast', 'elite', 'splitter', 'jammer'],                                      // 5종 — 풀 확장
+  3: ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer', 'suppressor', 'aegis'],     // 8종 — 전체 풀
 };
-// stage >= 5 또는 정의 안 된 스테이지 → 전체 타입
+// 정의 안 된 스테이지 → 전체 타입 (안전망)
 const ALL_ENEMY_TYPES = ['normal', 'fast', 'elite', 'splitter', 'healer', 'jammer', 'suppressor', 'aegis'];
 
 // 특수 몬스터 등장 확률 (웨이브가 오를수록 특수 몬스터 비율 증가)
@@ -203,27 +201,30 @@ const SPECIAL_ENEMY_CHANCE = {
 
 // ===== 스폰 규칙 (스테이지 풀 기반) =====
 const SPAWN_RULES = [
-  // 보스: 마지막 웨이브의 마지막 적
-  { type: 'boss', condition: (idx, total, wave) => wave === 5 && idx === total - 1, chance: 1.0 },
+  // 합의 10: W10 마지막 적 = 스테이지 보스 (이전 W5 → W10)
+  { type: 'boss', condition: (idx, total, wave) => wave === 10 && idx === total - 1, chance: 1.0 },
 
   // 나머지: STAGE_ENEMY_POOL + SPECIAL_ENEMY_CHANCE로 EnemySystem에서 처리
-  // (아래는 fallback 전용)
+  // (W5 미니보스는 enemy-system.js determineType / create 에서 별도 처리)
   { type: 'normal', condition: () => true, chance: 1.0 },
 ];
 
 
-// ===== 체력 스케일링 (T2×3 기준 밸런스) =====
-// Stage 1 W1 normal: 30*1.0*1.0*1.0 = 30 HP → T1×3 DPS(30) 1초 컷
-// Stage 1 W5 normal: 30*1.0*1.6*1.2 = 58 HP → T2×3 DPS(112) 0.5초 컷, 15마리 적절
-// Stage 2 W5 normal: 30*1.4*1.6*1.2 = 81 HP → T3+T2 DPS(240) 필요
-// Stage 5 W5 normal: 30*2.6*1.6*1.2 = 150 HP → T4+T3 조합 필요
+// ===== 체력 스케일링 (3×10 캠페인 기준 — 합의 10) =====
+// HP: base × (1 + (s-1)×0.30) × (1 + (w-1)×0.10) × (W∈{5,10}? 보스 보너스 : 1)
+// Stage 1 W1 normal:  30 × 1.0 × 1.0 = 30
+// Stage 1 W10 normal: 30 × 1.0 × 1.9 = 57
+// Stage 3 W10 normal: 30 × 1.6 × 1.9 = 91
+// W5 미니보스 / W10 스테이지보스는 enemy-system.js 에서 별도 가산
 const HEALTH_SCALING = {
   base: 30,
-  stageGrowth: 0.32,       // 0.40 → 0.32 (Stage 4~6 난이도 완화)
-  waveGrowth: 0.13,        // 0.15 → 0.13
-  lateWaveThreshold: 4,
-  lateWaveBonus: 1.15,     // 1.2 → 1.15
+  stageGrowth: 0.30,       // 0.32 → 0.30 (3 stage 짧아진 만큼 곡선 완화)
+  waveGrowth: 0.10,        // 0.13 → 0.10 (10 wave 길어진 만큼 매끈화)
+  lateWaveThreshold: 9999, // 합의 10: lateWaveBonus 비활성. 보스 보너스로 대체
+  lateWaveBonus: 1.0,
   bossFormula: (stage) => 10 + stage * 1.5,
+  minibossHealthMult: 4.0, // W5 미니보스: elite healthMult × 이 값
+  minibossArmorBonus: 2,   // W5 미니보스: 기존 armor + 이 값
 };
 
 // ===== 경제 설정 =====
@@ -266,23 +267,22 @@ const COMBAT = {
   fastEnemySpeedThreshold: 0.6, // 빠른 적 판정 기준 속도 (공통)
 };
 
-// ===== 스폰 설정 (점진적 증가) =====
-// 캠페인 목표: 10-19분 (optimal 10분대, casual 30분 이내)
-// 기존 10스테이지 × 5웨이브 = 50웨이브 → 6스테이지 × 5웨이브 = 30웨이브로 단축
+// ===== 스폰 설정 (합의 10: 3 stages × 10 waves = 30W, 15~20분) =====
+// 1 run = 1 floor = 30W. Floor 진척은 메타 (run-mode 외부에서 관리)
 const SPAWN = {
   enemiesPerWave: (stage, wave) => {
-    // 기본: 8 + 웨이브당 2 + 스테이지당 3
-    // S1W1: 10, S1W5: 18, S2W1: 13, S6W5: 31
-    const base = 8 + wave * 2 + (stage - 1) * 3;
+    // 6 + 웨이브당 2 + 스테이지당 4
+    // S1W1: 8, S1W5: 16, S1W10: 26, S3W10: 34
+    const base = 6 + wave * 2 + (stage - 1) * 4;
     return Math.min(base, 50);
   },
   spawnDelay: (stage, wave) => {
-    // 넉넉하게 시작 → 점진적 빨라짐
-    const base = 800 - (stage * 40) - (wave * 15);
+    // S1W1=735ms, S1W10=585ms, S3W10=525ms
+    const base = 750 - (stage * 30) - (wave * 15);
     return Math.max(200, base);
   },
-  wavesPerStage: 5,
-  maxStage: 6,  // 10 → 6: 세션 시간 40% 단축
+  wavesPerStage: 10, // 5 → 10 (합의 10)
+  maxStage: 3,      // 6 → 3 (1 floor = 3 stages)
 };
 
 // ===== 모바일 배치 UI 속성 데이터 =====
