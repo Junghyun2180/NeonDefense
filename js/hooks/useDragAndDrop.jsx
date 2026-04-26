@@ -65,11 +65,9 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
             return;
         }
 
-        // 기존 모바일 배치 모드
-        if (isPath || hasTower || hasSupportTower) { setPlacementMode(null); return; }
-        setPlacementMode({ gridX, gridY, step: 'element', element: null });
-        clearAllSelections();
-    }, [pathData, towers, supportTowers, selectedTowerForPlacement, setTowers, setInventory, setSupportTowers, setSupportInventory, updateStats, clearAllSelections]);
+        // 빈 타일 클릭 시 별도 UI 띄우지 않음 (구 모바일 원형 배치 메뉴 제거).
+        // 타워 배치는 인벤토리 슬롯 클릭 → selectedTowerForPlacement 활성화 후 타일 클릭 흐름으로만 처리.
+    }, [pathData, towers, supportTowers, selectedTowerForPlacement, setTowers, setInventory, setSupportTowers, setSupportInventory, updateStats]);
 
     const handleElementSelect = useCallback((element) => {
         if (!placementMode) return;

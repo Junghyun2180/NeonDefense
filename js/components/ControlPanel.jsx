@@ -350,10 +350,11 @@ const InventoryPanel = ({
                     </button>
                 </div>
 
-                {/* 인벤토리 그리드 - 15열 고정 (타워 2행, 서포트 1행) */}
+                {/* 인벤토리 그리드 — 슬롯 최소폭을 TILE_SIZE로 잡아 맵 위 타워와 사이즈 매치.
+                    컨테이너 폭에 따라 컬럼 수 자동 조정 (auto-fill). */}
                 <div className="p-2">
                     {activeTab === 'tower' ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(15, minmax(0, 1fr))', gap: '2px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`, gap: '2px' }}>
                             {Array.from({ length: ECONOMY.maxInventory }, (_, i) => {
                                 const neon = sortedInventory[i];
                                 if (neon) {
@@ -384,7 +385,7 @@ const InventoryPanel = ({
                             })}
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(15, minmax(0, 1fr))', gap: '2px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`, gap: '2px' }}>
                             {Array.from({ length: ECONOMY.maxSupportInventory }, (_, i) => {
                                 const support = sortedSupportInventory[i];
                                 if (support) {

@@ -306,7 +306,8 @@ const GameMap = ({
                             const elementInfo = getElementInfo(tower.element);
                             const displayRange = tower.effectiveRange || tower.range;
                             const spriteUrl = spritesReady && typeof TowerSprite !== 'undefined' ? TowerSprite.getUrl(tower.element, tower.tier) : null;
-                            const SPRITE_SIZE = tower.tier === 4 ? 56 : tower.tier === 3 ? 50 : tower.tier === 2 ? 44 : 40;
+                            // 티어별 비율로 표현 — TILE_SIZE 변경 시 자동 비례
+                            const SPRITE_SIZE = TILE_SIZE * (tower.tier === 4 ? 1.4 : tower.tier === 3 ? 1.25 : tower.tier === 2 ? 1.1 : 1.0);
                             const isCombineResult = combinePreview && combinePreview.kind === 'tower' && combinePreview.resultId === tower.id;
                             const isCombineConsumed = combinePreview && combinePreview.kind === 'tower' && combinePreview.consumedIds.includes(tower.id);
                             return (
@@ -469,12 +470,15 @@ const GameMap = ({
                             const enemyUrl = typeof EnemySprite !== 'undefined' ? EnemySprite.getUrl(enemy.type) : null;
                             // 적 크기 — boss는 크게, 일반은 기본, fast는 약간 작게
                             // 합의 10: W5 미니보스(elite)는 일반 elite 보다 크게
-                            const SIZE = enemy.type === 'boss' ? 48
-                                : enemy.isMiniboss ? 44
-                                : enemy.type === 'elite' ? 38
-                                : enemy.type === 'fast' ? 26
-                                : enemy.type === 'splitter' ? 28
-                                : 32;
+                            // TILE_SIZE 비율로 표현 → TILE_SIZE 변경 시 자동 비례
+                            const SIZE = TILE_SIZE * (
+                                enemy.type === 'boss' ? 1.2
+                                : enemy.isMiniboss ? 1.1
+                                : enemy.type === 'elite' ? 0.95
+                                : enemy.type === 'fast' ? 0.65
+                                : enemy.type === 'splitter' ? 0.7
+                                : 0.8
+                            );
                             const isEnemySelected = selectedEnemyId === enemy.id;
                             return (
                                 <div

@@ -2,7 +2,9 @@
 // 모든 매직 넘버를 구조화된 설정으로 관리
 
 // ===== 그리드 설정 =====
-const TILE_SIZE = 40;
+// 원본 자산(타워 256px, 적 128px)의 디테일이 살아나도록 타일 사이즈를 1.8배로 확대.
+// 컨테이너가 좁으면 mapScale(App.jsx)이 자동으로 축소 — 화면상 크기는 모니터에 맞춰짐.
+const TILE_SIZE = 72;
 const GRID_WIDTH = 16;
 const GRID_HEIGHT = 12;
 
