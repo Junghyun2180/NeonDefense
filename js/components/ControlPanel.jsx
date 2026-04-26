@@ -207,6 +207,21 @@ const InventoryPanel = ({
 }) => {
     const [activeTab, setActiveTab] = React.useState('tower');
 
+    // --- 표시용 정렬 (상위 티어 우선, 같은 티어는 속성/타입 순) ---
+    const sortedInventory = React.useMemo(() => {
+        return [...(inventory || [])].sort((a, b) => {
+            if (b.tier !== a.tier) return b.tier - a.tier;
+            return (a.colorIndex ?? a.element ?? 0) - (b.colorIndex ?? b.element ?? 0);
+        });
+    }, [inventory]);
+
+    const sortedSupportInventory = React.useMemo(() => {
+        return [...(supportInventory || [])].sort((a, b) => {
+            if (b.tier !== a.tier) return b.tier - a.tier;
+            return (a.supportType ?? 0) - (b.supportType ?? 0);
+        });
+    }, [supportInventory]);
+
     // --- 통합 뽑기 ---
     const drawHandler = activeTab === 'tower' ? drawRandomNeon : drawRandomSupport;
     const drawHandler10 = activeTab === 'tower' ? drawRandomNeon10 : drawRandomSupport10;
@@ -340,7 +355,7 @@ const InventoryPanel = ({
                     {activeTab === 'tower' ? (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(15, minmax(0, 1fr))', gap: '2px' }}>
                             {Array.from({ length: ECONOMY.maxInventory }, (_, i) => {
-                                const neon = inventory[i];
+                                const neon = sortedInventory[i];
                                 if (neon) {
                                     const isSelected = selectedInventory.some(n => n.id === neon.id);
                                     const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === neon.id;
@@ -371,7 +386,7 @@ const InventoryPanel = ({
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(15, minmax(0, 1fr))', gap: '2px' }}>
                             {Array.from({ length: ECONOMY.maxSupportInventory }, (_, i) => {
-                                const support = supportInventory[i];
+                                const support = sortedSupportInventory[i];
                                 if (support) {
                                     const isSelected = selectedSupportInventory.some(s => s.id === support.id);
                                     const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === support.id;

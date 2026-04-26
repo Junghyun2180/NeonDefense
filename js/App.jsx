@@ -784,6 +784,8 @@ const NeonDefense = () => {
               cancelPlacementMode={dragState.cancelPlacementMode}
               selectedTowers={inventoryState.selectedTowers}
               selectedSupportTowers={inventoryState.selectedSupportTowers}
+              selectedInventory={inventoryState.selectedInventory}
+              selectedSupportInventory={inventoryState.selectedSupportInventory}
               gameSpeed={gameState.gameSpeed}
               setGameSpeed={gameState.setGameSpeed}
               maxGameSpeed={settings.maxGameSpeed}

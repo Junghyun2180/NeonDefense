@@ -16,6 +16,8 @@ const GameMap = ({
     cancelPlacementMode,
     selectedTowers,
     selectedSupportTowers,
+    selectedInventory,
+    selectedSupportInventory,
     gameSpeed,
     setGameSpeed,
     maxGameSpeed = 5,
@@ -41,6 +43,58 @@ const GameMap = ({
 
     // 모듈러 타일 선택용: 경로 이동 인접성 맵 (grid 근접이 아닌 실제 경로 기반)
     const pathAdjacency = useMemo(() => buildPathAdjacency(pathData), [pathData]);
+
+    // 조합 미리보기: 맵 타워 1개 이상 + 인벤토리 합 = 3, 같은 element/tier, tier < 4 일 때
+    // 결과는 selectedTowers[0] 위치에 생성됨 (combineTowers 로직과 동일)
+    const combinePreview = useMemo(() => {
+        const inv = selectedInventory || [];
+        const supInv = selectedSupportInventory || [];
+        // 공격 타워 조합
+        if (selectedTowers.length > 0) {
+            const total = selectedTowers.length + inv.length;
+            if (total === 3) {
+                const first = selectedTowers[0];
+                const baseTier = first.tier;
+                const baseElem = first.colorIndex ?? first.element;
+                if (baseTier < 4) {
+                    const all = [...selectedTowers, ...inv];
+                    const same = all.every(t => t.tier === baseTier && (t.colorIndex ?? t.element) === baseElem);
+                    if (same) {
+                        return {
+                            kind: 'tower',
+                            resultId: first.id,
+                            consumedIds: selectedTowers.slice(1).map(t => t.id),
+                            nextTier: baseTier + 1,
+                            element: baseElem,
+                        };
+                    }
+                }
+            }
+        }
+        // 서포트 타워 조합
+        if (selectedSupportTowers.length > 0) {
+            const total = selectedSupportTowers.length + supInv.length;
+            if (total === 3) {
+                const first = selectedSupportTowers[0];
+                const baseTier = first.tier;
+                const baseType = first.supportType;
+                if (baseTier < 3) {
+                    const all = [...selectedSupportTowers, ...supInv];
+                    const same = all.every(s => s.tier === baseTier && s.supportType === baseType && s.isSupport);
+                    if (same) {
+                        return {
+                            kind: 'support',
+                            resultId: first.id,
+                            consumedIds: selectedSupportTowers.slice(1).map(t => t.id),
+                            nextTier: baseTier + 1,
+                            supportType: baseType,
+                        };
+                    }
+                }
+            }
+        }
+        return null;
+    }, [selectedTowers, selectedInventory, selectedSupportTowers, selectedSupportInventory]);
 
     // 속성 인덱스 → orb 이미지 URL
     const ELEMENT_KEYS = ['fire', 'water', 'electric', 'wind', 'void', 'light'];
@@ -129,8 +183,11 @@ const GameMap = ({
                                 const endPoint = pathData.endPoints.find(ep => ep.x === x && ep.y === y);
                                 const isDropPreview = dropPreview && dropPreview.gridX === x && dropPreview.gridY === y;
                                 const isSelectedTile = placementMode && placementMode.gridX === x && placementMode.gridY === y;
-                                const canPlace = !isPath && !hasTower;
+                                const hasSupport = supportTowers.some(t => t.gridX === x && t.gridY === y);
+                                const canPlace = !isPath && !hasTower && !hasSupport;
+                                const isPlacementAvailable = !!selectedTowerForPlacement && canPlace && !isDropPreview && !isSelectedTile;
                                 let extraClass = '';
+                                if (isPlacementAvailable) extraClass = 'tile-placement-available';
                                 if (isDropPreview) extraClass = dropPreview.valid ? 'drop-preview-valid' : 'drop-preview-invalid';
                                 if (isSelectedTile) extraClass = 'ring-2 ring-white ring-opacity-80';
 
@@ -249,10 +306,24 @@ const GameMap = ({
                             const elementInfo = getElementInfo(tower.element);
                             const displayRange = tower.effectiveRange || tower.range;
                             const spriteUrl = spritesReady && typeof TowerSprite !== 'undefined' ? TowerSprite.getUrl(tower.element, tower.tier) : null;
-                            const SPRITE_SIZE = tower.tier === 4 ? 48 : tower.tier === 3 ? 42 : tower.tier === 2 ? 38 : 34;
+                            const SPRITE_SIZE = tower.tier === 4 ? 56 : tower.tier === 3 ? 50 : tower.tier === 2 ? 44 : 40;
+                            const isCombineResult = combinePreview && combinePreview.kind === 'tower' && combinePreview.resultId === tower.id;
+                            const isCombineConsumed = combinePreview && combinePreview.kind === 'tower' && combinePreview.consumedIds.includes(tower.id);
                             return (
                                 <div key={tower.id}>
                                     {isSelected && <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - displayRange, top: tower.y - displayRange, width: displayRange * 2, height: displayRange * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />}
+                                    {/* 조합 결과 위치 표시: 황금 회전 링 */}
+                                    {isCombineResult && (
+                                        <div className="absolute pointer-events-none combine-result-ring"
+                                             style={{ left: tower.x - SPRITE_SIZE / 2 - 6, top: tower.y - SPRITE_SIZE / 2 - 6, width: SPRITE_SIZE + 12, height: SPRITE_SIZE + 12 }} />
+                                    )}
+                                    {/* 조합 소멸 예정 표시: 빨간 점선 + X */}
+                                    {isCombineConsumed && (
+                                        <div className="absolute pointer-events-none combine-consumed-mark"
+                                             style={{ left: tower.x - SPRITE_SIZE / 2 - 4, top: tower.y - SPRITE_SIZE / 2 - 4, width: SPRITE_SIZE + 8, height: SPRITE_SIZE + 8 }}>
+                                            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#ff4d6d', textShadow: '0 0 4px #000, 0 0 8px #ff0044' }}>✕</span>
+                                        </div>
+                                    )}
                                     {spriteUrl ? (
                                         <div onClick={(e) => {
                                             e.stopPropagation();
@@ -264,9 +335,9 @@ const GameMap = ({
                                             top: tower.y - SPRITE_SIZE / 2,
                                             width: SPRITE_SIZE,
                                             height: SPRITE_SIZE,
-                                            opacity: tower.isDebuffed ? 0.6 : 1,
+                                            opacity: isCombineConsumed ? 0.4 : (tower.isDebuffed ? 0.6 : 1),
                                             cursor: selectedTowerForPlacement ? 'default' : 'pointer',
-                                            filter: isSelected ? 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px ' + tower.color + ')' : 'drop-shadow(0 0 4px ' + tower.color + '80)',
+                                            filter: isCombineConsumed ? 'grayscale(0.7) brightness(0.85)' : (isSelected ? 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px ' + tower.color + ')' : 'drop-shadow(0 0 4px ' + tower.color + '80)'),
                                         }}>
                                             <img src={spriteUrl} alt={tower.name} draggable={false}
                                                  style={{ width: '100%', height: '100%', imageRendering: 'auto', pointerEvents: 'none' }} />
@@ -284,7 +355,16 @@ const GameMap = ({
                                             <span className="text-xs font-black text-white drop-shadow-lg">{elementInfo.icon}</span>
                                         </div>
                                     )}
-                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: tower.x - 8, top: tower.y + SPRITE_SIZE / 2 - 2, textShadow: '0 0 3px black' }}>T{tower.tier}{tower.isPrism ? '★' : ''}</div>
+                                    {tower.isPrism && (
+                                        <div className="absolute pointer-events-none" style={{ left: tower.x + SPRITE_SIZE / 2 - 12, top: tower.y - SPRITE_SIZE / 2 - 2, fontSize: 14, textShadow: '0 0 4px #fff, 0 0 6px ' + tower.color }}>★</div>
+                                    )}
+                                    {/* 조합 결과 표시: 우상단에 깔끔한 골드 배지 (T+1) */}
+                                    {isCombineResult && (
+                                        <div className="absolute pointer-events-none combine-result-badge"
+                                            style={{ left: tower.x + SPRITE_SIZE / 2 - 8, top: tower.y - SPRITE_SIZE / 2 - 10 }}>
+                                            <span>⬆ T{combinePreview.nextTier}</span>
+                                        </div>
+                                    )}
                                     {(() => {
                                         // 타워에 적용된 구체적 버프/디버프 아이콘
                                         const nowTs = Date.now();
@@ -317,10 +397,22 @@ const GameMap = ({
                             const isSelected = selectedSupportTowers.some(t => t.id === support.id);
                             const supportInfo = SUPPORT_UI[support.supportType];
                             const supUrl = typeof SupportSprite !== 'undefined' ? SupportSprite.getUrl(support.supportType, support.tier) : null;
-                            const SPR_SIZE = support.tier === 3 ? 44 : support.tier === 2 ? 38 : 34;
+                            const SPR_SIZE = support.tier === 3 ? 52 : support.tier === 2 ? 46 : 40;
+                            const isCombineResult = combinePreview && combinePreview.kind === 'support' && combinePreview.resultId === support.id;
+                            const isCombineConsumed = combinePreview && combinePreview.kind === 'support' && combinePreview.consumedIds.includes(support.id);
                             return (
                                 <div key={support.id}>
                                     {isSelected && <div className="absolute rounded-full support-range pointer-events-none" style={{ left: support.x - support.range, top: support.y - support.range, width: support.range * 2, height: support.range * 2, border: '2px dashed ' + (isSelected ? '#ffffff' : support.color) + '60', background: 'radial-gradient(circle, ' + support.color + '15 0%, transparent 70%)' }} />}
+                                    {isCombineResult && (
+                                        <div className="absolute pointer-events-none combine-result-ring"
+                                             style={{ left: support.x - SPR_SIZE / 2 - 6, top: support.y - SPR_SIZE / 2 - 6, width: SPR_SIZE + 12, height: SPR_SIZE + 12 }} />
+                                    )}
+                                    {isCombineConsumed && (
+                                        <div className="absolute pointer-events-none combine-consumed-mark"
+                                             style={{ left: support.x - SPR_SIZE / 2 - 4, top: support.y - SPR_SIZE / 2 - 4, width: SPR_SIZE + 8, height: SPR_SIZE + 8 }}>
+                                            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#ff4d6d', textShadow: '0 0 4px #000, 0 0 8px #ff0044' }}>✕</span>
+                                        </div>
+                                    )}
                                     {supUrl ? (
                                         <div onClick={(e) => { e.stopPropagation(); if (selectedTowerForPlacement) { cancelPlacementMode(); } else { toggleSupportTowerSelect(support); } }}
                                              className={'absolute ' + (isSelected ? 'tower-selected' : '')}
@@ -329,9 +421,10 @@ const GameMap = ({
                                                  top: support.y - SPR_SIZE / 2,
                                                  width: SPR_SIZE, height: SPR_SIZE,
                                                  cursor: selectedTowerForPlacement ? 'default' : 'pointer',
-                                                 filter: isSelected
+                                                 opacity: isCombineConsumed ? 0.4 : 1,
+                                                 filter: isCombineConsumed ? 'grayscale(0.7) brightness(0.85)' : (isSelected
                                                      ? 'drop-shadow(0 0 6px #fff) drop-shadow(0 0 12px ' + support.color + ')'
-                                                     : 'drop-shadow(0 0 4px ' + support.color + '90)',
+                                                     : 'drop-shadow(0 0 4px ' + support.color + '90)'),
                                              }}>
                                             <img src={supUrl} alt={supportInfo.name} draggable={false}
                                                  style={{ width: '100%', height: '100%', pointerEvents: 'none' }} />
@@ -341,7 +434,13 @@ const GameMap = ({
                                             <span className="text-sm">{supportInfo.icon}</span>
                                         </div>
                                     )}
-                                    <div className="absolute text-xs font-bold text-white pointer-events-none" style={{ left: support.x - 6, top: support.y + SPR_SIZE / 2 - 2, textShadow: '0 0 3px black' }}>S{support.tier}</div>
+                                    {/* 서포트 조합 결과 표시: 우상단 골드 배지 */}
+                                    {isCombineResult && (
+                                        <div className="absolute pointer-events-none combine-result-badge"
+                                            style={{ left: support.x + SPR_SIZE / 2 - 8, top: support.y - SPR_SIZE / 2 - 10 }}>
+                                            <span>⬆ S{combinePreview.nextTier}</span>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

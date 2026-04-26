@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>해상도 비교 샘플 — Neon Defense</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #050816;
+    --bg-panel: #0a0f24;
+    --neon-cyan: #00f0ff;
+    --neon-pink: #ff2bd6;
+    --neon-yellow: #ffd93d;
+    --text-dim: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: radial-gradient(ellipse at top, #0d1530 0%, var(--bg-deep) 70%);
+    color: #e2e8f0;
+    font-family: 'Orbitron', sans-serif;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  h1 {
+    font-weight: 900;
+    color: var(--neon-cyan);
+    text-shadow: 0 0 20px rgba(0,240,255,0.6);
+    margin-bottom: 8px;
+    font-size: 24px;
+  }
+  h2 {
+    font-weight: 900;
+    color: var(--neon-yellow);
+    margin: 28px 0 12px 0;
+    font-size: 18px;
+    text-shadow: 0 0 10px rgba(255,217,61,0.4);
+  }
+  .subtitle { color: var(--text-dim); margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
+
+  .controls {
+    background: var(--bg-panel);
+    border: 1px solid rgba(0,240,255,0.25);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 20px rgba(0,240,255,0.15) inset;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+  }
+  .control-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .control-row:last-child { margin-bottom: 0; }
+  .control-row label { color: var(--neon-yellow); font-size: 13px; font-weight: 700; min-width: 140px; }
+  .control-row input[type=range] { flex: 1; min-width: 200px; max-width: 360px; }
+  .control-row .value-pill {
+    background: rgba(0,240,255,0.1);
+    border: 1px solid rgba(0,240,255,0.4);
+    color: var(--neon-cyan);
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    min-width: 90px;
+    text-align: center;
+  }
+  .preset-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset-btns button {
+    background: rgba(255,43,214,0.1);
+    border: 1px solid rgba(255,43,214,0.4);
+    color: var(--neon-pink);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+  .preset-btns button:hover {
+    background: rgba(255,43,214,0.25);
+    box-shadow: 0 0 12px rgba(255,43,214,0.4);
+  }
+
+  /* ===== 섹션 1: 단일 스프라이트 클로즈업 비교 ===== */
+  .closeup-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .closeup-card {
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 16px 12px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .closeup-card.current {
+    border-color: rgba(148,163,184,0.4);
+    background: rgba(148,163,184,0.06);
+  }
+  .closeup-card.recommended {
+    border-color: rgba(0,240,255,0.5);
+    box-shadow: 0 0 20px rgba(0,240,255,0.2);
+    background: rgba(0,240,255,0.04);
+  }
+  .closeup-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .closeup-card.current .closeup-label { color: #94a3b8; }
+  .closeup-card.recommended .closeup-label { color: var(--neon-cyan); }
+  .closeup-frame {
+    background: #000;
+    border-radius: 6px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 140px;
+    overflow: hidden;
+  }
+  .closeup-frame img {
+    object-fit: contain;
+    image-rendering: auto;
+    filter: drop-shadow(0 0 6px rgba(255,68,68,0.6));
+  }
+  .closeup-size {
+    font-size: 13px;
+    color: #fff;
+    font-weight: 900;
+  }
+  .closeup-multiplier {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* ===== 섹션 2: 실제 게임 맵 비교 ===== */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 1300px) { .compare-grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--bg-panel);
+    border-radius: 12px;
+    padding: 16px;
+    border: 2px solid rgba(0,240,255,0.2);
+  }
+  .panel.before { border-color: rgba(148,163,184,0.3); }
+  .panel.after { border-color: rgba(0,240,255,0.5); box-shadow: 0 0 30px rgba(0,240,255,0.2); }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .panel-title { font-size: 16px; font-weight: 900; }
+  .panel.before .panel-title { color: var(--text-dim); }
+  .panel.after .panel-title { color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0,240,255,0.5); }
+  .panel-meta { font-size: 11px; color: var(--text-dim); }
+
+  .map-container {
+    background: #000;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: auto;
+  }
+
+  .map-grid {
+    position: relative;
+    border: 2px solid rgba(0,240,255,0.3);
+    box-shadow: 0 0 30px rgba(78,205,196,0.2), inset 0 0 30px rgba(0,0,0,0.5);
+    border-radius: 6px;
+    overflow: hidden;
+    transform-origin: top left;
+  }
+  .tile {
+    position: absolute;
+    background-size: cover;
+    background-position: center;
+    image-rendering: auto;
+  }
+  .tile.grass { background-image: url('../assets/tiles/grass-tile.png'); }
+  .tile.path-h { background-image: url('../assets/tiles/path/str-h.png'); }
+  .tile.path-v { background-image: url('../assets/tiles/path/str-v.png'); }
+  .tile.path-corne { background-image: url('../assets/tiles/path/cor-ne.png'); }
+  .tile.path-cornw { background-image: url('../assets/tiles/path/cor-nw.png'); }
+  .tile.path-corse { background-image: url('../assets/tiles/path/cor-se.png'); }
+  .tile.path-corsw { background-image: url('../assets/tiles/path/cor-sw.png'); }
+
+  .sprite { position: absolute; pointer-events: none; }
+  .sprite img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    image-rendering: auto;
+    display: block;
+  }
+  .sprite.tower { filter: drop-shadow(0 0 6px var(--glow, #00f0ff)); }
+  .sprite.enemy { filter: drop-shadow(0 0 4px #ff4444); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 11px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    padding: 6px;
+    text-align: center;
+  }
+  .stat .label { color: var(--text-dim); display: block; margin-bottom: 2px; font-size: 9px; }
+  .stat .val { color: #fff; font-weight: 700; font-size: 12px; }
+  .stat.highlight .val { color: var(--neon-cyan); }
+
+  .summary {
+    margin-top: 28px;
+    background: var(--bg-panel);
+    border: 1px solid rgba(255,217,61,0.3);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  .summary h3 { color: var(--neon-yellow); margin-bottom: 10px; font-size: 15px; }
+  .summary ul { list-style: none; }
+  .summary li {
+    padding: 6px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.06);
+    font-size: 12px;
+    color: #cbd5e1;
+    line-height: 1.5;
+  }
+  .summary li:last-child { border-bottom: none; }
+  .summary li b { color: var(--neon-cyan); }
+  .summary code {
+    background: rgba(0,240,255,0.1);
+    color: var(--neon-cyan);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+  }
+  .key-finding {
+    background: rgba(255,43,214,0.06);
+    border: 1px solid rgba(255,43,214,0.3);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 12px 0 18px;
+    color: #f3e8ff;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .key-finding b { color: var(--neon-pink); }
+</style>
+</head>
+<body>
+
+<h1>⚡ NEON DEFENSE — 해상도 비교 샘플</h1>
+<p class="subtitle">
+  원본 자산은 256×256(타워), 128×128(적)인데 게임에서 40~56px로 그려서 디테일이 다 죽고 있어.<br>
+  슬라이더로 우측 패널 크기를 실시간 조정해서 가장 마음에 드는 사이즈를 골라봐.
+</p>
+
+<div class="controls">
+  <div class="control-row">
+    <label>개선안 TILE_SIZE</label>
+    <input type="range" id="tileSlider" min="40" max="120" step="4" value="72">
+    <span class="value-pill" id="tileVal">72px</span>
+    <div class="preset-btns">
+      <button data-tile="40">40 (현재)</button>
+      <button data-tile="56">56 (1.4x)</button>
+      <button data-tile="64">64 (1.6x)</button>
+      <button data-tile="72">72 (1.8x)</button>
+      <button data-tile="80">80 (2.0x)</button>
+    </div>
+  </div>
+  <div class="control-row">
+    <label>스프라이트 픽셀화</label>
+    <input type="range" id="renderSlider" min="0" max="1" step="1" value="0">
+    <span class="value-pill" id="renderVal">auto (보간)</span>
+  </div>
+</div>
+
+<!-- ============ 섹션 1: 단일 스프라이트 클로즈업 ============ -->
+<h2>① 단일 타워/적 픽셀 사이즈 비교 (1:1 클로즈업)</h2>
+<p class="subtitle" style="margin-bottom: 12px;">
+  같은 화면 영역에 타워 하나/적 하나씩 띄워봤음. 실제 게임에선 이 픽셀 사이즈로 그려져.
+</p>
+
+<h3 style="font-size:13px;color:#94a3b8;margin:8px 0;font-weight:700;">화염 T4 타워 (원본 256×256 PNG)</h3>
+<div class="closeup-row" id="closeupTowerRow"></div>
+
+<h3 style="font-size:13px;color:#94a3b8;margin:16px 0 8px;font-weight:700;">보스 적 (원본 128×128 PNG)</h3>
+<div class="closeup-row" id="closeupEnemyRow"></div>
+
+<!-- ============ 섹션 2: 실제 게임 맵 비교 (16×12) ============ -->
+<h2>② 실제 게임 맵 비교 (16×12 그리드, 100% 동일 비율)</h2>
+<div class="key-finding">
+  <b>주의:</b> 실제 게임은 16×12 그리드라 좌측 Before도 화면이 충분히 크게 나와.
+  하지만 <b>개별 타워/적의 픽셀 사이즈</b>(40~56px)는 동일 — 그래서 디테일이 죽어보이는 거야.
+  핵심은 "맵이 작다"가 아니라 "스프라이트가 작다"임.
+</div>
+
+<div class="compare-grid">
+  <div class="panel before">
+    <div class="panel-header">
+      <div class="panel-title">현재 (Before)</div>
+      <div class="panel-meta">TILE_SIZE = 40px · 맵 640×480</div>
+    </div>
+    <div class="map-container">
+      <div class="map-grid" id="mapBefore"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><span class="label">타일 크기</span><span class="val">40px</span></div>
+      <div class="stat"><span class="label">타워 크기</span><span class="val">40~56px</span></div>
+      <div class="stat"><span class="label">맵 전체</span><span class="val">640×480</span></div>
+      <div class="stat"><span class="label">원본 활용률</span><span class="val">~16%</span></div>
+    </div>
+  </div>
+
+  <div class="panel after">
+    <div class="panel-header">
+      <div class="panel-title">개선안 (After)</div>
+      <div class="panel-meta" id="afterMeta">TILE_SIZE = 72px</div>
+    </div>
+    <div class="map-container">
+      <div class="map-grid" id="mapAfter"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat highlight"><span class="label">타일 크기</span><span class="val" id="afterTileSize">72px</span></div>
+      <div class="stat highlight"><span class="label">타워 크기</span><span class="val" id="afterTowerSize">72~100px</span></div>
+      <div class="stat highlight"><span class="label">맵 전체</span><span class="val" id="afterMapSize">1152×864</span></div>
+      <div class="stat highlight"><span class="label">원본 활용률</span><span class="val" id="afterUtil">~28%</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="summary">
+  <h3>📐 분석 요약</h3>
+  <ul>
+    <li>원본 자산: <b>타워 256×256, 적 128×128, 타일 128~160px</b> — 충분히 고해상도.</li>
+    <li>현재 <code>TILE_SIZE=40</code>은 타워를 <b>최대 6.4배 축소</b>해서 픽셀 디테일을 완전히 버리고 있음.</li>
+    <li>맵 자체는 16×12 그리드라 화면을 잘 채우지만, <b>개별 스프라이트가 너무 작음</b>이 문제.</li>
+    <li>권장 <code>TILE_SIZE=72</code>면 16×12 그리드가 <b>1152×864</b>가 되고, 데스크탑에선 그대로, 좁은 화면에선 <code>mapScale</code>로 자동 축소.</li>
+    <li>변경 위치: <code>js/domain/config/constants.js:5</code> (TILE_SIZE) + <code>GameMap.jsx:309</code> (SPRITE_SIZE) + <code>GameMap.jsx:472-477</code> (적 SIZE).</li>
+  </ul>
+</div>
+
+<script>
+  // ===== 게임 자산 매핑 =====
+  const ELEMENT_COLORS = {
+    fire: '#ff4444', water: '#4488ff', electric: '#ffd93d',
+    wind: '#44ff88', void: '#aa44ff', light: '#dddddd'
+  };
+
+  // ===== 실제 게임과 동일한 16×12 그리드 =====
+  const GRID_W = 16, GRID_H = 12;
+
+  // 데모용 경로 (실제 게임 스타일 — 굽이굽이)
+  // 0 = grass, 'h'/'v'/'corne'/'cornw'/'corse'/'corsw' = 경로 타일
+  const MAP_RAW = `
+0000000000000000
+1111122222220000
+0000000000020000
+0000000000022220
+0000000000000020
+1111111122220020
+0000000020000020
+0033333320003333
+0030000000000000
+0030003333333333
+0030000000000000
+0033333333322222
+`.trim().split('\n');
+
+  // 더 풍부한 데모 맵 — 두 갈래 경로
+  const MAP = (() => {
+    // 16×12 grid; 0=grass, 1=path
+    const m = Array.from({length: GRID_H}, () => Array(GRID_W).fill(0));
+    // 경로 A: 좌상→우상→우중
+    const pathA = [
+      [0,1],[1,1],[2,1],[3,1],[3,2],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[8,4],[8,5],[9,5],[10,5],[11,5],[12,5],[13,5],[14,5],[15,5]
+    ];
+    // 경로 B: 좌하→우하→우중
+    const pathB = [
+      [0,9],[1,9],[2,9],[3,9],[3,10],[3,11],[4,11],[5,11],[6,11],[7,11],[8,11],[9,11],[10,11],[11,11],[12,11],[12,10],[12,9],[12,8],[13,8],[14,8],[15,8]
+    ];
+    pathA.forEach(([x,y]) => m[y][x] = 1);
+    pathB.forEach(([x,y]) => m[y][x] = 1);
+    return m;
+  })();
+
+  function tileTypeFor(x, y) {
+    if (MAP[y][x] === 0) return 'grass';
+    // 4방향 인접 경로 검사
+    const N = y > 0 && MAP[y-1][x] === 1;
+    const S = y < GRID_H-1 && MAP[y+1][x] === 1;
+    const E = x < GRID_W-1 && MAP[y][x+1] === 1;
+    const W = x > 0 && MAP[y][x-1] === 1;
+    const cnt = (N?1:0)+(S?1:0)+(E?1:0)+(W?1:0);
+    if (cnt >= 2 && (N||S) && (E||W)) {
+      // 코너
+      if (N && E) return 'corne';
+      if (N && W) return 'cornw';
+      if (S && E) return 'corse';
+      if (S && W) return 'corsw';
+    }
+    if (E || W) return 'h';
+    return 'v';
+  }
+
+  // 타워 배치 (실제 게임처럼 다양한 위치/티어/속성)
+  const TOWERS = [
+    { x: 5, y: 4, element: 'fire',     tier: 4 },
+    { x: 7, y: 4, element: 'electric', tier: 3 },
+    { x: 9, y: 6, element: 'water',    tier: 2 },
+    { x: 11, y: 6, element: 'wind',    tier: 1 },
+    { x: 13, y: 6, element: 'void',    tier: 3 },
+    { x: 5, y: 7, element: 'light',    tier: 2 },
+    { x: 7, y: 7, element: 'fire',     tier: 1 },
+    { x: 11, y: 9, element: 'water',   tier: 4 },
+    { x: 9, y: 9, element: 'electric', tier: 4 },
+  ];
+
+  // 적 (이동 중 위치)
+  const ENEMIES = [
+    { x: 5, y: 3, type: 'normal' },
+    { x: 8, y: 3, type: 'fast' },
+    { x: 11, y: 5, type: 'elite' },
+    { x: 14, y: 5, type: 'boss' },
+    { x: 4, y: 11, type: 'jammer' },
+    { x: 7, y: 11, type: 'splitter' },
+    { x: 10, y: 11, type: 'healer' },
+    { x: 12, y: 9, type: 'normal' },
+  ];
+
+  // 실제 게임 코드와 동일한 비율
+  function towerSpriteSize(tier, tileSize) {
+    // 게임 코드: T4=56, T3=50, T2=44, T1=40 (TILE_SIZE=40 기준)
+    const ratio = tier === 4 ? 1.4 : tier === 3 ? 1.25 : tier === 2 ? 1.1 : 1.0;
+    return tileSize * ratio;
+  }
+  function enemySize(type, tileSize) {
+    // 게임 코드: boss=48, elite=38, fast=26, splitter=28, normal=32 (TILE_SIZE=40 기준)
+    const ratio = type === 'boss' ? 1.2
+      : type === 'elite' ? 0.95
+      : type === 'fast' ? 0.65
+      : type === 'splitter' ? 0.7
+      : type === 'jammer' ? 0.85
+      : type === 'healer' ? 0.85
+      : 0.8;
+    return tileSize * ratio;
+  }
+
+  function pathClass(code) {
+    return {
+      'h':'path-h','v':'path-v',
+      'corne':'path-corne','cornw':'path-cornw',
+      'corse':'path-corse','corsw':'path-corsw',
+    }[code] || 'grass';
+  }
+
+  function renderMap(containerId, tileSize, pixelated, maxDisplayWidth) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = '';
+    const fullW = GRID_W * tileSize;
+    const fullH = GRID_H * tileSize;
+    el.style.width = fullW + 'px';
+    el.style.height = fullH + 'px';
+
+    // 맵이 컨테이너보다 크면 mapScale로 축소 (실제 게임 동작과 동일)
+    const scale = maxDisplayWidth ? Math.min(1, maxDisplayWidth / fullW) : 1;
+    el.style.transform = `scale(${scale})`;
+    el.parentElement.style.height = (fullH * scale + 24) + 'px';
+
+    // 타일
+    for (let y = 0; y < GRID_H; y++) {
+      for (let x = 0; x < GRID_W; x++) {
+        const code = tileTypeFor(x, y);
+        const div = document.createElement('div');
+        div.className = 'tile ' + (code === 'grass' ? 'grass' : pathClass(code));
+        div.style.left = (x * tileSize) + 'px';
+        div.style.top = (y * tileSize) + 'px';
+        div.style.width = tileSize + 'px';
+        div.style.height = tileSize + 'px';
+        if (pixelated) div.style.imageRendering = 'pixelated';
+        el.appendChild(div);
+      }
+    }
+
+    // 타워
+    TOWERS.forEach(t => {
+      const size = towerSpriteSize(t.tier, tileSize);
+      const cx = (t.x + 0.5) * tileSize;
+      const cy = (t.y + 0.5) * tileSize;
+      const div = document.createElement('div');
+      div.className = 'sprite tower';
+      div.style.left = (cx - size/2) + 'px';
+      div.style.top = (cy - size/2) + 'px';
+      div.style.width = size + 'px';
+      div.style.height = size + 'px';
+      div.style.setProperty('--glow', ELEMENT_COLORS[t.element]);
+      const img = document.createElement('img');
+      img.src = `../assets/towers/${t.element}/t${t.tier}.png`;
+      img.alt = '';
+      if (pixelated) img.style.imageRendering = 'pixelated';
+      div.appendChild(img);
+      const badge = document.createElement('div');
+      badge.style.cssText = `position:absolute;bottom:-2px;right:-2px;background:#000;color:#fff;
+        font-size:${Math.max(8, tileSize * 0.18)}px;padding:1px 4px;border-radius:3px;
+        border:1px solid ${ELEMENT_COLORS[t.element]};font-weight:900;line-height:1;`;
+      badge.textContent = 'T' + t.tier;
+      div.appendChild(badge);
+      el.appendChild(div);
+    });
+
+    // 적
+    ENEMIES.forEach(e => {
+      const size = enemySize(e.type, tileSize);
+      const cx = (e.x + 0.5) * tileSize;
+      const cy = (e.y + 0.5) * tileSize;
+      const div = document.createElement('div');
+      div.className = 'sprite enemy';
+      div.style.left = (cx - size/2) + 'px';
+      div.style.top = (cy - size/2) + 'px';
+      div.style.width = size + 'px';
+      div.style.height = size + 'px';
+      const img = document.createElement('img');
+      img.src = `../assets/enemies/${e.type}.png`;
+      img.alt = '';
+      if (pixelated) img.style.imageRendering = 'pixelated';
+      div.appendChild(img);
+      el.appendChild(div);
+    });
+  }
+
+  // ===== 단일 스프라이트 클로즈업 =====
+  function renderCloseups(afterSize, pixelated) {
+    const sizes = [
+      { px: 40, label: '현재', cls: 'current', mult: '1.0x (현재)' },
+      { px: 56, label: '1.4x', cls: '', mult: '1.4x' },
+      { px: 64, label: '1.6x', cls: '', mult: '1.6x' },
+      { px: afterSize, label: '슬라이더', cls: 'recommended', mult: `${(afterSize/40).toFixed(2)}x` },
+      { px: 96, label: '2.4x', cls: '', mult: '2.4x' },
+      { px: 128, label: '3.2x', cls: '', mult: '3.2x' },
+    ];
+
+    // 타워 (T4 = 1.4배 비율)
+    const towerRow = document.getElementById('closeupTowerRow');
+    towerRow.innerHTML = '';
+    sizes.forEach(s => {
+      const realPx = Math.round(s.px * 1.4);
+      const card = document.createElement('div');
+      card.className = 'closeup-card ' + s.cls;
+      card.innerHTML = `
+        <div class="closeup-label">${s.label}</div>
+        <div class="closeup-frame">
+          <img src="../assets/towers/fire/t4.png" style="width:${realPx}px;height:${realPx}px;${pixelated?'image-rendering:pixelated;':''}filter:drop-shadow(0 0 6px #ff4444);" alt="">
+        </div>
+        <div class="closeup-size">${realPx}×${realPx}px</div>
+        <div class="closeup-multiplier">TILE_SIZE ${s.px}px · ${s.mult}</div>
+      `;
+      towerRow.appendChild(card);
+    });
+
+    // 보스 적 (boss = 1.2배 비율)
+    const enemyRow = document.getElementById('closeupEnemyRow');
+    enemyRow.innerHTML = '';
+    sizes.forEach(s => {
+      const realPx = Math.round(s.px * 1.2);
+      const card = document.createElement('div');
+      card.className = 'closeup-card ' + s.cls;
+      card.innerHTML = `
+        <div class="closeup-label">${s.label}</div>
+        <div class="closeup-frame">
+          <img src="../assets/enemies/boss.png" style="width:${realPx}px;height:${realPx}px;${pixelated?'image-rendering:pixelated;':''}filter:drop-shadow(0 0 6px #ff4444);" alt="">
+        </div>
+        <div class="closeup-size">${realPx}×${realPx}px</div>
+        <div class="closeup-multiplier">TILE_SIZE ${s.px}px · ${s.mult}</div>
+      `;
+      enemyRow.appendChild(card);
+    });
+  }
+
+  function updateAfterStats(tileSize) {
+    document.getElementById('afterTileSize').textContent = tileSize + 'px';
+    const minTower = Math.round(tileSize * 1.0);
+    const maxTower = Math.round(tileSize * 1.4);
+    document.getElementById('afterTowerSize').textContent = `${minTower}~${maxTower}px`;
+    const fullMapW = GRID_W * tileSize;
+    const fullMapH = GRID_H * tileSize;
+    document.getElementById('afterMapSize').textContent = `${fullMapW}×${fullMapH}`;
+    const util = ((tileSize * 1.4) / 256 * 100).toFixed(0);
+    document.getElementById('afterUtil').textContent = `~${util}%`;
+    document.getElementById('afterMeta').textContent =
+      `TILE_SIZE = ${tileSize}px · 맵 ${fullMapW}×${fullMapH} (현재 대비 ${(tileSize/40).toFixed(2)}x)`;
+  }
+
+  const slider = document.getElementById('tileSlider');
+  const tileVal = document.getElementById('tileVal');
+  const renderSlider = document.getElementById('renderSlider');
+  const renderVal = document.getElementById('renderVal');
+
+  function rerender() {
+    const after = parseInt(slider.value, 10);
+    const pixelated = parseInt(renderSlider.value, 10) === 1;
+    tileVal.textContent = after + 'px';
+    renderVal.textContent = pixelated ? 'pixelated (선명)' : 'auto (보간)';
+
+    // 컨테이너 폭 계산 (좌우 분할 시 패널당 가용 폭)
+    const isWide = window.innerWidth >= 1300;
+    const panelMaxW = isWide ? Math.min(680, (window.innerWidth - 100) / 2) : (window.innerWidth - 80);
+
+    renderMap('mapBefore', 40, pixelated, panelMaxW);
+    renderMap('mapAfter', after, pixelated, panelMaxW);
+    renderCloseups(after, pixelated);
+    updateAfterStats(after);
+  }
+
+  slider.addEventListener('input', rerender);
+  renderSlider.addEventListener('input', rerender);
+  document.querySelectorAll('.preset-btns button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      slider.value = btn.dataset.tile;
+      rerender();
+    });
+  });
+  window.addEventListener('resize', rerender);
+
+  rerender();
+</script>
+
+</body>
+</html>

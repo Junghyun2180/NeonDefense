@@ -193,8 +193,8 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                         <span className="font-bold text-cyan-300">최대 200+</span>
                       </div>
                       <div className="flex items-center justify-between text-gray-300">
-                        <span>💾 자동 저장</span>
-                        <span className="font-bold text-green-300">30초마다</span>
+                        <span>💾 저장 시점</span>
+                        <span className="font-bold text-green-300">매 웨이브 시작</span>
                       </div>
                       {/* 별점 진척도 */}
                       {typeof StarRating !== 'undefined' && (() => {
@@ -282,7 +282,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                       <h2 className="text-2xl font-bold text-gray-500" style={{ fontFamily: 'Orbitron, sans-serif' }}>이어하기</h2>
                       <p className="text-gray-500 text-sm text-center">저장된 게임이 없습니다<br />새 게임을 시작해주세요</p>
                       <div className="w-full bg-gray-900/50 rounded-lg p-3 text-sm opacity-50 text-center text-gray-500">
-                        게임 진행 후 자동 저장됩니다
+                        웨이브 시작 시 자동 저장됩니다
                       </div>
                     </div>
                   </div>

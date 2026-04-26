@@ -3,7 +3,6 @@
 
 const SaveSystem = {
   SAVE_KEY: 'neonDefense_save_v1',
-  AUTO_SAVE_INTERVAL: 30000, // 30초마다 자동 저장
 
   // ===== 저장 =====
   save(gameState) {
@@ -119,32 +118,6 @@ const SaveSystem = {
     } catch (error) {
       console.error('[SaveSystem] 정보 조회 실패:', error);
       return null;
-    }
-  },
-
-  // ===== 자동 저장 시작 =====
-  startAutoSave(getGameState) {
-    if (this.autoSaveInterval) {
-      clearInterval(this.autoSaveInterval);
-    }
-
-    this.autoSaveInterval = setInterval(() => {
-      const gameState = getGameState();
-      // 게임 중일 때만 자동 저장
-      if (gameState.isPlaying || gameState.enemies.length > 0) {
-        this.save(gameState);
-      }
-    }, this.AUTO_SAVE_INTERVAL);
-
-    console.log('[SaveSystem] 자동 저장 시작 (30초 간격)');
-  },
-
-  // ===== 자동 저장 중지 =====
-  stopAutoSave() {
-    if (this.autoSaveInterval) {
-      clearInterval(this.autoSaveInterval);
-      this.autoSaveInterval = null;
-      console.log('[SaveSystem] 자동 저장 중지');
     }
   },
 

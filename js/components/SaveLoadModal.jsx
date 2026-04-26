@@ -98,7 +98,7 @@ const SaveLoadModal = ({ show, mode, onNewGame, onLoadGame, onSaveAndQuit, onCon
           {/* 하단 정보 */}
           <div className="mt-6 text-center text-xs text-gray-500">
             <div>최대 스테이지: {SPAWN.maxStage}</div>
-            <div className="mt-1">자동 저장: 30초마다</div>
+            <div className="mt-1">저장 시점: 매 웨이브 시작</div>
           </div>
         </div>
       </div>
@@ -141,7 +141,7 @@ const SaveLoadModal = ({ show, mode, onNewGame, onLoadGame, onSaveAndQuit, onCon
           </div>
 
           <div className="mt-6 text-center text-xs text-gray-500">
-            자동 저장이 활성화되어 있습니다
+            매 웨이브 시작 시 자동 저장됩니다
           </div>
         </div>
       </div>

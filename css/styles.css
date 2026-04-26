@@ -66,6 +66,7 @@ body {
   background-position: center;
   background-repeat: no-repeat;
 }
+/* v2 타일은 픽셀 정렬되어 있어 봉합 트릭 불필요 (background-size: cover 그대로 사용) */
 .tile-grass        { background-image: url('../assets/tiles/path/grass.png'); }
 .tile-path.str-h   { background-image: url('../assets/tiles/path/str-h.png'); }
 .tile-path.str-v   { background-image: url('../assets/tiles/path/str-v.png'); }
@@ -146,6 +147,84 @@ body {
 .drop-preview-invalid {
   background: rgba(255, 0, 0, 0.3) !important;
   border: 2px solid #ff0000 !important;
+}
+
+/* 배치 가능 타일 하이라이트 — selectedTowerForPlacement 활성 시 모든 빈 타일에 표시.
+   타일은 이미 position: absolute 이므로 ::after 의 absolute 기준이 됨 — position 재정의 금지. */
+.tile-placement-available::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border: 2px dashed rgba(34, 211, 238, 0.95);
+  border-radius: 4px;
+  background: rgba(34, 211, 238, 0.18);
+  box-shadow: inset 0 0 10px rgba(34, 211, 238, 0.55), 0 0 6px rgba(34, 211, 238, 0.35);
+  pointer-events: none;
+  animation: placementAvailablePulse 1.2s ease-in-out infinite;
+  z-index: 2;
+}
+.tile-placement-available:hover::after {
+  border-color: rgba(250, 204, 21, 1);
+  background: rgba(250, 204, 21, 0.30);
+  box-shadow: inset 0 0 14px rgba(250, 204, 21, 0.7), 0 0 10px rgba(250, 204, 21, 0.6);
+}
+@keyframes placementAvailablePulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+
+/* 조합 결과 위치: 황금 회전 링 */
+.combine-result-ring {
+  border: 3px dashed #fde047;
+  border-radius: 50%;
+  box-shadow: 0 0 12px #fde047, 0 0 24px #f59e0b, inset 0 0 8px #fde04780;
+  animation: combineResultSpin 1.6s linear infinite, combineResultPulse 1s ease-in-out infinite;
+}
+@keyframes combineResultSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes combineResultPulse {
+  0%, 100% { box-shadow: 0 0 8px #fde047, 0 0 16px #f59e0b, inset 0 0 6px #fde04760; }
+  50%      { box-shadow: 0 0 16px #fde047, 0 0 32px #f59e0b, inset 0 0 12px #fde047a0; }
+}
+
+/* 조합 소멸 예정: 빨간 점선 박스 */
+.combine-consumed-mark {
+  border: 2px dashed #ff4d6d;
+  border-radius: 6px;
+  background: rgba(255, 68, 68, 0.10);
+  box-shadow: 0 0 6px rgba(255, 68, 68, 0.6);
+  animation: combineConsumedBlink 1s ease-in-out infinite;
+}
+@keyframes combineConsumedBlink {
+  0%, 100% { opacity: 0.75; }
+  50%      { opacity: 1; }
+}
+
+/* 조합 결과 배지 — 우상단 작은 골드 라벨 */
+.combine-result-badge {
+  z-index: 5;
+}
+.combine-result-badge > span {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.3;
+  color: #1a0a00;
+  background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+  border: 1px solid #fff7c2;
+  border-radius: 8px;
+  box-shadow: 0 0 4px #fde047, 0 0 10px #f59e0b80;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  animation: combineBadgePulse 1.1s ease-in-out infinite;
+  white-space: nowrap;
+}
+@keyframes combineBadgePulse {
+  0%, 100% { box-shadow: 0 0 3px #fde047, 0 0 8px #f59e0b80; transform: scale(1); }
+  50%      { box-shadow: 0 0 6px #fde047, 0 0 16px #f59e0b; transform: scale(1.06); }
 }
 
 /* Tower Selected */

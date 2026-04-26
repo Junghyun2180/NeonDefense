@@ -1,7 +1,7 @@
 // Neon Defense - 저장/불러오기 훅
-// 게임 시작 시 불러오기, 자동 저장, 수동 저장 기능
+// 게임 시작 시 불러오기, 웨이브 시작 시 저장, 수동 저장 기능
 
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect, useCallback, useRef } = React;
 
 const useSaveLoad = (gameState) => {
   const [showMainMenu, setShowMainMenu] = useState(true); // 메인 메뉴 표시
@@ -10,6 +10,9 @@ const useSaveLoad = (gameState) => {
   const [saveInfo, setSaveInfo] = useState(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [loadedData, setLoadedData] = useState(null); // 불러온 데이터 임시 저장
+  const prevIsPlayingRef = useRef(false);
+  const gameStateRef = useRef(gameState);
+  gameStateRef.current = gameState;
 
   // ===== 초기화: 저장 데이터 확인 =====
   useEffect(() => {
@@ -22,17 +25,26 @@ const useSaveLoad = (gameState) => {
     }
   }, []);
 
-  // ===== 스테이지 종료 시 저장 =====
+  // ===== 웨이브 시작 시 저장 (isPlaying false → true 전환 시 1회) =====
   useEffect(() => {
-    if (!gameStarted) return;
-
-    // showSaveLoadModal이 true일 때 = 스테이지 클리어 시
-    if (showSaveLoadModal && saveLoadMode === 'stageClear') {
-      const getGameState = () => gameState;
-      SaveSystem.save(getGameState());
-      console.log('[SaveLoad] 스테이지 클리어 - 저장 완료');
+    if (!gameStarted) {
+      prevIsPlayingRef.current = false;
+      return;
     }
-  }, [gameStarted, showSaveLoadModal, saveLoadMode, gameState]);
+
+    const wasPlaying = prevIsPlayingRef.current;
+    const nowPlaying = !!gameState.isPlaying;
+
+    if (!wasPlaying && nowPlaying) {
+      const snapshot = gameStateRef.current;
+      SaveSystem.save(snapshot);
+      const info = SaveSystem.getSaveInfo();
+      setSaveInfo(info);
+      console.log('[SaveLoad] 웨이브 시작 - 저장 완료', snapshot.stage, snapshot.wave);
+    }
+
+    prevIsPlayingRef.current = nowPlaying;
+  }, [gameStarted, gameState.isPlaying]);
 
   // ===== 새 게임 시작 =====
   const handleNewGame = useCallback(() => {
