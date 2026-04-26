@@ -73,8 +73,17 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
             ⚡ NEON DEFENSE ⚡
           </h1>
           <p className="text-gray-400 text-sm mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            Random Tower Defense × Roguelike
+            🏯 Tower-Climbing Defense · Roguelike
           </p>
+          {/* 합의 10: 메인 타이틀 부제로 등반 컨셉 강조 + 현재 진척 한 줄 */}
+          {(metaProgress?.stats?.highestCampaignFloor || 0) > 0 && (
+            <p className="text-purple-300 text-xs mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              현재 등반 — 최고 <span className="font-bold text-yellow-300">F{metaProgress.stats.highestCampaignFloor}</span>
+              {' · '}
+              다음 도전 <span className="font-bold text-yellow-300">F{metaProgress.stats.highestCampaignFloor + 1}</span>
+              {' (HP ×'}{Math.pow(1.15, metaProgress.stats.highestCampaignFloor).toFixed(2)}{')'}
+            </p>
+          )}
         </div>
 
         {/* ── 상단 고정: 탭 네비게이션 ── */}
@@ -154,18 +163,27 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                     NEW
                   </div>
                   <div className="flex flex-col items-center space-y-4">
-                    <div className="text-6xl group-hover:scale-110 transition-transform">🆕</div>
-                    <h2 className="text-2xl font-bold text-purple-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>새 게임 시작</h2>
-                    <p className="text-gray-400 text-sm text-center">처음부터 도전하기<br />Stage 1-1부터 시작</p>
+                    {/* 합의 10: 헤드라인 자체를 floor 도전으로 — "🏯 F{n} 도전" */}
+                    {(() => {
+                      const nextFloor = (metaProgress?.stats?.highestCampaignFloor || 0) + 1;
+                      const hpMult = Math.pow(1.15, nextFloor - 1).toFixed(2);
+                      return (
+                        <>
+                          <div className="text-7xl group-hover:scale-110 transition-transform" style={{ filter: 'drop-shadow(0 0 20px rgba(250, 204, 21, 0.5))' }}>🏯</div>
+                          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-300 to-yellow-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                            FLOOR {nextFloor} 도전
+                          </h2>
+                          <p className="text-gray-400 text-sm text-center">
+                            적 HP <span className="text-yellow-300 font-bold">×{hpMult}</span> · 3 stages × 10 waves
+                          </p>
+                        </>
+                      );
+                    })()}
                     {/* 합의 10: NEON TOWER — 계단형 floor 시각화 */}
                     {typeof FloorTower !== 'undefined' && (
                       <FloorTower highestFloor={metaProgress?.stats?.highestCampaignFloor || 0} />
                     )}
                     <div className="w-full bg-gray-900/50 rounded-lg p-3 space-y-2 text-sm">
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>📊 1 Floor 분량</span>
-                        <span className="font-bold text-emerald-300">{SPAWN.maxStage}스테이지 × {SPAWN.wavesPerStage}웨이브</span>
-                      </div>
                       <div className="flex items-center justify-between text-gray-300">
                         <span>⏱️ 예상 시간</span>
                         <span className="font-bold text-blue-300">15~20분</span>

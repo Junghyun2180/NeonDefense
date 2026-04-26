@@ -20,7 +20,7 @@ const FloorTower = ({
     const floors = [];
     for (let n = top; n >= bottom; n--) floors.push(n);
 
-    const itemPad = compact ? 'px-2 py-0.5' : 'px-3 py-1';
+    const itemPad = compact ? 'px-2 py-0.5' : 'px-3 py-2';
 
     return (
         <div className="bg-gray-900/40 backdrop-blur-sm border border-gray-700/40 rounded-lg p-2">
@@ -73,10 +73,10 @@ const FloorTower = ({
                             }}
                             title={future ? `Floor ${n} — 잠김` : (isCurrent ? `Floor ${n} — 현재 도전 중` : (isNext ? `Floor ${n} — 다음 도전` : `Floor ${n} — 클리어`))}
                         >
-                            <span className={`text-sm leading-none ${iconColor}`}>{icon}</span>
-                            <span className={`text-xs font-bold leading-none ${compact ? '' : 'tracking-wider'}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>F{n}</span>
+                            <span className={`${compact ? 'text-sm' : 'text-base'} leading-none ${iconColor}`}>{icon}</span>
+                            <span className={`${compact ? 'text-xs' : 'text-sm'} font-bold leading-none ${compact ? '' : 'tracking-wider'}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>F{n}</span>
                             {(isNext || isCurrent) && !compact && (
-                                <span className="ml-auto text-[9px] text-yellow-300 leading-none">HP ×{Math.pow(1.15, n - 1).toFixed(2)}</span>
+                                <span className="ml-auto text-[10px] text-yellow-300 leading-none font-bold">HP ×{Math.pow(1.15, n - 1).toFixed(2)}</span>
                             )}
                         </div>
                     );
