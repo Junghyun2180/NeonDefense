@@ -6,10 +6,18 @@
 - **코너**: 부드러운 곡선 → **하드 90° 직각**. 수직 conduit과 수평 conduit이 타일 중심에서 만나 정확히 90°로 꺾인다. fillet/rounding 절대 금지.
 - **일괄 생성**: 12 타일을 한 장의 4×3 그리드(2048×1536 px)로 한 번에 생성. 모든 타일이 같은 batch에서 나와야 conduit 굵기가 일치.
 
+## ⚠️ 절대 규칙 3가지 (이거 어기면 타일셋 사용 불가)
+1. **모든 conduit 라인은 셀 정중앙 (256, 256)을 반드시 통과한다.**
+   직선/코너/T/Cross 어떤 타일이든 conduit 중심선이 셀의 (256, 256) 픽셀을 지나야 함. 타일 가장자리 conduit center도 항상 픽셀 256에 위치.
+2. **conduit 좌우 폭은 204 px로 모든 타일에서 절대 변하지 않는다.**
+   타일 종류와 무관하게 conduit width = 204 px (40% of 512). 직선 한가운데, 코너 꺾임 직전, T 분기점 직전 어디서든 동일.
+3. **모든 타일은 어떤 인접 조합으로 배치해도 conduit이 자연스럽게 이어져야 한다.**
+   타일 A의 RIGHT edge cross-section ≡ 타일 B의 LEFT edge cross-section (양쪽 다 conduit이 열려 있을 때). 픽셀 단위로 일치해야 하며, 1 px 어긋남도 허용 안 됨. TOP↔BOTTOM, LEFT↔RIGHT 모두 동일 규칙.
+
 ## 픽셀 정렬 스펙 (절대 변경 불가)
 - 셀 크기: 512×512
 - conduit 굵기: 정확히 **타일의 40% = 204 px** (모든 셀 동일)
-- conduit 중심선: 타일/셀 정중앙 (px 256)
+- conduit 중심선: 타일/셀 정중앙 (px 256, 모든 conduit 라인이 (256, 256) 통과)
 - conduit 가장자리: **px 154 ~ px 358** (= 256 ± 102)
 - 직각 코너: 수직 conduit(cols 154–358)과 수평 conduit(rows 154–358)이 타일 중앙의 **204×204 정사각형**(x:154–358, y:154–358)에서 겹침. 이 안쪽이 코너 junction.
 - base 색: `#0a0a1f` (모든 타일 4 모서리)
@@ -23,6 +31,39 @@ Generate ONE 2048x1536 image arranged as a STRICT 4-column × 3-row grid
 of TILES for a neon tower-defense game tileset. Each cell is exactly
 512x512 px. Cells will be sliced apart and used as standalone tiles —
 treat every cell as an independent tile, not as panels of a single picture.
+
+══════════════════════════════════════════════════════════════════════
+THREE NON-NEGOTIABLE RULES (the entire tileset is unusable if any fail):
+
+  RULE 1 — CENTER CROSSING:
+    EVERY conduit line in EVERY cell MUST pass through the cell's exact
+    center pixel at (x=256, y=256). Whether the cell is a straight, corner,
+    T-junction, or 4-way cross, every conduit's centerline crosses (256, 256).
+    Any conduit reaching a cell edge must have its centerline at pixel 256
+    of that edge — no offsets, no off-center placements.
+
+  RULE 2 — CONSTANT WIDTH:
+    Conduit width = exactly 204 px (40% of the 512 cell). This width is
+    IDENTICAL across all 12 tiles AND constant within each tile (it does
+    NOT widen at junctions or narrow at corners). Conduit edges always at
+    pixel 154 and pixel 358 of the perpendicular axis. Never thicker,
+    never thinner, never at any other position.
+
+  RULE 3 — SEAMLESS TILING:
+    Tiles will be placed adjacent to each other in-game. Any pair of tiles
+    placed side-by-side MUST connect with zero pixel mismatch:
+      • A cell's RIGHT edge (cols 504–511, rows 154–358) must be a pixel-
+        identical cross-section to any other cell's LEFT edge (cols 0–7,
+        rows 154–358).
+      • Same for TOP↔BOTTOM along rows 0–7 vs rows 504–511 within cols
+        154–358.
+    Concretely: at every connecting edge, the same rail positions, same
+    rail brightness, same body texture, same outer-glow falloff. If a cell
+    has a closed edge, that edge is pure #0a0a1f (no leakage).
+
+  These three rules trump every other consideration. Failing any of them
+  produces a broken tileset. They apply EQUALLY to every cell.
+══════════════════════════════════════════════════════════════════════
 
 GLOBAL VISUAL — "Neon Data-Stream Conduit" (futuristic, NO hex / NO honeycomb)
 A glowing teal conduit composed of (outer → inner):
@@ -43,12 +84,23 @@ A glowing teal conduit composed of (outer → inner):
      ABSOLUTELY NO hexagons, honeycomb, tessellation, or repeating
      geometric grids inside the conduit.
 
-ABSOLUTE GEOMETRY — IDENTICAL ACROSS EVERY CELL:
-  • Conduit width = exactly 204 px (40% of 512). NEVER varies.
+ABSOLUTE GEOMETRY — IDENTICAL ACROSS EVERY CELL (enforces RULES 1 & 2):
+  • Conduit width = exactly 204 px (40% of 512). NEVER varies, NOT EVEN by
+    one pixel, between cells or within a cell.
   • Conduit edges fall at pixel 154 and pixel 358 along the perpendicular axis.
-  • Conduit centerline at pixel 256 (cell-local coords).
-  • Outer rails at px 154–159 and px 353–358.
+  • Conduit centerline at pixel 256. Every conduit line passes through (256, 256).
+  • Outer rails at px 154–159 and px 353–358 — same in every tile.
   • Tile base color #0a0a1f. All 4 corner pixels of every cell = #0a0a1f.
+
+SELF-CHECK BEFORE FINALIZING (mentally walk through):
+  ☐ For every cell, does the conduit's centerline pass through (256, 256)?
+  ☐ Is the conduit width exactly 204 px in every cell, with no widening
+    at junctions or narrowing at bends?
+  ☐ If I take cell A's RIGHT edge cross-section and cell B's LEFT edge
+    cross-section (both with right/left connections open), do they match
+    pixel-for-pixel? Same rails, same body, same glow.
+  ☐ Are closed edges totally clean (#0a0a1f only) with no rail/glow leaking?
+  If any answer is "no", the tileset is broken — fix before output.
 
 EDGE RULES (per cell):
   • CONNECTING EDGE: conduit (rails + interior fill + streaks) reaches the
