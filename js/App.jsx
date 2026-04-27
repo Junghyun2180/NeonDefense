@@ -862,6 +862,20 @@ const NeonDefense = () => {
             canCombineSupportTowers={inventoryState.canCombineSupportTowers}
           />
 
+          {/* 10연뽑 결과 오버레이 (자동조합 ON에도 원본 표시) */}
+          <DrawResultOverlay
+            result={inventoryState.lastDrawResult}
+            getElementInfo={getElementInfo}
+            onDismiss={inventoryState.clearLastDrawResult}
+          />
+
+          {/* 웨이브 테마 진입 배너 (캠페인 코어 정체성: 스테이지별 메타 변화) */}
+          <WaveThemeBanner
+            stage={gameState.stage}
+            wave={gameState.wave}
+            isRunMode={!!runModeState.runMode}
+          />
+
           {/* 모바일 배치 UI */}
           <PlacementUI
             placementMode={dragState.placementMode}
@@ -926,6 +940,7 @@ const NeonDefense = () => {
               inventory: inventoryState.inventory,
               supportInventory: inventoryState.supportInventory,
             }}
+            nextStage={gameState.stage + 1}
           />
 
           {/* 영구 버프 선택 모달 */}

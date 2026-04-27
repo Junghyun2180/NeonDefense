@@ -22,12 +22,40 @@ const EnemySystem = {
     if (modeId === 'campaign' || !modeId) {
       const pool = STAGE_ENEMY_POOL[stage] || ALL_ENEMY_TYPES;
 
-      // 풀에서 special 타입 확률 순회 (normal, fast 제외한 특수 타입 먼저)
-      const specialTypes = pool.filter(t => t !== 'normal');
+      // ── 웨이브 테마 적용 ── (코어 정체성: 스테이지별 메타 변화)
+      // intensity별 인터폴레이션:
+      //   weak — base + (boost - base) × 0.6, 비-부스트 ×0.6 (Stage 2 학습)
+      //   full — chance = boost (직접 override), 비-부스트 ×0.4 (Stage 3 풀강도)
+      const theme = (typeof WaveThemeSystem !== 'undefined')
+        ? WaveThemeSystem.getTheme(stage, wave) : null;
+      const resolvedBoost = theme && typeof WaveThemeSystem !== 'undefined'
+        ? WaveThemeSystem.resolveBoost(theme, pool) : null;
+      const intensity = theme && typeof WaveThemeSystem !== 'undefined'
+        ? WaveThemeSystem.getIntensityProfile(theme.intensity) : null;
+
+      let specialTypes = pool.filter(t => t !== 'normal');
+      // 부스트 타입을 먼저 검사하여 보정이 실제 의미 있게 발화되도록 정렬
+      if (resolvedBoost) {
+        specialTypes = [...specialTypes].sort((a, b) => {
+          const aBoost = resolvedBoost[a] !== undefined ? 1 : 0;
+          const bBoost = resolvedBoost[b] !== undefined ? 1 : 0;
+          return bBoost - aBoost;
+        });
+      }
+
       for (const type of specialTypes) {
         const config = SPECIAL_ENEMY_CHANCE[type];
         if (!config) continue;
-        const chance = config.base + (config.perWave || 0) * (wave - 1);
+        let chance = config.base + (config.perWave || 0) * (wave - 1);
+        if (resolvedBoost && intensity) {
+          if (resolvedBoost[type] !== undefined) {
+            const boostChance = resolvedBoost[type];
+            // weak: base→boost 사이 60% 보간 / full: boost 직접 적용
+            chance = chance + (boostChance - chance) * intensity.boostFactor;
+          } else {
+            chance *= intensity.nonBoostMultiplier;
+          }
+        }
         if (Math.random() < chance) return type;
       }
       return 'normal'; // fallback

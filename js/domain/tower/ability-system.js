@@ -114,6 +114,16 @@ const AbilitySystem = {
     // 합의 06: damageMap 구조 = Map<enemyId, Array<{damage, armorPierce, shieldDamageMult}>>
     // entry 별로 Shield → Armor → HP 처리해야 광휘 관통/전격 실드 ×2 가 정확히 적용됨
     const damageMap = new Map();
+    const enemyById = new Map();
+    currentEnemies.forEach(e => enemyById.set(e.id, e));
+
+    // 적-속성 상성 곱셈 (추천 X — 유저가 데미지 체감으로 발견)
+    const affMult = (element, enemyId) => {
+      if (typeof AffinitySystem === 'undefined') return 1.0;
+      const enemy = enemyById.get(enemyId);
+      return AffinitySystem.getMultiplier(element, enemy && enemy.type);
+    };
+
     const pushEntry = (id, damage, opts = {}) => {
       if (damage <= 0) return;
       const list = damageMap.get(id) || [];
@@ -143,31 +153,51 @@ const AbilitySystem = {
       finalDamage = Math.floor(finalDamage * result.damageModifier);
       finalDamage += result.additionalDamage;
 
-      pushEntry(hit.enemyId, finalDamage, dmgOpts);
+      // 본 타겟에 affinity 적용
+      const mainAff = affMult(hit.element, hit.enemyId);
+      const mainAffClass = (typeof AffinitySystem !== 'undefined')
+        ? AffinitySystem.classify(mainAff) : 'neutral';
+      pushEntry(hit.enemyId, Math.floor(finalDamage * mainAff), dmgOpts);
 
       statusEffects.push(...result.statusEffects);
       visualEffects.push(...result.visualEffects);
 
+      // AOE — 각 적 타입마다 affinity가 다를 수 있으므로 개별 적용
       result.aoeTargets.forEach(aoe => {
-        pushEntry(aoe.enemy.id, aoe.damage, dmgOpts);
+        const aoeAff = affMult(hit.element, aoe.enemy.id);
+        pushEntry(aoe.enemy.id, Math.floor(aoe.damage * aoeAff), dmgOpts);
         if (aoe.statusEffects) statusEffects.push(...aoe.statusEffects);
       });
 
+      // 관통 — 동일
       result.pierceTargets.forEach(pierce => {
-        pushEntry(pierce.enemy.id, pierce.damage, dmgOpts);
+        const pierceAff = affMult(hit.element, pierce.enemy.id);
+        pushEntry(pierce.enemy.id, Math.floor(pierce.damage * pierceAff), dmgOpts);
       });
 
       if (result.targetMutations && result.targetMutations.length > 0) {
         targetMutations.push(...result.targetMutations);
       }
 
+      // 체인 라이트닝 — 각 체인 타겟에 개별 affinity
       if (result.chainData) {
         allChainLightnings = allChainLightnings.concat(result.chainData.chains);
-        result.chainData.damages.forEach((dmg, id) => pushEntry(id, dmg, dmgOpts));
+        result.chainData.damages.forEach((dmg, id) => {
+          const chainAff = affMult(hit.element, id);
+          pushEntry(id, Math.floor(dmg * chainAff), dmgOpts);
+        });
       }
 
       if (hit.tier !== 4) {
-        visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'hit', color: hit.color });
+        // affinity 분류를 hit 이펙트에 실어 렌더링이 크기·밝기로 차이 표현
+        // (텍스트 라벨 없음 — 유저가 미묘한 변화로 발견)
+        visualEffects.push({
+          id: Date.now() + Math.random(),
+          x: hit.x, y: hit.y,
+          type: 'hit',
+          color: hit.color,
+          affinity: mainAffClass,
+        });
       }
     });
 
