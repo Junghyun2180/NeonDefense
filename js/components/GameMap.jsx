@@ -593,6 +593,20 @@ const GameMap = ({
                             // T4 특수 이펙트 - 더 크고 화려하게
                             let size = 30;
                             let extraStyle = {};
+                            // 적-속성 상성 시각 신호 (hit 이펙트 한정, 추천 라벨 없음)
+                            // 약점: 1.5배 크기 + 밝기↑ 채도↑    (강하게 박혔다는 느낌)
+                            // 저항: 0.6배 크기 + 어둡게 채도↓   (제대로 안 박혔다는 느낌)
+                            let affinityFilterPart = '';
+                            if (effect.type === 'hit' && effect.affinity) {
+                                if (effect.affinity === 'weak') {
+                                    size = 45;
+                                    affinityFilterPart = ' brightness(1.5) saturate(1.4)';
+                                    extraStyle.boxShadow = '0 0 18px ' + (effect.color || '#fff') + 'cc, 0 0 32px ' + (effect.color || '#fff') + '80';
+                                } else if (effect.affinity === 'resist') {
+                                    size = 18;
+                                    affinityFilterPart = ' brightness(0.55) saturate(0.55)';
+                                }
+                            }
                             if (effect.type.startsWith('t4-')) {
                                 size = 50; // T4 이펙트는 더 큼
                                 const t4Type = effect.type.replace('t4-', '');
@@ -649,7 +663,7 @@ const GameMap = ({
                                         width: size,
                                         height: size,
                                         objectFit: 'contain',
-                                        filter: `drop-shadow(0 0 6px ${effect.color}) drop-shadow(0 0 12px ${effect.color}80)`,
+                                        filter: `drop-shadow(0 0 6px ${effect.color}) drop-shadow(0 0 12px ${effect.color}80)` + affinityFilterPart,
                                         ...extraStyle
                                     }}
                                 />
@@ -663,6 +677,7 @@ const GameMap = ({
                                         width: size,
                                         height: size,
                                         background: `radial-gradient(circle, ${effect.color} 0%, transparent 70%)`,
+                                        filter: affinityFilterPart ? affinityFilterPart.trim() : 'none',
                                         ...extraStyle
                                     }}
                                 />

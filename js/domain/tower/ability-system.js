@@ -155,6 +155,8 @@ const AbilitySystem = {
 
       // 본 타겟에 affinity 적용
       const mainAff = affMult(hit.element, hit.enemyId);
+      const mainAffClass = (typeof AffinitySystem !== 'undefined')
+        ? AffinitySystem.classify(mainAff) : 'neutral';
       pushEntry(hit.enemyId, Math.floor(finalDamage * mainAff), dmgOpts);
 
       statusEffects.push(...result.statusEffects);
@@ -187,7 +189,15 @@ const AbilitySystem = {
       }
 
       if (hit.tier !== 4) {
-        visualEffects.push({ id: Date.now() + Math.random(), x: hit.x, y: hit.y, type: 'hit', color: hit.color });
+        // affinity 분류를 hit 이펙트에 실어 렌더링이 크기·밝기로 차이 표현
+        // (텍스트 라벨 없음 — 유저가 미묘한 변화로 발견)
+        visualEffects.push({
+          id: Date.now() + Math.random(),
+          x: hit.x, y: hit.y,
+          type: 'hit',
+          color: hit.color,
+          affinity: mainAffClass,
+        });
       }
     });
 
