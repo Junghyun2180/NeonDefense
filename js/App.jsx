@@ -862,6 +862,13 @@ const NeonDefense = () => {
             canCombineSupportTowers={inventoryState.canCombineSupportTowers}
           />
 
+          {/* 10연뽑 결과 오버레이 (자동조합 ON에도 원본 표시) */}
+          <DrawResultOverlay
+            result={inventoryState.lastDrawResult}
+            getElementInfo={getElementInfo}
+            onDismiss={inventoryState.clearLastDrawResult}
+          />
+
           {/* 모바일 배치 UI */}
           <PlacementUI
             placementMode={dragState.placementMode}
