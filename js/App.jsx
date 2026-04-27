@@ -940,6 +940,7 @@ const NeonDefense = () => {
               inventory: inventoryState.inventory,
               supportInventory: inventoryState.supportInventory,
             }}
+            nextStage={gameState.stage + 1}
           />
 
           {/* 영구 버프 선택 모달 */}

@@ -51,27 +51,38 @@ const WAVE_THEMES = {
 
 // 스테이지별 테마 활성 윈도우. 각 슬롯은 [startWave..endWave] 범위에 themeId 적용.
 // W5(미니보스), W10(스테이지보스) 같은 이벤트 웨이브는 피해서 배치.
+// intensity:
+//   'weak' — Stage 2 학습 단계. boost 효과의 60%만 적용 + 비-부스트 ×0.6 (완만)
+//   'full' — Stage 3 풀강도. boost 직접 override + 비-부스트 ×0.4 (체감 큼)
 const STAGE_WAVE_THEMES = {
   1: [], // 학습 단계 — 테마 OFF
   2: [
-    { startWave: 3, endWave: 4, themeId: 'fast_swarm' },
-    { startWave: 7, endWave: 9, themeId: 'elite_assault' },
+    { startWave: 3, endWave: 4, themeId: 'fast_swarm',    intensity: 'weak' },
+    { startWave: 7, endWave: 9, themeId: 'elite_assault', intensity: 'weak' },
   ],
   3: [
-    { startWave: 2, endWave: 4, themeId: 'fast_swarm' },
-    { startWave: 6, endWave: 7, themeId: 'disruption' },
-    { startWave: 8, endWave: 9, themeId: 'armored' },
+    { startWave: 2, endWave: 4, themeId: 'fast_swarm', intensity: 'full' },
+    { startWave: 6, endWave: 7, themeId: 'disruption', intensity: 'full' },
+    { startWave: 8, endWave: 9, themeId: 'armored',    intensity: 'full' },
   ],
 };
 
+// 강도 프로파일
+const THEME_INTENSITY = {
+  weak: { boostFactor: 0.6, nonBoostMultiplier: 0.6 }, // base→boost 사이 60% 보간
+  full: { boostFactor: 1.0, nonBoostMultiplier: 0.4 }, // boost 직접 override
+};
+
 const WaveThemeSystem = {
-  // 현재 (stage, wave) 에 활성 테마. 없으면 null.
+  // 현재 (stage, wave) 에 활성 테마. 없으면 null. 테마 데이터에 intensity 머지.
   getTheme(stage, wave) {
     const slots = STAGE_WAVE_THEMES[stage];
     if (!slots || slots.length === 0) return null;
     for (const slot of slots) {
       if (wave >= slot.startWave && wave <= slot.endWave) {
-        return WAVE_THEMES[slot.themeId] || null;
+        const base = WAVE_THEMES[slot.themeId];
+        if (!base) return null;
+        return Object.assign({}, base, { intensity: slot.intensity || 'full' });
       }
     }
     return null;
@@ -82,9 +93,18 @@ const WaveThemeSystem = {
     const slots = STAGE_WAVE_THEMES[stage];
     if (!slots || slots.length === 0) return null;
     for (const slot of slots) {
-      if (slot.startWave === wave) return WAVE_THEMES[slot.themeId] || null;
+      if (slot.startWave === wave) {
+        const base = WAVE_THEMES[slot.themeId];
+        if (!base) return null;
+        return Object.assign({}, base, { intensity: slot.intensity || 'full' });
+      }
     }
     return null;
+  },
+
+  // 강도 프로파일 조회
+  getIntensityProfile(intensity) {
+    return THEME_INTENSITY[intensity] || THEME_INTENSITY.full;
   },
 
   // 테마 + 스테이지 풀을 결합해 "적용 가능한 boost" 만 추출
@@ -97,8 +117,31 @@ const WaveThemeSystem = {
     }
     return Object.keys(result).length > 0 ? result : null;
   },
+
+  // 다음 스테이지의 테마 윈도우 요약 (캐리오버 모달 힌트용)
+  // 반환: [{ themeId, name, icon, color, range: 'W3-4' }, ...]
+  getStageThemeSummary(stage) {
+    const slots = STAGE_WAVE_THEMES[stage];
+    if (!slots || slots.length === 0) return [];
+    return slots.map(slot => {
+      const base = WAVE_THEMES[slot.themeId];
+      if (!base) return null;
+      return {
+        themeId: slot.themeId,
+        name: base.name,
+        icon: base.icon,
+        color: base.color,
+        hint: base.hint,
+        range: slot.startWave === slot.endWave
+          ? ('W' + slot.startWave)
+          : ('W' + slot.startWave + '-' + slot.endWave),
+        intensity: slot.intensity || 'full',
+      };
+    }).filter(Boolean);
+  },
 };
 
 window.WAVE_THEMES = WAVE_THEMES;
 window.STAGE_WAVE_THEMES = STAGE_WAVE_THEMES;
+window.THEME_INTENSITY = THEME_INTENSITY;
 window.WaveThemeSystem = WaveThemeSystem;

@@ -23,11 +23,15 @@ const EnemySystem = {
       const pool = STAGE_ENEMY_POOL[stage] || ALL_ENEMY_TYPES;
 
       // ── 웨이브 테마 적용 ── (코어 정체성: 스테이지별 메타 변화)
-      // 테마가 활성이면 boost 타입은 chance 직접 override, 비-boost 타입은 ×nonBoostMultiplier
+      // intensity별 인터폴레이션:
+      //   weak — base + (boost - base) × 0.6, 비-부스트 ×0.6 (Stage 2 학습)
+      //   full — chance = boost (직접 override), 비-부스트 ×0.4 (Stage 3 풀강도)
       const theme = (typeof WaveThemeSystem !== 'undefined')
         ? WaveThemeSystem.getTheme(stage, wave) : null;
       const resolvedBoost = theme && typeof WaveThemeSystem !== 'undefined'
         ? WaveThemeSystem.resolveBoost(theme, pool) : null;
+      const intensity = theme && typeof WaveThemeSystem !== 'undefined'
+        ? WaveThemeSystem.getIntensityProfile(theme.intensity) : null;
 
       let specialTypes = pool.filter(t => t !== 'normal');
       // 부스트 타입을 먼저 검사하여 보정이 실제 의미 있게 발화되도록 정렬
@@ -43,11 +47,13 @@ const EnemySystem = {
         const config = SPECIAL_ENEMY_CHANCE[type];
         if (!config) continue;
         let chance = config.base + (config.perWave || 0) * (wave - 1);
-        if (resolvedBoost) {
+        if (resolvedBoost && intensity) {
           if (resolvedBoost[type] !== undefined) {
-            chance = resolvedBoost[type]; // 테마 직접 override
+            const boostChance = resolvedBoost[type];
+            // weak: base→boost 사이 60% 보간 / full: boost 직접 적용
+            chance = chance + (boostChance - chance) * intensity.boostFactor;
           } else {
-            chance *= (theme.nonBoostMultiplier ?? 0.4); // 비-부스트 타입 약화
+            chance *= intensity.nonBoostMultiplier;
           }
         }
         if (Math.random() < chance) return type;

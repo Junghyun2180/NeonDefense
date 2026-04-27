@@ -8,10 +8,17 @@ const CarryoverModal = ({
   onConfirm,        // () => void
   allTowers,        // 맵 + 인벤토리 전체 타워 (환급 계산용)
   allSupports,      // 맵 + 인벤토리 전체 서포트 (환급 계산용)
+  nextStage,        // 다음 스테이지 번호 (테마 힌트용)
 }) => {
   if (!isOpen) return null;
 
   const { useMemo } = React;
+
+  // 다음 스테이지 테마 요약 — 어떤 적이 등장하는지 미리 알려서 캐리오버 선택을 전략적으로
+  const themeSummary = useMemo(() => {
+    if (typeof WaveThemeSystem === 'undefined' || !nextStage) return [];
+    return WaveThemeSystem.getStageThemeSummary(nextStage);
+  }, [nextStage]);
 
   const selectedTowerCount = selectedIds.towers.length;
   const selectedSupportCount = selectedIds.supports.length;
@@ -53,13 +60,41 @@ const CarryoverModal = ({
         style={{ boxShadow: '0 0 50px rgba(168, 85, 247, 0.3)' }}>
 
         {/* 헤더 */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4">
           <h2 className="text-2xl font-bold text-purple-400 mb-2"
             style={{ textShadow: '0 0 10px #a855f7' }}>
             📦 타워 캐리오버
           </h2>
-          <p className="text-gray-400">다음 스테이지로 가져갈 타워를 선택하세요</p>
+          <p className="text-gray-400 text-sm">다음 스테이지로 가져갈 타워를 선택하세요 (최대 {CARRYOVER.maxTowers}개)</p>
         </div>
+
+        {/* 다음 스테이지 메타 힌트 (적 테마 윈도우) */}
+        {themeSummary.length > 0 && (
+          <div className="mb-5 p-3 rounded-lg border border-gray-700 bg-gray-950/60">
+            <p className="text-xs text-gray-400 mb-2 text-center">
+              ⚠️ Stage {nextStage} 메타 변화 — 미리 보고 빌드를 결정하세요
+            </p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {themeSummary.map(theme => (
+                <div key={theme.themeId + theme.range}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded border text-xs"
+                  style={{
+                    background: theme.color + '18',
+                    borderColor: theme.color + '80',
+                    color: theme.color,
+                  }}
+                  title={theme.hint}>
+                  <span className="font-bold opacity-70">{theme.range}</span>
+                  <span>{theme.icon}</span>
+                  <span className="font-bold">{theme.name}</span>
+                  {theme.intensity === 'weak' && (
+                    <span className="text-[9px] opacity-60 ml-0.5">약</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 공격 타워 섹션 */}
         <div className="mb-6">
