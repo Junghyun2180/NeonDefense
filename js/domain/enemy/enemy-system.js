@@ -22,12 +22,34 @@ const EnemySystem = {
     if (modeId === 'campaign' || !modeId) {
       const pool = STAGE_ENEMY_POOL[stage] || ALL_ENEMY_TYPES;
 
-      // 풀에서 special 타입 확률 순회 (normal, fast 제외한 특수 타입 먼저)
-      const specialTypes = pool.filter(t => t !== 'normal');
+      // ── 웨이브 테마 적용 ── (코어 정체성: 스테이지별 메타 변화)
+      // 테마가 활성이면 boost 타입은 chance 직접 override, 비-boost 타입은 ×nonBoostMultiplier
+      const theme = (typeof WaveThemeSystem !== 'undefined')
+        ? WaveThemeSystem.getTheme(stage, wave) : null;
+      const resolvedBoost = theme && typeof WaveThemeSystem !== 'undefined'
+        ? WaveThemeSystem.resolveBoost(theme, pool) : null;
+
+      let specialTypes = pool.filter(t => t !== 'normal');
+      // 부스트 타입을 먼저 검사하여 보정이 실제 의미 있게 발화되도록 정렬
+      if (resolvedBoost) {
+        specialTypes = [...specialTypes].sort((a, b) => {
+          const aBoost = resolvedBoost[a] !== undefined ? 1 : 0;
+          const bBoost = resolvedBoost[b] !== undefined ? 1 : 0;
+          return bBoost - aBoost;
+        });
+      }
+
       for (const type of specialTypes) {
         const config = SPECIAL_ENEMY_CHANCE[type];
         if (!config) continue;
-        const chance = config.base + (config.perWave || 0) * (wave - 1);
+        let chance = config.base + (config.perWave || 0) * (wave - 1);
+        if (resolvedBoost) {
+          if (resolvedBoost[type] !== undefined) {
+            chance = resolvedBoost[type]; // 테마 직접 override
+          } else {
+            chance *= (theme.nonBoostMultiplier ?? 0.4); // 비-부스트 타입 약화
+          }
+        }
         if (Math.random() < chance) return type;
       }
       return 'normal'; // fallback

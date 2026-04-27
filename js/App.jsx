@@ -869,6 +869,13 @@ const NeonDefense = () => {
             onDismiss={inventoryState.clearLastDrawResult}
           />
 
+          {/* 웨이브 테마 진입 배너 (캠페인 코어 정체성: 스테이지별 메타 변화) */}
+          <WaveThemeBanner
+            stage={gameState.stage}
+            wave={gameState.wave}
+            isRunMode={!!runModeState.runMode}
+          />
+
           {/* 모바일 배치 UI */}
           <PlacementUI
             placementMode={dragState.placementMode}
