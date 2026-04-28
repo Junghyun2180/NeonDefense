@@ -68,17 +68,8 @@ body {
 }
 /* v2 타일은 픽셀 정렬되어 있어 봉합 트릭 불필요 (background-size: cover 그대로 사용) */
 .tile-grass        { background-image: url('../assets/tiles/path/grass.png'); }
-.tile-path.str-h   { background-image: url('../assets/tiles/path/str-h.png'); }
-.tile-path.str-v   { background-image: url('../assets/tiles/path/str-v.png'); }
-.tile-path.cross   { background-image: url('../assets/tiles/path/cross.png'); }
-.tile-path.cor-ne  { background-image: url('../assets/tiles/path/cor-ne.png'); }
-.tile-path.cor-nw  { background-image: url('../assets/tiles/path/cor-nw.png'); }
-.tile-path.cor-se  { background-image: url('../assets/tiles/path/cor-se.png'); }
-.tile-path.cor-sw  { background-image: url('../assets/tiles/path/cor-sw.png'); }
-.tile-path.t-n     { background-image: url('../assets/tiles/path/t-n.png'); }
-.tile-path.t-s     { background-image: url('../assets/tiles/path/t-s.png'); }
-.tile-path.t-e     { background-image: url('../assets/tiles/path/t-e.png'); }
-.tile-path.t-w     { background-image: url('../assets/tiles/path/t-w.png'); }
+/* v4: 모든 path 타일은 동일한 omnidirectional conduit. 방향은 화살표 overlay로 표시. */
+.tile-path         { background-image: url('../assets/tiles/path/conduit.png'); }
 .tile-start        { background-image: url('../assets/tiles/points/start.png'); }
 .tile-end          { background-image: url('../assets/tiles/points/end.png'); }
 

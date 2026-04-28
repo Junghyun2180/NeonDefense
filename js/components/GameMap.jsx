@@ -191,10 +191,10 @@ const GameMap = ({
                                 if (isDropPreview) extraClass = dropPreview.valid ? 'drop-preview-valid' : 'drop-preview-invalid';
                                 if (isSelectedTile) extraClass = 'ring-2 ring-white ring-opacity-80';
 
-                                // 모듈러 타일 선택: 경로 인접성 기반 마스크 → 타일 종류
+                                // v4: 모든 path 타일은 단일 omnidirectional conduit 사용 (방향은 화살표 overlay로 표시)
                                 // 구 클래스명(path-tile / grass-tile)도 함께 부여 — 레거시 E2E/선택자 호환
                                 const tileClass = isPath
-                                    ? 'tile-path path-tile ' + getPathTileName(getPathTileMask(x, y, pathAdjacency))
+                                    ? 'tile-path path-tile'
                                     : 'tile-grass grass-tile';
                                 // 경로별 색상 틴트는 제거 — 타일 이미지 자체의 네온 색상 유지 (셀 박스 사라지게)
                                 const pathStyle = {};

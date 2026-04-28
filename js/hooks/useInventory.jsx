@@ -87,29 +87,26 @@ const useInventory = (gameState, settings = {}) => {
                 return prev.filter(t => t.id !== tower.id);
             }
 
-            // 새로 선택하는 경우
-            if (prev.length >= 3) return prev; // 최대 3개
+            // 다른 속성/티어 타워 클릭 → 기존 선택 비우고 새 타워에 포커스 이동
+            const isDifferentType = prev.length > 0 &&
+                (prev[0].tier !== tower.tier || prev[0].colorIndex !== tower.colorIndex);
+            const baseSelected = isDifferentType ? [tower] : [...prev, tower];
 
-            // 같은 티어, 같은 속성만 선택 가능
-            if (prev.length > 0 && (prev[0].tier !== tower.tier || prev[0].colorIndex !== tower.colorIndex)) {
-                return prev;
-            }
+            // 최대 3개 초과 방지 (같은 타입이면서 이미 3개 선택된 상태)
+            if (!isDifferentType && prev.length >= 3) return prev;
 
-            const newSelected = [...prev, tower];
-            const needCount = 3 - newSelected.length; // 조합에 필요한 타워 수
-
+            const needCount = 3 - baseSelected.length;
             if (needCount > 0) {
-                // 인벤토리에서 같은 티어/속성 타워 자동 선택
+                // 인벤토리에서 같은 티어/속성 타워 자동 선택 (조합 가능 시 자동 채움)
                 const matchingInventory = inventory.filter(
                     n => n.tier === tower.tier && n.colorIndex === tower.colorIndex
                 );
-
-                // 필요한 만큼만 선택
-                const toSelect = matchingInventory.slice(0, needCount);
-                setSelectedInventory(toSelect);
+                setSelectedInventory(matchingInventory.slice(0, needCount));
+            } else {
+                setSelectedInventory([]);
             }
 
-            return newSelected;
+            return baseSelected;
         });
     }, [inventory]);
 
@@ -133,29 +130,26 @@ const useInventory = (gameState, settings = {}) => {
                 return prev.filter(t => t.id !== support.id);
             }
 
-            // 새로 선택하는 경우
-            if (prev.length >= 3) return prev; // 최대 3개
+            // 다른 타입/티어 서포트 클릭 → 기존 선택 비우고 새 서포트에 포커스 이동
+            const isDifferentType = prev.length > 0 &&
+                (prev[0].tier !== support.tier || prev[0].supportType !== support.supportType);
+            const baseSelected = isDifferentType ? [support] : [...prev, support];
 
-            // 같은 티어, 같은 타입만 선택 가능
-            if (prev.length > 0 && (prev[0].tier !== support.tier || prev[0].supportType !== support.supportType)) {
-                return prev;
-            }
+            // 최대 3개 초과 방지 (같은 타입이면서 이미 3개 선택된 상태)
+            if (!isDifferentType && prev.length >= 3) return prev;
 
-            const newSelected = [...prev, support];
-            const needCount = 3 - newSelected.length; // 조합에 필요한 타워 수
-
+            const needCount = 3 - baseSelected.length;
             if (needCount > 0) {
-                // 인벤토리에서 같은 티어/타입 서포트 타워 자동 선택
+                // 인벤토리에서 같은 티어/타입 서포트 타워 자동 선택 (조합 가능 시 자동 채움)
                 const matchingInventory = supportInventory.filter(
                     s => s.tier === support.tier && s.supportType === support.supportType
                 );
-
-                // 필요한 만큼만 선택
-                const toSelect = matchingInventory.slice(0, needCount);
-                setSelectedSupportInventory(toSelect);
+                setSelectedSupportInventory(matchingInventory.slice(0, needCount));
+            } else {
+                setSelectedSupportInventory([]);
             }
 
-            return newSelected;
+            return baseSelected;
         });
     }, [supportInventory]);
 

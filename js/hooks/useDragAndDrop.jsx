@@ -94,9 +94,12 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
     }, [placementMode, inventory, setTowers, setInventory, updateStats]);
 
     // ===== 인벤토리 클릭 핸들러 (배치 모드 활성화) =====
+    // 같은 타워 다시 클릭 → 선택 해제 (토글).
+    // 다른 타워 클릭 → 기존 선택 교체하여 새 타워에 포커스.
     const handleInventoryClick = useCallback((neon) => {
-        setSelectedTowerForPlacement(neon);
+        setSelectedTowerForPlacement(prev => (prev && prev.id === neon.id ? null : neon));
         clearAllSelections();
+        setDropPreview(null);
     }, [clearAllSelections]);
 
     // 클릭 배치 모드 마우스 이동 핸들러
