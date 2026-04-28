@@ -55,6 +55,22 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
                             {wave}/{activeSPAWN.wavesPerStage}
                         </span>
                     </div>
+                    {/* 웨이브 테마 태그 (캠페인 한정, 활성 테마가 있을 때만 표시) */}
+                    {!isRunMode && (() => {
+                        const theme = (typeof WaveThemeSystem !== 'undefined')
+                            ? WaveThemeSystem.getTheme(stage, wave) : null;
+                        if (!theme) return null;
+                        return (
+                            <div
+                                className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border flex items-center gap-1 whitespace-nowrap"
+                                style={{ background: theme.color + '20', borderColor: theme.color + '99', boxShadow: '0 0 8px ' + theme.color + '60' }}
+                                title={theme.name + ' — ' + theme.hint}
+                            >
+                                <span style={{ color: theme.color }}>{theme.icon}</span>
+                                <span className="font-bold text-xs" style={{ color: theme.color }}>{theme.name}</span>
+                            </div>
+                        );
+                    })()}
                     <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-yellow-500/50 flex items-center gap-1">
                         <span className="text-yellow-400">💰</span>
                         <span className="font-bold text-yellow-300 whitespace-nowrap">{gold}</span>

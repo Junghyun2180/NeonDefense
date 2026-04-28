@@ -206,21 +206,75 @@ const InventoryPanel = ({
     setMaxGameSpeed,
 }) => {
     const [activeTab, setActiveTab] = React.useState('tower');
+    // 필터 (탭별 분리, 세션 유지). null = 전체
+    const [towerFilter, setTowerFilter] = React.useState(null);     // 0~5 (element index)
+    const [supportFilter, setSupportFilter] = React.useState(null); // 0~3 (supportType)
+    // 정렬 모드: 'tier'(티어 우선, 기본) | 'group'(속성 묶음) | 'combinable'(3+ 모인 그룹 우선)
+    const [sortMode, setSortMode] = React.useState('tier');
 
-    // --- 표시용 정렬 (상위 티어 우선, 같은 티어는 속성/타입 순) ---
-    const sortedInventory = React.useMemo(() => {
-        return [...(inventory || [])].sort((a, b) => {
-            if (b.tier !== a.tier) return b.tier - a.tier;
-            return (a.colorIndex ?? a.element ?? 0) - (b.colorIndex ?? b.element ?? 0);
+    const activeFilter = activeTab === 'tower' ? towerFilter : supportFilter;
+    const setActiveFilter = activeTab === 'tower' ? setTowerFilter : setSupportFilter;
+
+    // 그룹별 카운트 헬퍼 (combinable 정렬용)
+    const towerGroupCounts = React.useMemo(() => {
+        const map = {};
+        (inventory || []).forEach(n => {
+            const key = n.tier + ':' + (n.colorIndex ?? n.element ?? 0);
+            map[key] = (map[key] || 0) + 1;
         });
+        return map;
     }, [inventory]);
 
-    const sortedSupportInventory = React.useMemo(() => {
-        return [...(supportInventory || [])].sort((a, b) => {
-            if (b.tier !== a.tier) return b.tier - a.tier;
-            return (a.supportType ?? 0) - (b.supportType ?? 0);
+    const supportGroupCounts = React.useMemo(() => {
+        const map = {};
+        (supportInventory || []).forEach(s => {
+            const key = s.tier + ':s' + (s.supportType ?? 0);
+            map[key] = (map[key] || 0) + 1;
         });
+        return map;
     }, [supportInventory]);
+
+    // --- 표시용 정렬 (필터 + 정렬 모드 적용) ---
+    const sortedInventory = React.useMemo(() => {
+        let list = [...(inventory || [])];
+        if (towerFilter !== null) list = list.filter(n => (n.colorIndex ?? n.element) === towerFilter);
+        return list.sort((a, b) => {
+            const ea = a.colorIndex ?? a.element ?? 0;
+            const eb = b.colorIndex ?? b.element ?? 0;
+            if (sortMode === 'group') {
+                if (ea !== eb) return ea - eb;
+                return b.tier - a.tier;
+            }
+            if (sortMode === 'combinable') {
+                const ka = a.tier + ':' + ea, kb = b.tier + ':' + eb;
+                const aReady = (towerGroupCounts[ka] || 0) >= 3 ? 1 : 0;
+                const bReady = (towerGroupCounts[kb] || 0) >= 3 ? 1 : 0;
+                if (aReady !== bReady) return bReady - aReady;
+            }
+            if (b.tier !== a.tier) return b.tier - a.tier;
+            return ea - eb;
+        });
+    }, [inventory, towerFilter, sortMode, towerGroupCounts]);
+
+    const sortedSupportInventory = React.useMemo(() => {
+        let list = [...(supportInventory || [])];
+        if (supportFilter !== null) list = list.filter(s => s.supportType === supportFilter);
+        return list.sort((a, b) => {
+            const ta = a.supportType ?? 0, tb = b.supportType ?? 0;
+            if (sortMode === 'group') {
+                if (ta !== tb) return ta - tb;
+                return b.tier - a.tier;
+            }
+            if (sortMode === 'combinable') {
+                const ka = a.tier + ':s' + ta, kb = b.tier + ':s' + tb;
+                const aReady = (supportGroupCounts[ka] || 0) >= 3 ? 1 : 0;
+                const bReady = (supportGroupCounts[kb] || 0) >= 3 ? 1 : 0;
+                if (aReady !== bReady) return bReady - aReady;
+            }
+            if (b.tier !== a.tier) return b.tier - a.tier;
+            return ta - tb;
+        });
+    }, [supportInventory, supportFilter, sortMode, supportGroupCounts]);
 
     // --- 통합 뽑기 ---
     const drawHandler = activeTab === 'tower' ? drawRandomNeon : drawRandomSupport;
@@ -350,12 +404,61 @@ const InventoryPanel = ({
                     </button>
                 </div>
 
+                {/* 필터 칩 + 정렬 토글 */}
+                <div className="flex items-center gap-1.5 px-2 pt-1.5 pb-1 border-b border-gray-800/60 flex-wrap">
+                    <button type="button"
+                        onClick={() => setActiveFilter(null)}
+                        className={'text-[10px] px-1.5 py-0.5 rounded border ' + (activeFilter === null ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900/60 border-gray-700 text-gray-400 hover:text-gray-200')}
+                        title="전체 보기">전체</button>
+                    {activeTab === 'tower' ? (
+                        [0, 1, 2, 3, 4, 5].map(elIdx => {
+                            const info = getElementInfo(elIdx);
+                            const active = towerFilter === elIdx;
+                            return (
+                                <button key={'fc-' + elIdx} type="button"
+                                    onClick={() => setTowerFilter(active ? null : elIdx)}
+                                    className={'text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-0.5 ' + (active ? 'border-white text-white' : 'border-gray-700 text-gray-300 hover:border-gray-500')}
+                                    style={active ? { boxShadow: '0 0 6px ' + info.color, background: info.color + '30' } : null}
+                                    title={info.name + ' 필터'}>
+                                    <span>{info.icon}</span>
+                                </button>
+                            );
+                        })
+                    ) : (
+                        [0, 1, 2, 3].map(stIdx => {
+                            const info = SUPPORT_UI[stIdx];
+                            const active = supportFilter === stIdx;
+                            return (
+                                <button key={'fs-' + stIdx} type="button"
+                                    onClick={() => setSupportFilter(active ? null : stIdx)}
+                                    className={'text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-0.5 ' + (active ? 'border-white text-white' : 'border-gray-700 text-gray-300 hover:border-gray-500')}
+                                    style={active ? { boxShadow: '0 0 6px ' + info.color, background: info.color + '30' } : null}
+                                    title={info.name + ' 필터'}>
+                                    <span>{info.icon}</span>
+                                </button>
+                            );
+                        })
+                    )}
+                    <div className="ml-auto flex items-center gap-1">
+                        <span className="text-[10px] text-gray-500">정렬</span>
+                        <button type="button"
+                            onClick={() => {
+                                const next = sortMode === 'tier' ? 'group' : sortMode === 'group' ? 'combinable' : 'tier';
+                                setSortMode(next);
+                            }}
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-gray-700 bg-gray-900/60 text-gray-300 hover:text-white hover:border-gray-500"
+                            title="정렬 모드 전환">
+                            {sortMode === 'tier' ? '티어 ↓' : sortMode === 'group' ? '속성 묶음' : '조합 가능'}
+                        </button>
+                    </div>
+                </div>
+
                 {/* 인벤토리 그리드 — 슬롯 최소폭을 TILE_SIZE로 잡아 맵 위 타워와 사이즈 매치.
-                    컨테이너 폭에 따라 컬럼 수 자동 조정 (auto-fill). */}
+                    컨테이너 폭에 따라 컬럼 수 자동 조정 (auto-fill). 필터 적용 시 빈 셀 생략. */}
                 <div className="p-2">
                     {activeTab === 'tower' ? (
                         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`, gap: '2px' }}>
-                            {Array.from({ length: ECONOMY.maxInventory }, (_, i) => {
+                            {Array.from({ length: towerFilter === null ? ECONOMY.maxInventory : sortedInventory.length }, (_, i) => {
                                 const neon = sortedInventory[i];
                                 if (neon) {
                                     const isSelected = selectedInventory.some(n => n.id === neon.id);
@@ -386,7 +489,7 @@ const InventoryPanel = ({
                         </div>
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`, gap: '2px' }}>
-                            {Array.from({ length: ECONOMY.maxSupportInventory }, (_, i) => {
+                            {Array.from({ length: supportFilter === null ? ECONOMY.maxSupportInventory : sortedSupportInventory.length }, (_, i) => {
                                 const support = sortedSupportInventory[i];
                                 if (support) {
                                     const isSelected = selectedSupportInventory.some(s => s.id === support.id);

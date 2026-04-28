@@ -60,24 +60,7 @@ const getTileDirection = (tiles, index) => {
   return (tiles[index + 1].x !== tiles[index].x) ? 'H' : 'V';
 };
 
-// 경로 겹침 점수 계산 (병렬 겹침만 페널티, 직교 교차는 허용)
-const calcPathOverlap = (newPath, occupiedMap) => {
-  let score = 0;
-  for (let i = 0; i < newPath.length - 1; i++) {
-    const key = `${newPath[i].x},${newPath[i].y}`;
-    const existingDirs = occupiedMap.get(key);
-    if (existingDirs) {
-      const newDir = getTileDirection(newPath, i);
-      if (existingDirs.has(newDir)) {
-        score += 2; // 같은 방향 겹침 (병렬) = 높은 페널티
-      }
-      // 직교 교차(십자 크로스)는 페널티 없음
-    }
-  }
-  return score;
-};
-
-// 점유 맵에 경로 타일 등록
+// 점유 맵에 경로 타일 등록 (셀 → 이동 방향 Set)
 const registerPathTiles = (pathTiles, occupiedMap) => {
   for (let i = 0; i < pathTiles.length - 1; i++) {
     const key = `${pathTiles[i].x},${pathTiles[i].y}`;
@@ -142,63 +125,132 @@ const generateSquarePath = (seed, stage) => {
   };
 };
 
-// 단일 경로 생성 (시작점에서 도착점까지)
-const generateSinglePath = (seed, startY, endY, startX = 0, endX = GRID_WIDTH - 1, numTurns = 4) => {
-  const seededRandom = (s) => { const x = Math.sin(s) * 10000; return x - Math.floor(x); };
-  let randomIndex = 0;
-  const random = () => seededRandom(seed + randomIndex++);
+// ===== A* 기반 경로 탐색 =====
+//
+// 시작→도착 사이를 격자에서 A*로 탐색. 비용 함수에 시드 노이즈/직진 페널티/회전
+// 보너스/가장자리 페널티/점유 셀 페널티를 합쳐 "다양하면서도 길이/도달성이 보장"
+// 되는 경로를 만든다. 휴리스틱은 맨해튼 거리(admissible).
+//
+// 상태 공간: (x, y, lastDirIdx, straightRun) — 회전 보너스/직진 페널티를 정확히
+// 반영하려면 직전 이동 방향과 직진 누적 길이가 상태에 포함되어야 함.
 
-  const path = [];
-  let currentX = startX;
-  let currentY = startY;
-  path.push({ x: currentX, y: currentY });
-
-  const segmentWidth = Math.floor((endX - startX) / (numTurns + 1));
-
-  for (let i = 0; i < numTurns; i++) {
-    const targetX = Math.min(endX - 1, startX + (i + 1) * segmentWidth + Math.floor(random() * 2));
-
-    let targetY;
-    if (i === numTurns - 1) {
-      targetY = endY;
-    } else {
-      const variance = 3;
-      const midY = (startY + endY) / 2;
-      if (i % 2 === 0) {
-        targetY = Math.max(1, Math.floor(midY - variance - random() * variance));
-      } else {
-        targetY = Math.min(GRID_HEIGHT - 2, Math.floor(midY + variance + random() * variance));
-      }
-    }
-    targetY = Math.max(1, Math.min(GRID_HEIGHT - 2, targetY));
-
-    // 수평 이동
-    while (currentX < targetX) {
-      currentX++;
-      path.push({ x: currentX, y: currentY });
-    }
-
-    // 수직 이동
-    while (currentY !== targetY) {
-      currentY += currentY < targetY ? 1 : -1;
-      path.push({ x: currentX, y: currentY });
-    }
-  }
-
-  // 끝점까지 이동
-  while (currentX < endX) {
-    currentX++;
-    path.push({ x: currentX, y: currentY });
-  }
-  while (currentY !== endY) {
-    currentY += currentY < endY ? 1 : -1;
-    path.push({ x: currentX, y: currentY });
-  }
-
-  return path;
+// 셀별 결정론 노이즈 [0, 1)
+const hashCell = (seed, x, y) => {
+  let h = ((seed | 0) ^ (x * 73856093) ^ (y * 19349663)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 
-// 다중 경로 생성 (겹침 최소화: 직교 교차만 허용)
+// 4방향: 0=Up, 1=Down, 2=Left, 3=Right
+const ASTAR_DIRS = [
+  { dx: 0, dy: -1, axis: 'V' },
+  { dx: 0, dy:  1, axis: 'V' },
+  { dx: -1, dy: 0, axis: 'H' },
+  { dx:  1, dy: 0, axis: 'H' },
+];
+const ASTAR_OPPOSITE = [1, 0, 3, 2];
+
+const generatePathAStar = (seed, startX, startY, endX, endY, occupiedMap, options = {}) => {
+  const {
+    noiseWeight = 0.6,
+    straightThreshold = 3,
+    straightPenalty = 0.4,
+    turnBonus = 0.3,
+    edgePenalty = 1.5,
+    parallelPenalty = Infinity,
+    crossPenalty = 2.0,
+  } = options;
+
+  const heuristic = (x, y) => Math.abs(endX - x) + Math.abs(endY - y);
+  const stateKey = (x, y, dir, run) => (((y * GRID_WIDTH + x) * 5 + (dir + 1)) * 8) + Math.min(run, 7);
+
+  const gScore = new Map();
+  const came = new Map(); // stateKey → { parentKey, parentX, parentY } (부모 좌표)
+  const visitedCells = new Set(); // (x,y) 단위 방문 셀 — 같은 셀 재방문 차단(루프 방지)
+  // 단순 배열 우선순위 큐 (노드 수 적음: 16*12*5*8 = 7680 상한)
+  const open = [];
+
+  const startKey = stateKey(startX, startY, -1, 0);
+  gScore.set(startKey, 0);
+  open.push({ key: startKey, x: startX, y: startY, dir: -1, run: 0, g: 0, f: heuristic(startX, startY) });
+
+  while (open.length > 0) {
+    // 가장 작은 f 추출 (선형 탐색)
+    let bestIdx = 0;
+    for (let i = 1; i < open.length; i++) {
+      if (open[i].f < open[bestIdx].f) bestIdx = i;
+    }
+    const cur = open.splice(bestIdx, 1)[0];
+    const cellKey = cur.y * GRID_WIDTH + cur.x;
+    if (visitedCells.has(cellKey)) continue; // 이미 더 좋은 경로로 도달한 셀
+    visitedCells.add(cellKey);
+
+    if (cur.x === endX && cur.y === endY) {
+      // 경로 복원: came 값은 "부모의 좌표"이므로 시작점까지 정확히 unshift됨
+      const path = [{ x: cur.x, y: cur.y }];
+      let key = cur.key;
+      while (came.has(key)) {
+        const node = came.get(key);
+        path.unshift({ x: node.parentX, y: node.parentY });
+        key = node.parentKey;
+      }
+      return path;
+    }
+
+    for (let d = 0; d < 4; d++) {
+      // 즉시 백트래킹 차단 (직전 방향의 반대로는 가지 않음)
+      if (cur.dir !== -1 && d === ASTAR_OPPOSITE[cur.dir]) continue;
+
+      const dir = ASTAR_DIRS[d];
+      const nx = cur.x + dir.dx;
+      const ny = cur.y + dir.dy;
+      if (nx < 0 || nx >= GRID_WIDTH || ny < 0 || ny >= GRID_HEIGHT) continue;
+
+      let cost = 1;
+      cost += hashCell(seed, nx, ny) * noiseWeight;
+      if (ny === 0 || ny === GRID_HEIGHT - 1) cost += edgePenalty;
+
+      // 점유 셀: 같은 축이면 병렬(차단), 다른 축이면 교차(허용/페널티)
+      if (occupiedMap) {
+        const occDirs = occupiedMap.get(`${nx},${ny}`);
+        if (occDirs) {
+          if (occDirs.has(dir.axis)) {
+            if (!isFinite(parallelPenalty)) continue; // ∞면 아예 후보 제외
+            cost += parallelPenalty;
+          } else {
+            cost += crossPenalty;
+          }
+        }
+      }
+
+      // 회전/직진
+      const isTurn = cur.dir !== -1 && ASTAR_DIRS[cur.dir].axis !== dir.axis;
+      const newRun = (cur.dir === -1 || isTurn) ? 1 : cur.run + 1;
+      if (isTurn) cost = Math.max(0.05, cost - turnBonus);
+      if (newRun > straightThreshold) cost += straightPenalty;
+
+      const tentativeG = cur.g + cost;
+      const nextKey = stateKey(nx, ny, d, newRun);
+      const oldG = gScore.get(nextKey);
+      if (oldG !== undefined && oldG <= tentativeG) continue;
+      // 이미 (x,y)를 방문했다면 재진입 차단 (루프 방지)
+      if (visitedCells.has(ny * GRID_WIDTH + nx)) continue;
+
+      gScore.set(nextKey, tentativeG);
+      came.set(nextKey, { parentKey: cur.key, parentX: cur.x, parentY: cur.y });
+      open.push({
+        key: nextKey,
+        x: nx, y: ny, dir: d, run: newRun,
+        g: tentativeG,
+        f: tentativeG + heuristic(nx, ny),
+      });
+    }
+  }
+
+  return null; // 모든 후보가 차단된 경우
+};
+
+// 다중 경로 생성: A*로 한 경로씩 탐색하고 점유 등록 → 다음 경로는 자연 회피
 const generateMultiplePaths = (seed, stage = 1) => {
   const seededRandom = (s) => { const x = Math.sin(s) * 10000; return x - Math.floor(x); };
   let randomIndex = 0;
@@ -208,59 +260,56 @@ const generateMultiplePaths = (seed, stage = 1) => {
   const paths = [];
   const startPoints = [];
   const endPoints = [];
-  const occupiedMap = new Map(); // 점유 타일 + 방향 추적 (겹침 방지)
+  const occupiedMap = new Map();
 
-  // 출발점 Y 좌표 계산 (균등 분배)
   const startSpacing = Math.floor(GRID_HEIGHT / (config.starts + 1));
   for (let i = 0; i < config.starts; i++) {
     const y = Math.max(1, Math.min(GRID_HEIGHT - 2, startSpacing * (i + 1) + Math.floor(random() * 2 - 1)));
     startPoints.push({ x: 0, y, id: String.fromCharCode(65 + i) });
   }
 
-  // 도착점 Y 좌표 계산 (균등 분배)
   const endSpacing = Math.floor(GRID_HEIGHT / (config.ends + 1));
   for (let i = 0; i < config.ends; i++) {
     const y = Math.max(1, Math.min(GRID_HEIGHT - 2, endSpacing * (i + 1) + Math.floor(random() * 2 - 1)));
     endPoints.push({ x: GRID_WIDTH - 1, y, id: String(i + 1) });
   }
 
-  // 각 출발점에서 도착점으로 경로 생성 (겹침 최소화)
   for (let i = 0; i < startPoints.length; i++) {
     const start = startPoints[i];
-    const endIndex = i % endPoints.length;
-    const end = endPoints[endIndex];
-    const numTurns = Math.max(2, 5 - Math.floor(stage / 2) + Math.floor(random() * 2));
+    const end = endPoints[i % endPoints.length];
+    const pathSeed = seed + i * 1000 + 1;
 
-    let bestPath = null;
-    let bestScore = Infinity;
-    const maxAttempts = i === 0 ? 1 : 8; // 첫 경로는 바로 생성, 이후는 최대 8번 시도
+    // 최소 길이: 맨해튼 거리에 굴곡 마진을 더해 단조로운 직선 차단
+    const manhattan = Math.abs(end.x - start.x) + Math.abs(end.y - start.y);
+    const lengthFactor = 1.3 + Math.min(stage, 6) * 0.03;
+    const minLength = Math.floor(manhattan * lengthFactor);
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const pathTiles = generateSinglePath(
-        seed + i * 1000 + attempt * 137,
-        start.y, end.y, start.x, end.x, numTurns
-      );
+    let pathTiles = generatePathAStar(pathSeed, start.x, start.y, end.x, end.y, occupiedMap);
 
-      if (i === 0) {
-        bestPath = pathTiles;
-        break;
-      }
-
-      // 병렬 겹침 점수 계산 (직교 교차는 허용)
-      const score = calcPathOverlap(pathTiles, occupiedMap);
-      if (score < bestScore) {
-        bestScore = score;
-        bestPath = pathTiles;
-      }
-      if (score === 0) break; // 겹침 없는 최적 경로 발견
+    // 길이 미달 → 굴곡 강조하여 1회 재탐색
+    if (pathTiles && pathTiles.length < minLength) {
+      const retry = generatePathAStar(pathSeed + 12345, start.x, start.y, end.x, end.y, occupiedMap, {
+        noiseWeight: 1.0,
+        straightPenalty: 0.9,
+        turnBonus: 0.6,
+      });
+      if (retry && retry.length > pathTiles.length) pathTiles = retry;
     }
 
-    // 선택된 경로를 점유 맵에 등록
-    registerPathTiles(bestPath, occupiedMap);
+    // 점유로 완전 차단된 극단 케이스 → 병렬 페널티 완화하여 폴백
+    if (!pathTiles) {
+      pathTiles = generatePathAStar(pathSeed, start.x, start.y, end.x, end.y, occupiedMap, {
+        parallelPenalty: 5.0,
+        crossPenalty: 1.0,
+      });
+    }
+    if (!pathTiles) continue; // 정말 실패 시 해당 경로 스킵 (방어)
+
+    registerPathTiles(pathTiles, occupiedMap);
 
     paths.push({
       id: start.id,
-      tiles: bestPath,
+      tiles: pathTiles,
       startPoint: start,
       endPoint: end,
       color: PATH_COLORS[i % PATH_COLORS.length],

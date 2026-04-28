@@ -24,6 +24,11 @@ const useInventory = (gameState, settings = {}) => {
     // T4 역할 선택 대기 상태
     const [pendingT4Choice, setPendingT4Choice] = useState(null);
 
+    // 10연뽑 결과 오버레이 (자동조합 ON에도 원본 결과 표시)
+    // shape: { kind: 'tower'|'support', items: [...], pityApplied: bool, autoCombineActive: bool }
+    const [lastDrawResult, setLastDrawResult] = useState(null);
+    const clearLastDrawResult = useCallback(() => setLastDrawResult(null), []);
+
     const isInventoryFull = inventory.length >= ECONOMY.maxInventory;
     const isSupportInventoryFull = supportInventory.length >= ECONOMY.maxSupportInventory;
 
@@ -239,7 +244,21 @@ const useInventory = (gameState, settings = {}) => {
             if (isPrism) prismCount++;
         }
         // 10회 전부 T1이면 마지막 T2 승급 (소규모 Pity)
+        const beforePity = newNeons.map(n => n.tier);
         if (count === 10) newNeons = applyTenPullPity(newNeons);
+        const pityApplied = count === 10 && beforePity.every(t => t === 1) && newNeons[newNeons.length - 1].tier === 2;
+
+        // 결과 오버레이용 스냅샷 (autoCombine 적용 전)
+        setLastDrawResult({
+            kind: 'tower',
+            items: newNeons.map(n => ({
+                id: n.id, tier: n.tier, element: n.element ?? n.colorIndex,
+                colorIndex: n.colorIndex, color: n.color, name: n.name, isPrism: n.isPrism,
+            })),
+            pityApplied,
+            autoCombineActive: !!autoCombine,
+            count,
+        });
 
         setInventory(prev => {
             const next = [...prev, ...newNeons];
@@ -290,6 +309,18 @@ const useInventory = (gameState, settings = {}) => {
             s.id = baseId + i + Math.random();
             newSupports.push(s);
         }
+
+        // 결과 오버레이용 스냅샷 (autoSupportCombine 적용 전)
+        setLastDrawResult({
+            kind: 'support',
+            items: newSupports.map(s => ({
+                id: s.id, tier: s.tier, supportType: s.supportType, color: s.color, name: s.name,
+            })),
+            pityApplied: false,
+            autoCombineActive: !!autoSupportCombine,
+            count,
+        });
+
         setSupportInventory(prev => {
             const next = [...prev, ...newSupports];
             return autoSupportCombine ? TowerSystem.combineAllSupport(next) : next;
@@ -606,6 +637,9 @@ const useInventory = (gameState, settings = {}) => {
         clearInventoryForNewStage,
         // 영구 버프 적용 비용
         effectiveDrawCost,
+        // 10연뽑 결과 오버레이
+        lastDrawResult,
+        clearLastDrawResult,
     };
 };
 
