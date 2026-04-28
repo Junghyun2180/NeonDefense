@@ -46,6 +46,23 @@ class Ability {
   }
 
   /**
+   * onHit 결과 기본 구조 (모든 Ability가 공유)
+   * extras로 추가 필드 (damageOptions, targetMutations 등)를 합칠 수 있다.
+   */
+  static makeResult(extras = {}) {
+    return {
+      damageModifier: 1.0,
+      additionalDamage: 0,
+      statusEffects: [],
+      visualEffects: [],
+      aoeTargets: [],
+      chainData: null,
+      pierceTargets: [],
+      ...extras,
+    };
+  }
+
+  /**
    * 사거리 내 적 필터링 유틸리티
    */
   getEnemiesInRange(x, y, range, enemies, excludeIds = []) {

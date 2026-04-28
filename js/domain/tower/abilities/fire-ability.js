@@ -12,16 +12,7 @@ class BurnAbility extends Ability {
 
   onHit(context) {
     const { hit, target, enemies = [], permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      targetMutations: [],
-    };
+    const result = Ability.makeResult({ targetMutations: [] });
 
     // 시너지: 화염+슬로우=증폭 화상 (burn duration ×1.5)
     const syn = (typeof SynergySystem !== 'undefined')
@@ -99,15 +90,7 @@ class BurnStackAbility extends Ability {
 
   onHit(context) {
     const { hit, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     const permBurnMult = BuffHelper.getBurnDurationMultiplier(permanentBuffs);
     const burnDamage = Math.floor(hit.damage * this.getTierValue('burnDamagePercent'));
@@ -155,15 +138,7 @@ class BurnSpreadAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     const permBurnMult = BuffHelper.getBurnDurationMultiplier(permanentBuffs);
     const burnDamage = Math.floor(hit.damage * this.getTierValue('burnDamagePercent'));
@@ -234,15 +209,7 @@ class FastEnemyBonusAbility extends Ability {
 
   onHit(context) {
     const { hit, target, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     const permBurnMult = BuffHelper.getBurnDurationMultiplier(permanentBuffs);
     const burnDamage = Math.floor(hit.damage * this.getTierValue('burnDamagePercent'));

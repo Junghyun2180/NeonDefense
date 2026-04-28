@@ -76,7 +76,7 @@ const FloorTower = ({
                             <span className={`${compact ? 'text-sm' : 'text-base'} leading-none ${iconColor}`}>{icon}</span>
                             <span className={`${compact ? 'text-xs' : 'text-sm'} font-bold leading-none ${compact ? '' : 'tracking-wider'}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>F{n}</span>
                             {(isNext || isCurrent) && !compact && (
-                                <span className="ml-auto text-[10px] text-yellow-300 leading-none font-bold">HP ×{Math.pow(1.15, n - 1).toFixed(2)}</span>
+                                <span className="ml-auto text-[10px] text-yellow-300 leading-none font-bold">HP ×{calcFloorHpMultiplier(n).toFixed(2)}</span>
                             )}
                         </div>
                     );

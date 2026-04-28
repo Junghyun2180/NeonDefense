@@ -6,21 +6,6 @@ const SaveLoadModal = ({ show, mode, onNewGame, onLoadGame, onSaveAndQuit, onCon
 
   // mode: 'start' (게임 시작), 'stageClear' (스테이지 클리어)
 
-  // 시간 포맷팅
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}일 전`;
-    if (hours > 0) return `${hours}시간 전`;
-    if (minutes > 0) return `${minutes}분 전`;
-    return '방금 전';
-  };
-
   // ===== 게임 시작 모달 =====
   if (mode === 'start') {
     return (
@@ -59,7 +44,7 @@ const SaveLoadModal = ({ show, mode, onNewGame, onLoadGame, onSaveAndQuit, onCon
                   </div>
                 </div>
                 <div className="text-center mt-3 text-xs text-gray-500">
-                  {formatTime(saveInfo.timestamp)}
+                  {formatRelativeTime(saveInfo.timestamp)}
                 </div>
               </div>
 

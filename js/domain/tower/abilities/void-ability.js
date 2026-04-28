@@ -1,6 +1,27 @@
 // Neon Defense - 공허(VOID) 속성 Ability
 // 관통 공격 + T4 특수 능력
 
+// 관통 공통 로직 — hit 주변 가까운 적 N체에 감쇠 데미지 추가
+// fxBuilder(enemy) 가 주어지면 각 관통 대상마다 시각 효과도 push
+const applyPierce = (result, hit, enemies, pierceCount, pierceDamageRatio, pierceRange, fxBuilder = null) => {
+  const sortedEnemies = enemies
+    .filter(e => e.id !== hit.enemyId)
+    .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
+    .filter(e => e.dist <= pierceRange)
+    .sort((a, b) => a.dist - b.dist);
+
+  let pierced = 0;
+  for (const { enemy } of sortedEnemies) {
+    if (pierced >= pierceCount) break;
+    result.pierceTargets.push({
+      enemy,
+      damage: Math.floor(hit.damage * pierceDamageRatio),
+    });
+    if (fxBuilder) result.visualEffects.push(fxBuilder(enemy));
+    pierced++;
+  }
+};
+
 // ===== 기본 공허 (T1~T3): 관통 =====
 class PierceAbility extends Ability {
   static TYPE = 'pierce';
@@ -12,15 +33,7 @@ class PierceAbility extends Ability {
 
   onHit(context) {
     const { hit, target, enemies } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     // 시너지: 공허+화상=에너지 파열 (pierceRange +40%, damageMult +10%)
     const syn = (typeof SynergySystem !== 'undefined')
@@ -32,30 +45,9 @@ class PierceAbility extends Ability {
     const pierceDamageDecay = this.getTierValue('pierceDamageDecay', 0.5);
     const pierceRange = this.getTierValue('pierceRange', 80) * syn.pierceRangeMult;
 
-    // 관통 대상 찾기
-    let pierced = 0;
-    const sortedEnemies = enemies
-      .filter(e => e.id !== hit.enemyId)
-      .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
-      .filter(e => e.dist <= pierceRange)
-      .sort((a, b) => a.dist - b.dist);
-
-    sortedEnemies.forEach(({ enemy }) => {
-      if (pierced >= pierceCount) return;
-      const pierceDmg = Math.floor(hit.damage * pierceDamageDecay * syn.damageMult);
-      result.pierceTargets.push({
-        enemy: enemy,
-        damage: pierceDmg,
-      });
-      result.visualEffects.push({
-        id: Date.now() + Math.random(),
-        x: enemy.x,
-        y: enemy.y,
-        type: 'pierce',
-        color: '#DDA0DD',
-      });
-      pierced++;
-    });
+    applyPierce(result, hit, enemies, pierceCount, pierceDamageDecay * syn.damageMult, pierceRange,
+      (enemy) => ({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'pierce', color: '#DDA0DD' }),
+    );
 
     if (syn.tags.includes('energy-burst')) {
       result.visualEffects.push({
@@ -89,38 +81,15 @@ class SynergyBuffAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      towerBuffs: [], // 타워 버프용 추가 필드
-    };
+    // towerBuffs: 타워 버프용 추가 필드 (시너지 촉매)
+    const result = Ability.makeResult({ towerBuffs: [] });
 
     // 관통 (T4 기본)
-    const pierceCount = this.getTierValue('pierceCount', 3);
-    const pierceDamageDecay = this.getTierValue('pierceDamageDecay', 0.8);
-    const pierceRange = this.getTierValue('pierceRange', 100);
-
-    let pierced = 0;
-    const sortedEnemies = enemies
-      .filter(e => e.id !== hit.enemyId)
-      .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
-      .filter(e => e.dist <= pierceRange)
-      .sort((a, b) => a.dist - b.dist);
-
-    sortedEnemies.forEach(({ enemy }) => {
-      if (pierced >= pierceCount) return;
-      const pierceDmg = Math.floor(hit.damage * pierceDamageDecay);
-      result.pierceTargets.push({
-        enemy: enemy,
-        damage: pierceDmg,
-      });
-      pierced++;
-    });
+    applyPierce(result, hit, enemies,
+      this.getTierValue('pierceCount', 3),
+      this.getTierValue('pierceDamageDecay', 0.8),
+      this.getTierValue('pierceRange', 100),
+    );
 
     // 시너지 버프 효과 (별도 시스템에서 처리)
     result.visualEffects.push({
@@ -150,37 +119,14 @@ class BalancedAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     // T4 기본 관통
-    const pierceCount = this.getTierValue('pierceCount', 3);
-    const pierceDamageDecay = this.getTierValue('pierceDamageDecay', 0.8);
-    const pierceRange = this.getTierValue('pierceRange', 100);
-
-    let pierced = 0;
-    const sortedEnemies = enemies
-      .filter(e => e.id !== hit.enemyId)
-      .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
-      .filter(e => e.dist <= pierceRange)
-      .sort((a, b) => a.dist - b.dist);
-
-    sortedEnemies.forEach(({ enemy }) => {
-      if (pierced >= pierceCount) return;
-      const pierceDmg = Math.floor(hit.damage * pierceDamageDecay);
-      result.pierceTargets.push({
-        enemy: enemy,
-        damage: pierceDmg,
-      });
-      pierced++;
-    });
+    applyPierce(result, hit, enemies,
+      this.getTierValue('pierceCount', 3),
+      this.getTierValue('pierceDamageDecay', 0.8),
+      this.getTierValue('pierceRange', 100),
+    );
 
     result.visualEffects.push({
       id: Date.now() + Math.random(),
@@ -214,37 +160,14 @@ class EnhancedPierceAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     // 강화된 관통
-    const pierceCount = this.config.enhancedPierceCount;
-    const pierceDamageRatio = this.config.enhancedPierceDamageRatio;
-    const pierceRange = this.config.enhancedPierceRange;
-
-    let pierced = 0;
-    const sortedEnemies = enemies
-      .filter(e => e.id !== hit.enemyId)
-      .map(e => ({ enemy: e, dist: calcDistance(hit.x, hit.y, e.x, e.y) }))
-      .filter(e => e.dist <= pierceRange)
-      .sort((a, b) => a.dist - b.dist);
-
-    sortedEnemies.forEach(({ enemy }) => {
-      if (pierced >= pierceCount) return;
-      const pierceDmg = Math.floor(hit.damage * pierceDamageRatio);
-      result.pierceTargets.push({
-        enemy: enemy,
-        damage: pierceDmg,
-      });
-      pierced++;
-    });
+    applyPierce(result, hit, enemies,
+      this.config.enhancedPierceCount,
+      this.config.enhancedPierceDamageRatio,
+      this.config.enhancedPierceRange,
+    );
 
     result.visualEffects.push({
       id: Date.now() + Math.random(),

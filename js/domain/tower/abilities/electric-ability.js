@@ -1,6 +1,50 @@
 // Neon Defense - 전격(ELECTRIC) 속성 Ability
 // 체인 라이트닝 + T4 특수 능력
 
+// 체인 라이트닝 진행 — 공통 로직 (4개 ChainAbility가 공유)
+// chainCountBase + chainBonus 만큼 가까운 적을 차례로 잇고, 매 단계마다 decay만큼 데미지 감쇠
+const processChainLightning = (startX, startY, firstTargetId, damage, enemies, chainCountBase, chainRange, decay, chainBonus = 0) => {
+  const chainCount = Math.max(1, chainCountBase + chainBonus);
+  const hitEnemies = new Set([firstTargetId]);
+  const chains = [];
+  let currentDamage = damage;
+  let lastX = startX, lastY = startY;
+  const lastTarget = enemies.find(e => e.id === firstTargetId);
+
+  if (lastTarget) {
+    chains.push({ x1: startX, y1: startY, x2: lastTarget.x, y2: lastTarget.y, id: Date.now() + Math.random() });
+    lastX = lastTarget.x;
+    lastY = lastTarget.y;
+  }
+
+  const chainDamages = new Map();
+
+  for (let i = 1; i < chainCount; i++) {
+    currentDamage *= decay;
+    if (currentDamage < 1) break;
+
+    let nearestEnemy = null;
+    let nearestDist = Infinity;
+    enemies.forEach(enemy => {
+      if (hitEnemies.has(enemy.id)) return;
+      const dist = calcDistance(lastX, lastY, enemy.x, enemy.y);
+      if (dist <= chainRange && dist < nearestDist) {
+        nearestDist = dist;
+        nearestEnemy = enemy;
+      }
+    });
+    if (!nearestEnemy) break;
+
+    hitEnemies.add(nearestEnemy.id);
+    chainDamages.set(nearestEnemy.id, Math.floor(currentDamage));
+    chains.push({ x1: lastX, y1: lastY, x2: nearestEnemy.x, y2: nearestEnemy.y, id: Date.now() + Math.random() + i });
+    lastX = nearestEnemy.x;
+    lastY = nearestEnemy.y;
+  }
+
+  return { chains, chainDamages };
+};
+
 // ===== 기본 전격 (T1~T3): 체인 라이트닝 =====
 class ChainLightningAbility extends Ability {
   static TYPE = 'chainLightning';
@@ -12,16 +56,8 @@ class ChainLightningAbility extends Ability {
 
   onHit(context) {
     const { hit, target, enemies, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
-    };
+    // 합의 06: 전격 = 실드 ×2 데미지
+    const result = Ability.makeResult({ damageOptions: { shieldDamageMult: 2.0 } });
 
     const chainBonus = BuffHelper.getChainBonus(permanentBuffs);
 
@@ -31,8 +67,10 @@ class ChainLightningAbility extends Ability {
       : { damageMult: 1.0, tags: [] };
     result.damageModifier = syn.damageMult;
 
-    const chainResult = this.processChain(
-      hit.towerX, hit.towerY, hit.enemyId, hit.damage * syn.damageMult, enemies, chainBonus
+    const chainResult = processChainLightning(
+      hit.towerX, hit.towerY, hit.enemyId, hit.damage * syn.damageMult, enemies,
+      this.getTierValue('chainCount', 2), this.config.chainRange, this.config.chainDamageDecay,
+      chainBonus,
     );
 
     result.chainData = {
@@ -50,53 +88,6 @@ class ChainLightningAbility extends Ability {
     }
 
     return result;
-  }
-
-  processChain(startX, startY, firstTargetId, damage, enemies, chainBonus = 0) {
-    const chainCount = Math.max(1, this.getTierValue('chainCount', 2) + chainBonus);
-    const chainRange = this.config.chainRange;
-    const decay = this.config.chainDamageDecay;
-
-    const hitEnemies = new Set([firstTargetId]);
-    const chains = [];
-    let currentDamage = damage;
-    let lastX = startX, lastY = startY;
-    const lastTarget = enemies.find(e => e.id === firstTargetId);
-
-    if (lastTarget) {
-      chains.push({ x1: startX, y1: startY, x2: lastTarget.x, y2: lastTarget.y, id: Date.now() + Math.random() });
-      lastX = lastTarget.x;
-      lastY = lastTarget.y;
-    }
-
-    const chainDamages = new Map();
-
-    for (let i = 1; i < chainCount; i++) {
-      currentDamage *= decay;
-      if (currentDamage < 1) break;
-
-      let nearestEnemy = null;
-      let nearestDist = Infinity;
-
-      enemies.forEach(enemy => {
-        if (hitEnemies.has(enemy.id)) return;
-        const dist = calcDistance(lastX, lastY, enemy.x, enemy.y);
-        if (dist <= chainRange && dist < nearestDist) {
-          nearestDist = dist;
-          nearestEnemy = enemy;
-        }
-      });
-
-      if (!nearestEnemy) break;
-
-      hitEnemies.add(nearestEnemy.id);
-      chainDamages.set(nearestEnemy.id, Math.floor(currentDamage));
-      chains.push({ x1: lastX, y1: lastY, x2: nearestEnemy.x, y2: nearestEnemy.y, id: Date.now() + Math.random() + i });
-      lastX = nearestEnemy.x;
-      lastY = nearestEnemy.y;
-    }
-
-    return { chains, chainDamages };
   }
 
   getDescription() {
@@ -118,22 +109,16 @@ class ChainFocusAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
-    };
+    // 합의 06: 전격 = 실드 ×2 데미지
+    const result = Ability.makeResult({ damageOptions: { shieldDamageMult: 2.0 } });
 
     const permChainBonus = BuffHelper.getChainBonus(permanentBuffs);
     const totalChainBonus = this.config.chainBonus + permChainBonus;
 
-    const chainResult = this.processChain(
-      hit.towerX, hit.towerY, hit.enemyId, hit.damage, enemies, totalChainBonus
+    const chainResult = processChainLightning(
+      hit.towerX, hit.towerY, hit.enemyId, hit.damage, enemies,
+      this.getTierValue('chainCount', 2), this.config.chainRange, this.config.chainDamageDecay,
+      totalChainBonus,
     );
 
     result.chainData = {
@@ -150,53 +135,6 @@ class ChainFocusAbility extends Ability {
     });
 
     return result;
-  }
-
-  processChain(startX, startY, firstTargetId, damage, enemies, chainBonus = 0) {
-    const chainCount = Math.max(1, this.getTierValue('chainCount', 2) + chainBonus);
-    const chainRange = this.config.chainRange;
-    const decay = this.config.chainDamageDecay;
-
-    const hitEnemies = new Set([firstTargetId]);
-    const chains = [];
-    let currentDamage = damage;
-    let lastX = startX, lastY = startY;
-    const lastTarget = enemies.find(e => e.id === firstTargetId);
-
-    if (lastTarget) {
-      chains.push({ x1: startX, y1: startY, x2: lastTarget.x, y2: lastTarget.y, id: Date.now() + Math.random() });
-      lastX = lastTarget.x;
-      lastY = lastTarget.y;
-    }
-
-    const chainDamages = new Map();
-
-    for (let i = 1; i < chainCount; i++) {
-      currentDamage *= decay;
-      if (currentDamage < 1) break;
-
-      let nearestEnemy = null;
-      let nearestDist = Infinity;
-
-      enemies.forEach(enemy => {
-        if (hitEnemies.has(enemy.id)) return;
-        const dist = calcDistance(lastX, lastY, enemy.x, enemy.y);
-        if (dist <= chainRange && dist < nearestDist) {
-          nearestDist = dist;
-          nearestEnemy = enemy;
-        }
-      });
-
-      if (!nearestEnemy) break;
-
-      hitEnemies.add(nearestEnemy.id);
-      chainDamages.set(nearestEnemy.id, Math.floor(currentDamage));
-      chains.push({ x1: lastX, y1: lastY, x2: nearestEnemy.x, y2: nearestEnemy.y, id: Date.now() + Math.random() + i });
-      lastX = nearestEnemy.x;
-      lastY = nearestEnemy.y;
-    }
-
-    return { chains, chainDamages };
   }
 
   getDescription() {
@@ -219,21 +157,15 @@ class ChainStunAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
-    };
+    // 합의 06: 전격 = 실드 ×2 데미지
+    const result = Ability.makeResult({ damageOptions: { shieldDamageMult: 2.0 } });
 
     const chainBonus = BuffHelper.getChainBonus(permanentBuffs);
 
-    const chainResult = this.processChain(
-      hit.towerX, hit.towerY, hit.enemyId, hit.damage, enemies, chainBonus
+    const chainResult = processChainLightning(
+      hit.towerX, hit.towerY, hit.enemyId, hit.damage, enemies,
+      this.getTierValue('chainCount', 2), this.config.chainRange, this.config.chainDamageDecay,
+      chainBonus,
     );
 
     // 체인 적중 시 스턴 확률
@@ -263,53 +195,6 @@ class ChainStunAbility extends Ability {
     return result;
   }
 
-  processChain(startX, startY, firstTargetId, damage, enemies, chainBonus = 0) {
-    const chainCount = Math.max(1, this.getTierValue('chainCount', 2) + chainBonus);
-    const chainRange = this.config.chainRange;
-    const decay = this.config.chainDamageDecay;
-
-    const hitEnemies = new Set([firstTargetId]);
-    const chains = [];
-    let currentDamage = damage;
-    let lastX = startX, lastY = startY;
-    const lastTarget = enemies.find(e => e.id === firstTargetId);
-
-    if (lastTarget) {
-      chains.push({ x1: startX, y1: startY, x2: lastTarget.x, y2: lastTarget.y, id: Date.now() + Math.random() });
-      lastX = lastTarget.x;
-      lastY = lastTarget.y;
-    }
-
-    const chainDamages = new Map();
-
-    for (let i = 1; i < chainCount; i++) {
-      currentDamage *= decay;
-      if (currentDamage < 1) break;
-
-      let nearestEnemy = null;
-      let nearestDist = Infinity;
-
-      enemies.forEach(enemy => {
-        if (hitEnemies.has(enemy.id)) return;
-        const dist = calcDistance(lastX, lastY, enemy.x, enemy.y);
-        if (dist <= chainRange && dist < nearestDist) {
-          nearestDist = dist;
-          nearestEnemy = enemy;
-        }
-      });
-
-      if (!nearestEnemy) break;
-
-      hitEnemies.add(nearestEnemy.id);
-      chainDamages.set(nearestEnemy.id, Math.floor(currentDamage));
-      chains.push({ x1: lastX, y1: lastY, x2: nearestEnemy.x, y2: nearestEnemy.y, id: Date.now() + Math.random() + i });
-      lastX = nearestEnemy.x;
-      lastY = nearestEnemy.y;
-    }
-
-    return { chains, chainDamages };
-  }
-
   getDescription() {
     return `과부하 (${this.config.chainStunChance * 100}% 스턴)`;
   }
@@ -330,22 +215,19 @@ class FirstStrikeAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1 + this.config.firstHitBonus, // 첫 타격 강화
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { shieldDamageMult: 2.0 }, // 합의 06: 전격 = 실드 ×2 데미지
-    };
+    // 첫 타격 강화 + 합의 06: 전격 = 실드 ×2 데미지
+    const result = Ability.makeResult({
+      damageModifier: 1 + this.config.firstHitBonus,
+      damageOptions: { shieldDamageMult: 2.0 },
+    });
 
     // 체인 페널티로 체인 수 감소
     const chainBonus = this.config.chainPenalty;
 
-    const chainResult = this.processChain(
-      hit.towerX, hit.towerY, hit.enemyId, hit.damage, enemies, chainBonus
+    const chainResult = processChainLightning(
+      hit.towerX, hit.towerY, hit.enemyId, hit.damage, enemies,
+      this.getTierValue('chainCount', 2), this.config.chainRange, this.config.chainDamageDecay,
+      chainBonus,
     );
 
     result.chainData = {
@@ -362,53 +244,6 @@ class FirstStrikeAbility extends Ability {
     });
 
     return result;
-  }
-
-  processChain(startX, startY, firstTargetId, damage, enemies, chainBonus = 0) {
-    const chainCount = Math.max(1, this.getTierValue('chainCount', 2) + chainBonus);
-    const chainRange = this.config.chainRange;
-    const decay = this.config.chainDamageDecay;
-
-    const hitEnemies = new Set([firstTargetId]);
-    const chains = [];
-    let currentDamage = damage;
-    let lastX = startX, lastY = startY;
-    const lastTarget = enemies.find(e => e.id === firstTargetId);
-
-    if (lastTarget) {
-      chains.push({ x1: startX, y1: startY, x2: lastTarget.x, y2: lastTarget.y, id: Date.now() + Math.random() });
-      lastX = lastTarget.x;
-      lastY = lastTarget.y;
-    }
-
-    const chainDamages = new Map();
-
-    for (let i = 1; i < chainCount; i++) {
-      currentDamage *= decay;
-      if (currentDamage < 1) break;
-
-      let nearestEnemy = null;
-      let nearestDist = Infinity;
-
-      enemies.forEach(enemy => {
-        if (hitEnemies.has(enemy.id)) return;
-        const dist = calcDistance(lastX, lastY, enemy.x, enemy.y);
-        if (dist <= chainRange && dist < nearestDist) {
-          nearestDist = dist;
-          nearestEnemy = enemy;
-        }
-      });
-
-      if (!nearestEnemy) break;
-
-      hitEnemies.add(nearestEnemy.id);
-      chainDamages.set(nearestEnemy.id, Math.floor(currentDamage));
-      chains.push({ x1: lastX, y1: lastY, x2: nearestEnemy.x, y2: nearestEnemy.y, id: Date.now() + Math.random() + i });
-      lastX = nearestEnemy.x;
-      lastY = nearestEnemy.y;
-    }
-
-    return { chains, chainDamages };
   }
 
   getDescription() {

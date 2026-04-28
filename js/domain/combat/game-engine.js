@@ -2,58 +2,6 @@
 // 게임 루프 오케스트레이터: 순수 함수로 상태 전환을 관리
 
 const GameEngine = {
-  // 체인 라이트닝 처리 (순수 함수)
-  processChainLightning(startX, startY, firstTargetId, damage, tier, currentEnemies, chainBonus = 0) {
-    const effect = ELEMENT_EFFECTS[ELEMENT_TYPES.ELECTRIC];
-    const chainCount = Math.max(1, (effect.chainCount[tier] || 2) + chainBonus);
-    const chainRange = effect.chainRange;
-    const decay = effect.chainDamageDecay;
-
-    const hitEnemies = new Set([firstTargetId]);
-    const chains = [];
-    let currentDamage = damage;
-    let lastX = startX, lastY = startY;
-    const lastTarget = currentEnemies.find(e => e.id === firstTargetId);
-
-    if (lastTarget) {
-      chains.push({ x1: startX, y1: startY, x2: lastTarget.x, y2: lastTarget.y, id: Date.now() + Math.random() });
-      lastX = lastTarget.x;
-      lastY = lastTarget.y;
-    }
-
-    const chainDamages = new Map();
-
-    for (let i = 1; i < chainCount; i++) {
-      currentDamage *= decay;
-      if (currentDamage < 1) break;
-
-      let nearestEnemy = null;
-      let nearestDist = Infinity;
-
-      currentEnemies.forEach(enemy => {
-        if (hitEnemies.has(enemy.id)) return;
-        const dist = calcDistance(lastX, lastY, enemy.x, enemy.y);
-        if (dist <= chainRange && dist < nearestDist) {
-          nearestDist = dist;
-          nearestEnemy = enemy;
-        }
-      });
-
-      if (!nearestEnemy) break;
-
-      hitEnemies.add(nearestEnemy.id);
-      chainDamages.set(nearestEnemy.id, Math.floor(currentDamage));
-      chains.push({
-        x1: lastX, y1: lastY, x2: nearestEnemy.x, y2: nearestEnemy.y,
-        id: Date.now() + Math.random() + i,
-      });
-      lastX = nearestEnemy.x;
-      lastY = nearestEnemy.y;
-    }
-
-    return { chains, chainDamages };
-  },
-
   // 투사체 이동 + 충돌 처리 (성능 최적화: 거리 제곱 사용)
   processProjectiles(projectiles, enemies, gameSpeed) {
     const hits = [];
@@ -96,8 +44,6 @@ const GameEngine = {
 
     return { updatedProjectiles, hits };
   },
-
-  // 이펙트 클린업
 
   // 이펙트 클린업
   cleanExpiredEffects(effects, now) {
