@@ -13,16 +13,8 @@ class SlowAbility extends Ability {
 
   onHit(context) {
     const { hit, target, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      targetMutations: [],   // 엔진이 적 상태를 변경하도록 요청
-    };
+    // targetMutations: 엔진이 적 상태를 변경하도록 요청
+    const result = Ability.makeResult({ targetMutations: [] });
 
     // 시너지: 냉기+넉백=빙판 (슬로우 지속시간 ×1.5)
     const syn = (typeof SynergySystem !== 'undefined')
@@ -118,15 +110,7 @@ class FreezeChanceAbility extends Ability {
 
   onHit(context) {
     const { hit, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     const permSlowMult = BuffHelper.getSlowPowerMultiplier(permanentBuffs);
     const slowPercent = this.getTierValue('slowPercent') * permSlowMult;
@@ -188,15 +172,7 @@ class AoeSlowAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     const permSlowMult = BuffHelper.getSlowPowerMultiplier(permanentBuffs);
     const slowPercent = this.getTierValue('slowPercent') * permSlowMult;
@@ -255,15 +231,7 @@ class SlowKnockbackAbility extends Ability {
 
   onHit(context) {
     const { hit, permanentBuffs } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult();
 
     const permSlowMult = BuffHelper.getSlowPowerMultiplier(permanentBuffs);
     const slowPercent = this.getTierValue('slowPercent') * permSlowMult;

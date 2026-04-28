@@ -15,6 +15,24 @@ const calcDistanceSq = (x1, y1, x2, y2) => {
   return dx * dx + dy * dy;
 };
 
+// Floor 1 = ×1.0, Floor N HP 배율 = 1.15^(N-1)
+const FLOOR_HP_GROWTH = 1.15;
+const calcFloorHpMultiplier = (floor) => Math.pow(FLOOR_HP_GROWTH, Math.max(0, floor - 1));
+
+// ===== 시간 포맷팅 =====
+
+// "방금 전" / "N분 전" / "N시간 전" / "N일 전"
+const formatRelativeTime = (timestamp) => {
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}일 전`;
+  if (hours > 0) return `${hours}시간 전`;
+  if (minutes > 0) return `${minutes}분 전`;
+  return '방금 전';
+};
+
 // ===== 경제 유틸리티 =====
 
 // 타워 판매 가격 계산

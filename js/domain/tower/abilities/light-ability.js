@@ -12,16 +12,8 @@ class ExecuteAbility extends Ability {
 
   onHit(context) {
     const { hit, target } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
-    };
+    // 합의 06: 광휘 = 방어 50% 관통
+    const result = Ability.makeResult({ damageOptions: { armorPierce: 0.5 } });
 
     // 시너지: 광휘+슬로우=집중 처형 (임계치 +10%)
     const syn = (typeof SynergySystem !== 'undefined')
@@ -68,16 +60,8 @@ class CriticalAbility extends Ability {
 
   onHit(context) {
     const { hit, target } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
-    };
+    // 합의 06: 광휘 = 방어 50% 관통
+    const result = Ability.makeResult({ damageOptions: { armorPierce: 0.5 } });
 
     // 크리티컬 확률
     if (Math.random() < this.config.critChance) {
@@ -139,16 +123,8 @@ class LightKnockbackAbility extends Ability {
 
   onHit(context) {
     const { hit, target } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
-    };
+    // 합의 06: 광휘 = 방어 50% 관통
+    const result = Ability.makeResult({ damageOptions: { armorPierce: 0.5 } });
 
     // 넉백
     result.statusEffects.push({
@@ -212,16 +188,8 @@ class RushBlockerAbility extends Ability {
 
   onHit(context) {
     const { hit, target } = context;
-    const result = {
-      damageModifier: 1.0,
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-      damageOptions: { armorPierce: 0.5 }, // 합의 06: 광휘 = 방어 50% 관통
-    };
+    // 합의 06: 광휘 = 방어 50% 관통
+    const result = Ability.makeResult({ damageOptions: { armorPierce: 0.5 } });
 
     // 빠른 적 추가 피해
     if (target && target.baseSpeed > this.config.fastThreshold) {

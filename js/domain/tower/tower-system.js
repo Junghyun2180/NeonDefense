@@ -183,23 +183,6 @@ const TowerSystem = {
     return { speedDebuff, damageDebuff };
   },
 
-  // 가장 가까운 적 찾기 (성능 최적화: 거리 제곱 사용)
-  findTarget(tower, enemies) {
-    let nearestEnemy = null;
-    let nearestDistSq = Infinity;
-    const rangeSq = tower.range * tower.range; // 한번만 계산
-
-    enemies.forEach(enemy => {
-      const distSq = calcDistanceSq(tower.x, tower.y, enemy.x, enemy.y);
-      if (distSq <= rangeSq && distSq < nearestDistSq) {
-        nearestDistSq = distSq;
-        nearestEnemy = enemy;
-      }
-    });
-
-    return nearestEnemy;
-  },
-
   // 투사체 생성
   createProjectile(tower, target, effectiveDamage, gameSpeed) {
     return {
@@ -395,7 +378,7 @@ const TowerSystem = {
     return count;
   },
 
-  // 공격 타워에 적용되는 서포트 버프 계산 (기존 방식 - 하위 호환)
+  // 공격 타워에 적용되는 서포트 버프 계산
   calcSupportBuffs(tower, supportTowers) {
     let attackBuff = 0;
     let speedBuff = 0;
@@ -425,43 +408,7 @@ const TowerSystem = {
     };
   },
 
-  // 타워에 서포트 버프를 StatusEffect로 적용 (새 방식)
-  applySupportBuffsAsEffects(tower, supportTowers, now) {
-    let updatedTower = { ...tower, statusEffects: [] };
-
-    supportTowers.forEach(support => {
-      const dist = calcDistance(tower.x, tower.y, support.x, support.y);
-      if (dist > support.range) return;
-
-      switch (support.supportType) {
-        case SUPPORT_TYPES.ATTACK:
-          updatedTower = StatusEffectSystem.applyToTower(updatedTower, {
-            type: 'attackBuff',
-            percent: support.buffValue,
-            sourceId: support.id,
-          }, now);
-          break;
-        case SUPPORT_TYPES.SPEED:
-          updatedTower = StatusEffectSystem.applyToTower(updatedTower, {
-            type: 'attackSpeedBuff',
-            percent: support.buffValue,
-            sourceId: support.id,
-          }, now);
-          break;
-        case SUPPORT_TYPES.RANGE:
-          updatedTower = StatusEffectSystem.applyToTower(updatedTower, {
-            type: 'rangeBuff',
-            percent: support.buffValue,
-            sourceId: support.id,
-          }, now);
-          break;
-      }
-    });
-
-    return updatedTower;
-  },
-
-  // 적에게 적용되는 방어력 감소 (취약도) 계산 (기존 방식 - 하위 호환)
+  // 적에게 적용되는 방어력 감소 (취약도) 계산
   calcEnemyVulnerability(enemy, supportTowers) {
     let vulnerability = 0;
 
@@ -474,25 +421,6 @@ const TowerSystem = {
     });
 
     return Math.min(vulnerability, SUPPORT_CAPS.defense);
-  },
-
-  // 적에게 방감 디버프를 StatusEffect로 적용 (새 방식)
-  applyVulnerabilityAsEffect(enemy, supportTowers, now) {
-    let updatedEnemy = enemy;
-
-    supportTowers.forEach(support => {
-      if (support.supportType !== SUPPORT_TYPES.DEFENSE) return;
-      const dist = calcDistance(enemy.x, enemy.y, support.x, support.y);
-      if (dist <= support.range) {
-        updatedEnemy = StatusEffectSystem.apply(updatedEnemy, {
-          type: 'vulnerability',
-          percent: support.buffValue,
-          sourceId: support.id,
-        }, now);
-      }
-    });
-
-    return updatedEnemy;
   },
 
   // 서포트 판매 가격 계산

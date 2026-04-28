@@ -12,15 +12,7 @@ class WindAbility extends Ability {
 
   onHit(context) {
     const { hit } = context;
-    const result = {
-      damageModifier: this.getTierValue('damageMultiplier', 1.0),
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult({ damageModifier: this.getTierValue('damageMultiplier', 1.0) });
 
     const knockbackDist = this.getTierValue('knockbackDistance', 15);
 
@@ -61,15 +53,7 @@ class AoeDamageAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies } = context;
-    const result = {
-      damageModifier: this.getTierValue('damageMultiplier', 1.0),
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult({ damageModifier: this.getTierValue('damageMultiplier', 1.0) });
 
     const knockbackDist = this.getTierValue('knockbackDistance', 15);
     const baseDamage = Math.floor(hit.damage * this.getTierValue('damageMultiplier', 1.0));
@@ -127,15 +111,7 @@ class PullAbility extends Ability {
 
   onHit(context) {
     const { hit, enemies } = context;
-    const result = {
-      damageModifier: this.getTierValue('damageMultiplier', 1.0),
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult({ damageModifier: this.getTierValue('damageMultiplier', 1.0) });
 
     const knockbackDist = this.getTierValue('knockbackDistance', 15);
 
@@ -192,15 +168,7 @@ class GustAbility extends Ability {
 
   onHit(context) {
     const { hit, target } = context;
-    const result = {
-      damageModifier: this.getTierValue('damageMultiplier', 1.0),
-      additionalDamage: 0,
-      statusEffects: [],
-      visualEffects: [],
-      aoeTargets: [],
-      chainData: null,
-      pierceTargets: [],
-    };
+    const result = Ability.makeResult({ damageModifier: this.getTierValue('damageMultiplier', 1.0) });
 
     const baseKnockback = this.getTierValue('knockbackDistance', 15);
     const knockbackDist = baseKnockback + this.config.knockbackBonus;

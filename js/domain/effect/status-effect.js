@@ -728,17 +728,7 @@ const StatusEffectSystem = {
     return StatusEffectManager.addEffect(tower, statusEffect, now);
   },
 
-  processTick(target, now, gameSpeed) {
-    const result = StatusEffectManager.processTick(target, now, gameSpeed);
-    return {
-      damage: result.totalDamage,
-      heal: result.totalHeal,
-      updatedTarget: result.target,
-      visualEffects: result.visualEffects,
-    };
-  },
-
-  // 화상 틱 처리 (하위 호환)
+  // 화상/재생 등 DoT 틱 처리 (적 전용)
   processBurnTick(enemy, now, gameSpeed) {
     const result = StatusEffectManager.processTick(enemy, now, gameSpeed);
     if (result.totalDamage > 0 || result.totalHeal > 0) {
@@ -753,22 +743,6 @@ const StatusEffectSystem = {
 
   getSpeedMultiplier(enemy, now) {
     return StatusEffectManager.getSpeedMultiplier(enemy, now);
-  },
-
-  getDamageMultiplier(target, now) {
-    return StatusEffectManager.getDamageMultiplier(target, now);
-  },
-
-  getAttackSpeedMultiplier(target, now) {
-    return StatusEffectManager.getAttackSpeedMultiplier(target, now);
-  },
-
-  getRangeMultiplier(target, now) {
-    return StatusEffectManager.getRangeMultiplier(target, now);
-  },
-
-  getVulnerabilityMultiplier(target, now) {
-    return StatusEffectManager.getVulnerabilityMultiplier(target, now);
   },
 
   getDefaultFields() {

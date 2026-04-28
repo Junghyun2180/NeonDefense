@@ -70,8 +70,7 @@ const DataResolver = {
         const hs = this.getHealthScaling(modeId);
         const stageScale = 1 + (stage - 1) * hs.stageGrowth;
         const waveScale = 1 + (wave - 1) * hs.waveGrowth;
-        const floorMult = Math.pow(1.15, Math.max(0, floor - 1));
-        let health = Math.floor(hs.base * stageScale * waveScale * floorMult);
+        let health = Math.floor(hs.base * stageScale * waveScale * calcFloorHpMultiplier(floor));
 
         // 후반 웨이브 보너스
         if (wave >= hs.lateWaveThreshold) {

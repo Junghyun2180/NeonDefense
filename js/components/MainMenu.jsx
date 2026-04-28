@@ -21,21 +21,6 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
   const [selectedMode, setSelectedMode] = useState('campaign'); // 'campaign', 'run'
   const [activeTab, setActiveTab] = useState('start'); // 'start', 'upgrade', 'ranking'
 
-  // 시간 포맷팅
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}일 전`;
-    if (hours > 0) return `${hours}시간 전`;
-    if (minutes > 0) return `${minutes}분 전`;
-    return '방금 전';
-  };
-
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -81,7 +66,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
               현재 등반 — 최고 <span className="font-bold text-yellow-300">F{metaProgress.stats.highestCampaignFloor}</span>
               {' · '}
               다음 도전 <span className="font-bold text-yellow-300">F{metaProgress.stats.highestCampaignFloor + 1}</span>
-              {' (HP ×'}{Math.pow(1.15, metaProgress.stats.highestCampaignFloor).toFixed(2)}{')'}
+              {' (HP ×'}{calcFloorHpMultiplier(metaProgress.stats.highestCampaignFloor + 1).toFixed(2)}{')'}
             </p>
           )}
         </div>
@@ -166,7 +151,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                     {/* 합의 10: 헤드라인 자체를 floor 도전으로 — "🏯 F{n} 도전" */}
                     {(() => {
                       const nextFloor = (metaProgress?.stats?.highestCampaignFloor || 0) + 1;
-                      const hpMult = Math.pow(1.15, nextFloor - 1).toFixed(2);
+                      const hpMult = calcFloorHpMultiplier(nextFloor).toFixed(2);
                       return (
                         <>
                           <div className="text-7xl group-hover:scale-110 transition-transform" style={{ filter: 'drop-shadow(0 0 20px rgba(250, 204, 21, 0.5))' }}>🏯</div>
@@ -249,7 +234,7 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
                               Stage {saveInfo.stage} - Wave {saveInfo.wave}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {formatDate(saveInfo.timestamp)} ({formatTime(saveInfo.timestamp)})
+                              {formatDate(saveInfo.timestamp)} ({formatRelativeTime(saveInfo.timestamp)})
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-2 text-xs">
