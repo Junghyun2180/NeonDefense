@@ -1,13 +1,23 @@
-// Neon Defense - 메인 메뉴 화면
-// 게임 시작 전 모드 선택 및 저장 데이터 불러오기
+// Neon Defense — MainMenu (Holographic Command shell)
+// Spec: design handoff v1.0 / Page B · Main 5-page split
+//
+// 5 nav tabs: HOME · META · RANK · CODEX · DAILY (preserves existing
+// functionality — Codex/Daily still open modal-style content windows).
+// Visual language: hairline panels, mono eyebrows, crimson active
+// underline, reticle corners, no gradient washes.
 
 const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress, neonCrystals, onPurchaseUpgrade, onDailyLoginReward }) => {
-  const [showCollection, setShowCollection] = React.useState(false);
-  const [showDailyLogin, setShowDailyLogin] = React.useState(false);
+  const { useState, useEffect } = React;
+
+  const [showCollection, setShowCollection] = useState(false);
+  const [showDailyLogin, setShowDailyLogin] = useState(false);
+  const [activeTab, setActiveTab] = useState('home'); // home | meta | rank
+  const [selectedMode, setSelectedMode] = useState('campaign');
+
   const dailyStatus = typeof DailyLogin !== 'undefined' ? DailyLogin.getStatus() : { canClaim: false };
 
   // 첫 진입 시 오늘 보상 있으면 자동 오픈 (한 번만)
-  React.useEffect(() => {
+  useEffect(() => {
     if (dailyStatus.canClaim && !showDailyLogin) {
       const opened = sessionStorage.getItem('__dailyLoginOpened');
       if (!opened) {
@@ -16,10 +26,6 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
       }
     }
   }, []);
-  const { useState } = React;
-
-  const [selectedMode, setSelectedMode] = useState('campaign'); // 'campaign', 'run'
-  const [activeTab, setActiveTab] = useState('start'); // 'start', 'upgrade', 'ranking'
 
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
@@ -31,362 +37,624 @@ const MainMenu = ({ saveInfo, onNewGame, onLoadGame, onSelectMode, metaProgress,
   };
 
   const handleStartGame = (isNewGame) => {
-    if (isNewGame) {
-      onNewGame();
-    } else {
-      onLoadGame();
-    }
+    if (isNewGame) onNewGame();
+    else onLoadGame();
   };
 
+  const codexCompletion = (typeof CollectionSystem !== 'undefined')
+    ? CollectionSystem.getCompletion() : null;
+  const achievementProgress = (typeof AchievementSystem !== 'undefined')
+    ? AchievementSystem.getProgress() : { unlocked: 0, total: 0 };
+  const crystals = (neonCrystals ?? metaProgress?.crystals) || 0;
+  const highestFloor = metaProgress?.stats?.highestCampaignFloor || 0;
+  const nextFloor = highestFloor + 1;
+
+  // ─────────── nav tabs ───────────
+  const navTabs = [
+    { k: 'home',  code: '◇ HOME',   label: '시작' },
+    { k: 'meta',  code: '◆ META',   label: '업그레이드',
+      badge: crystals > 0 ? crystals.toLocaleString() : null },
+    { k: 'rank',  code: '▲ RANK',   label: '순위' },
+    { k: 'codex', code: '◈ CODEX',  label: '도감',
+      badge: codexCompletion?.unlocked > 0 ? `${codexCompletion.percent}%` : null,
+      onClick: () => setShowCollection(true) },
+    { k: 'daily', code: '☼ DAILY',  label: '출석',
+      dot: dailyStatus.canClaim,
+      onClick: () => setShowDailyLogin(true) },
+  ];
+
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-black flex items-center justify-center z-50">
-      {/* 배경 애니메이션 */}
-      <div className="absolute inset-0 overflow-hidden opacity-20">
-        <div className="absolute w-96 h-96 bg-purple-500 rounded-full blur-3xl animate-pulse" style={{ top: '10%', left: '20%' }}></div>
-        <div className="absolute w-96 h-96 bg-blue-500 rounded-full blur-3xl animate-pulse" style={{ top: '60%', right: '20%', animationDelay: '1s' }}></div>
-      </div>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
+      style={{
+        background: 'var(--nd-bg)',
+        fontFamily: 'var(--nd-font-sans)',
+        color: 'var(--nd-text)',
+      }}
+    >
+      {/* ambient grid background — subtle, doesn't compete with content */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute', inset: 0, opacity: 0.25, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
 
-      {/* 고정 레이아웃 컨테이너: 전체 높이를 뷰포트에 맞추고 내부만 스크롤 */}
-      <div className="relative max-w-4xl w-full mx-4 flex flex-col" style={{ height: 'min(92vh, 820px)' }}>
+      <div
+        className="relative w-full mx-4 flex flex-col"
+        style={{ maxWidth: 1100, height: 'min(94vh, 880px)' }}
+      >
+        {/* ─────────── TOP OPS BAR ─────────── */}
+        <div
+          className="nd-panel"
+          style={{
+            display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 12,
+            padding: '8px 14px', alignItems: 'center', minHeight: 44,
+            marginBottom: 10,
+          }}
+        >
+          <span className="nd-reticle__c nd-reticle__c--tl" />
+          <span className="nd-reticle__c nd-reticle__c--tr" />
+          <span className="nd-reticle__c nd-reticle__c--bl" />
+          <span className="nd-reticle__c nd-reticle__c--br" />
 
-        {/* ── 상단 고정: 타이틀 ── */}
-        <div className="text-center py-4 shrink-0">
-          <h1
-            className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 animate-pulse"
-            style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 0 40px rgba(168, 85, 247, 0.5)' }}
-          >
-            ⚡ NEON DEFENSE ⚡
+          <div className="flex items-center" style={{ gap: 10 }}>
+            <span className="nd-eyebrow" style={{ letterSpacing: 2 }}>◇</span>
+            <span className="nd-mono" style={{ fontSize: 10, color: 'var(--nd-dimmer)', letterSpacing: 2 }}>
+              NEON DEFENSE
+            </span>
+            <span style={{ color: 'rgba(255,61,110,0.4)' }}>/</span>
+            <span className="nd-mono" style={{ fontSize: 10, color: '#fff', letterSpacing: 2, fontWeight: 700 }}>
+              {(navTabs.find(t => t.k === activeTab)?.code || '◇ HOME').replace(/^[^A-Z]+/, '')}
+            </span>
+          </div>
+
+          <div className="flex items-center" style={{ gap: 14 }}>
+            <span className="nd-mono nd-tnum" style={{ fontSize: 10, color: 'var(--nd-gold)', letterSpacing: 1.5 }}>
+              ◆ <span style={{ color: '#fff', fontWeight: 700, marginLeft: 4 }}>{crystals.toLocaleString()}</span>
+            </span>
+            <span className="nd-hair--vertical" style={{ width: 1, height: 14, background: 'var(--nd-hair-strong)' }} />
+            <span className="nd-mono nd-tnum" style={{ fontSize: 10, color: 'var(--nd-amber)', letterSpacing: 1.5 }}>
+              ✕ <span style={{ color: '#fff', fontWeight: 700, marginLeft: 4 }}>
+                {achievementProgress.unlocked}/{achievementProgress.total}
+              </span>
+            </span>
+          </div>
+
+          <div className="flex items-center" style={{ gap: 8 }}>
+            <span style={{
+              width: 6, height: 6, background: 'var(--nd-green)',
+              boxShadow: '0 0 6px var(--nd-green)', display: 'inline-block',
+            }} />
+            <span className="nd-mono" style={{ fontSize: 10, color: 'var(--nd-green)', letterSpacing: 2 }}>
+              CMDR · STANDBY
+            </span>
+          </div>
+        </div>
+
+        {/* ─────────── TITLE BLOCK ─────────── */}
+        <div className="text-center shrink-0" style={{ padding: '8px 0 12px' }}>
+          <div className="nd-main-eyebrow" style={{ marginBottom: 8 }}>
+            ◇ HOLOGRAPHIC COMMAND · v1.0
+          </div>
+          <h1 className="nd-main-title" style={{ fontSize: 'clamp(36px, 5.5vw, 52px)' }}>
+            NEON <span className="nd-main-title__accent">DEFENSE</span>
           </h1>
-          <p className="text-gray-400 text-sm mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            🏯 Tower-Climbing Defense · Roguelike
+          <p
+            className="nd-mono"
+            style={{
+              color: 'var(--nd-dim)', fontSize: 10, letterSpacing: 3,
+              marginTop: 8, textTransform: 'uppercase',
+            }}
+          >
+            ▲ TOWER-CLIMBING DEFENSE · ROGUELIKE
           </p>
-          {/* 합의 10: 메인 타이틀 부제로 등반 컨셉 강조 + 현재 진척 한 줄 */}
-          {(metaProgress?.stats?.highestCampaignFloor || 0) > 0 && (
-            <p className="text-purple-300 text-xs mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-              현재 등반 — 최고 <span className="font-bold text-yellow-300">F{metaProgress.stats.highestCampaignFloor}</span>
-              {' · '}
-              다음 도전 <span className="font-bold text-yellow-300">F{metaProgress.stats.highestCampaignFloor + 1}</span>
-              {' (HP ×'}{calcFloorHpMultiplier(metaProgress.stats.highestCampaignFloor + 1).toFixed(2)}{')'}
+          {highestFloor > 0 && (
+            <p
+              className="nd-mono nd-tnum"
+              style={{ color: 'var(--nd-amber)', fontSize: 11, letterSpacing: 1.5, marginTop: 8 }}
+            >
+              ◈ HIGHEST <span style={{ color: '#fff', fontWeight: 700 }}>F{highestFloor}</span>
+              <span style={{ color: 'var(--nd-dimmer)', margin: '0 8px' }}>·</span>
+              NEXT <span style={{ color: '#fff', fontWeight: 700 }}>F{nextFloor}</span>
+              <span style={{ color: 'var(--nd-dim)' }}> (HP ×{calcFloorHpMultiplier(nextFloor).toFixed(2)})</span>
             </p>
           )}
         </div>
 
-        {/* ── 상단 고정: 탭 네비게이션 ── */}
-        <div className="flex bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-xl overflow-hidden shrink-0 mb-3">
-          <button
-            onClick={() => setActiveTab('start')}
-            className={'flex-1 py-3 text-sm font-bold transition-colors ' + (activeTab === 'start' ? 'bg-purple-700 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50')}
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            🎮 시작
-          </button>
-          <button
-            onClick={() => setActiveTab('upgrade')}
-            className={'flex-1 py-3 text-sm font-bold transition-colors ' + (activeTab === 'upgrade' ? 'bg-cyan-700 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50')}
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            💎 업그레이드
-            {metaProgress && metaProgress.crystals > 0 && activeTab !== 'upgrade' && (
-              <span className="ml-1.5 text-xs text-cyan-300 font-normal">{(metaProgress.crystals || 0).toLocaleString()}</span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('ranking')}
-            className={'flex-1 py-3 text-sm font-bold transition-colors ' + (activeTab === 'ranking' ? 'bg-yellow-700 text-white' : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50')}
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            🏆 순위
-          </button>
-          <button
-            onClick={() => setShowCollection(true)}
-            className="flex-1 py-3 text-sm font-bold transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            🗂️ 도감
-            {typeof CollectionSystem !== 'undefined' && (() => {
-              const c = CollectionSystem.getCompletion();
-              return c.unlocked > 0 ? <span className="ml-1.5 text-xs text-cyan-300 font-normal">{c.percent}%</span> : null;
-            })()}
-          </button>
-          <button
-            onClick={() => setShowDailyLogin(true)}
-            className="relative flex-1 py-3 text-sm font-bold transition-colors text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            📅 출석
-            {dailyStatus.canClaim && (
-              <span className="absolute top-1.5 right-4 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-            )}
-          </button>
+        {/* ─────────── SECONDARY NAV (5 tabs) ─────────── */}
+        <div
+          className="nd-panel shrink-0"
+          style={{
+            display: 'flex', overflow: 'hidden', height: 40, padding: 0,
+            marginBottom: 10, position: 'relative',
+          }}
+        >
+          <span className="nd-reticle__c nd-reticle__c--tl" />
+          <span className="nd-reticle__c nd-reticle__c--tr" />
+          <span className="nd-reticle__c nd-reticle__c--bl" />
+          <span className="nd-reticle__c nd-reticle__c--br" />
+
+          {navTabs.map((t, i) => {
+            const isActive = activeTab === t.k && !t.onClick;
+            return (
+              <button
+                key={t.k}
+                onClick={() => t.onClick ? t.onClick() : setActiveTab(t.k)}
+                className="nd-mono"
+                style={{
+                  flex: 1, padding: '0 12px', textAlign: 'center', position: 'relative',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  background: isActive ? 'rgba(255,61,110,0.12)' : 'transparent',
+                  borderRight: i < navTabs.length - 1 ? '1px solid rgba(255,61,110,0.15)' : 'none',
+                  borderBottom: isActive ? '2px solid var(--nd-crimson)' : '2px solid transparent',
+                  color: isActive ? '#fff' : 'var(--nd-dim)',
+                  fontSize: 10, letterSpacing: 2, fontWeight: 700,
+                  textShadow: isActive ? '0 0 8px var(--nd-crimson)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'background 0.12s, color 0.12s',
+                }}
+              >
+                {t.code}
+                {t.badge && (
+                  <span
+                    className="nd-tnum"
+                    style={{
+                      fontSize: 9, color: isActive ? 'var(--nd-amber)' : 'var(--nd-dimmer)',
+                      letterSpacing: 1, fontWeight: 500,
+                    }}
+                  >
+                    · {t.badge}
+                  </span>
+                )}
+                {t.dot && (
+                  <span
+                    className="nd-motion-pulse"
+                    style={{
+                      position: 'absolute', top: 8, right: 12,
+                      width: 6, height: 6, background: 'var(--nd-crimson)',
+                      boxShadow: '0 0 6px var(--nd-crimson)',
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        {showCollection && typeof CollectionModal !== 'undefined' && (
-          <CollectionModal isOpen={showCollection} onClose={() => setShowCollection(false)} />
-        )}
-        {showDailyLogin && typeof DailyLoginModal !== 'undefined' && (
-          <DailyLoginModal
-            isOpen={showDailyLogin}
-            onClose={() => setShowDailyLogin(false)}
-            onClaim={onDailyLoginReward}
-          />
-        )}
+        {/* ─────────── TAB CONTENT (scrollable) ─────────── */}
+        <div className="flex-1 overflow-y-auto min-h-0" style={{ paddingRight: 2 }}>
 
-        {/* ── 중간 스크롤 영역: 탭 콘텐츠 ── */}
-        <div className="flex-1 overflow-y-auto min-h-0">
-
-          {/* ===== 시작 탭 ===== */}
-          <div style={{ display: activeTab === 'start' ? 'block' : 'none' }}>
+          {/* ===== HOME ===== */}
+          {activeTab === 'home' && (
             <div className="space-y-3 pb-2">
-              {/* 새 게임 / 이어하기 카드 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 새 게임 카드 */}
+              {/* New game / Continue cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* NEW GAME */}
                 <button
                   onClick={() => handleStartGame(true)}
-                  className="group relative bg-gray-800/80 backdrop-blur-sm border-2 border-purple-500/50 hover:border-purple-400 rounded-xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50"
+                  className="nd-panel group relative"
+                  style={{
+                    padding: 20, textAlign: 'left', cursor: 'pointer',
+                    transition: 'border-color 0.15s, background 0.15s',
+                    background: 'var(--nd-panel)',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--nd-crimson)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--nd-hair)'}
                 >
-                  <div className="absolute top-2 right-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg animate-bounce">
+                  <span className="nd-reticle__c nd-reticle__c--tl" />
+                  <span className="nd-reticle__c nd-reticle__c--tr" />
+                  <span className="nd-reticle__c nd-reticle__c--bl" />
+                  <span className="nd-reticle__c nd-reticle__c--br" />
+
+                  <div
+                    className="nd-mono"
+                    style={{
+                      position: 'absolute', top: 12, right: 14,
+                      fontSize: 9, color: 'var(--nd-green)', letterSpacing: 2,
+                      padding: '2px 8px', border: '1px solid rgba(128,237,153,0.4)',
+                    }}
+                  >
                     NEW
                   </div>
-                  <div className="flex flex-col items-center space-y-4">
-                    {/* 합의 10: 헤드라인 자체를 floor 도전으로 — "🏯 F{n} 도전" */}
-                    {(() => {
-                      const nextFloor = (metaProgress?.stats?.highestCampaignFloor || 0) + 1;
-                      const hpMult = calcFloorHpMultiplier(nextFloor).toFixed(2);
+
+                  <div className="nd-eyebrow" style={{ marginBottom: 8 }}>◇ DEPLOY · CAMPAIGN</div>
+                  <div
+                    className="nd-mono"
+                    style={{ fontSize: 28, fontWeight: 700, color: '#fff', letterSpacing: 2, lineHeight: 1.1 }}
+                  >
+                    FLOOR <span style={{ color: 'var(--nd-crimson)' }}>{nextFloor}</span>
+                  </div>
+                  <div
+                    className="nd-mono nd-tnum"
+                    style={{ fontSize: 11, color: 'var(--nd-dim)', letterSpacing: 1, marginTop: 6 }}
+                  >
+                    HP ×{calcFloorHpMultiplier(nextFloor).toFixed(2)} · 3 STAGES × 10 WAVES
+                  </div>
+
+                  {typeof FloorTower !== 'undefined' && (
+                    <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center' }}>
+                      <FloorTower highestFloor={highestFloor} />
+                    </div>
+                  )}
+
+                  <div className="nd-hair" style={{ margin: '14px 0' }} />
+
+                  <div
+                    className="nd-mono"
+                    style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 6, fontSize: 11, letterSpacing: 1 }}
+                  >
+                    <span style={{ color: 'var(--nd-dim)' }}>◷ DURATION</span>
+                    <span style={{ color: '#fff', fontWeight: 700 }}>15-20 MIN</span>
+                    <span style={{ color: 'var(--nd-dim)' }}>◆ CRYSTAL REWARD</span>
+                    <span style={{ color: 'var(--nd-amber)', fontWeight: 700 }}>UP TO 200+</span>
+                    <span style={{ color: 'var(--nd-dim)' }}>▣ CHECKPOINT</span>
+                    <span style={{ color: 'var(--nd-green)', fontWeight: 700 }}>EVERY WAVE</span>
+                    {typeof StarRating !== 'undefined' && (() => {
+                      const total = StarRating.totalStars();
+                      const max = SPAWN.maxStage * 3;
                       return (
                         <>
-                          <div className="text-7xl group-hover:scale-110 transition-transform" style={{ filter: 'drop-shadow(0 0 20px rgba(250, 204, 21, 0.5))' }}>🏯</div>
-                          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-300 to-yellow-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                            FLOOR {nextFloor} 도전
-                          </h2>
-                          <p className="text-gray-400 text-sm text-center">
-                            적 HP <span className="text-yellow-300 font-bold">×{hpMult}</span> · 3 stages × 10 waves
-                          </p>
+                          <span style={{ color: 'var(--nd-dim)' }}>★ STAR PROGRESS</span>
+                          <span className="nd-tnum" style={{ color: 'var(--nd-gold)', fontWeight: 700 }}>{total} / {max}</span>
                         </>
                       );
                     })()}
-                    {/* 합의 10: NEON TOWER — 계단형 floor 시각화 */}
-                    {typeof FloorTower !== 'undefined' && (
-                      <FloorTower highestFloor={metaProgress?.stats?.highestCampaignFloor || 0} />
-                    )}
-                    <div className="w-full bg-gray-900/50 rounded-lg p-3 space-y-2 text-sm">
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>⏱️ 예상 시간</span>
-                        <span className="font-bold text-blue-300">15~20분</span>
+                  </div>
+
+                  {/* per-stage star grid */}
+                  {typeof StarRating !== 'undefined' && (
+                    <div style={{ marginTop: 14 }}>
+                      <div
+                        className="nd-mono"
+                        style={{ fontSize: 9, color: 'var(--nd-dimmer)', letterSpacing: 2, marginBottom: 6, textAlign: 'center' }}
+                      >
+                        ◇ STAGE PROGRESS
                       </div>
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>💎 크리스탈 보상</span>
-                        <span className="font-bold text-cyan-300">최대 200+</span>
-                      </div>
-                      <div className="flex items-center justify-between text-gray-300">
-                        <span>💾 저장 시점</span>
-                        <span className="font-bold text-green-300">매 웨이브 시작</span>
-                      </div>
-                      {/* 별점 진척도 */}
-                      {typeof StarRating !== 'undefined' && (() => {
-                        const total = StarRating.totalStars();
-                        const max = SPAWN.maxStage * 3;
-                        return (
-                          <div className="flex items-center justify-between text-gray-300 pt-1 border-t border-gray-700/70">
-                            <span>🌟 획득 별점</span>
-                            <span className="font-bold text-amber-300">{total}/{max}</span>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                    {/* 스테이지별 별점 그리드 */}
-                    {typeof StarRating !== 'undefined' && (
-                      <div className="w-full bg-gray-900/40 rounded-lg px-2 py-2 text-xs" style={{ pointerEvents: 'none' }}>
-                        <div className="text-gray-400 mb-1 text-center">스테이지 별 진척도</div>
-                        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(SPAWN.maxStage, 6)}, 1fr)` }}>
-                          {Array.from({ length: SPAWN.maxStage }, (_, idx) => {
-                            const s = idx + 1;
-                            const stars = StarRating.getStars(s);
-                            return (
-                              <div key={s} className="flex flex-col items-center px-1 py-1 rounded bg-gray-800/60">
-                                <div className="text-[10px] text-gray-400">S{s}</div>
-                                <div className="text-[13px] font-bold" style={{ color: stars === 3 ? '#FDE047' : stars === 2 ? '#FBBF24' : stars === 1 ? '#A3A3A3' : '#4B5563' }}>
-                                  {stars === 3 ? '★★★' : stars === 2 ? '★★☆' : stars === 1 ? '★☆☆' : '☆☆☆'}
-                                </div>
+                      <div
+                        style={{ display: 'grid', gap: 4,
+                          gridTemplateColumns: `repeat(${Math.min(SPAWN.maxStage, 6)}, 1fr)` }}
+                      >
+                        {Array.from({ length: SPAWN.maxStage }, (_, idx) => {
+                          const s = idx + 1;
+                          const stars = StarRating.getStars(s);
+                          const color = stars === 3 ? 'var(--nd-gold)' :
+                                       stars === 2 ? 'var(--nd-amber)' :
+                                       stars === 1 ? 'var(--nd-dim)' : 'var(--nd-dimmer)';
+                          return (
+                            <div
+                              key={s}
+                              style={{
+                                padding: '4px 0', textAlign: 'center',
+                                border: '1px solid var(--nd-hair)',
+                                background: 'rgba(255,255,255,0.015)',
+                              }}
+                            >
+                              <div className="nd-mono" style={{ fontSize: 9, color: 'var(--nd-dim)', letterSpacing: 1 }}>S{s}</div>
+                              <div style={{ fontSize: 12, color, fontWeight: 700 }}>
+                                {stars === 3 ? '★★★' : stars === 2 ? '★★☆' : stars === 1 ? '★☆☆' : '☆☆☆'}
                               </div>
-                            );
-                          })}
-                        </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
-                    <div className="text-yellow-400 text-xs">💡 언제든지 저장하고 나갈 수 있습니다</div>
+                    </div>
+                  )}
+
+                  <div
+                    className="nd-mono"
+                    style={{
+                      marginTop: 14, fontSize: 9, color: 'var(--nd-dimmer)',
+                      letterSpacing: 1.5, textAlign: 'center',
+                    }}
+                  >
+                    ◇ AUTO-SAVE ENABLED · EXIT ANYTIME
                   </div>
                 </button>
 
-                {/* 이어하기 카드 */}
+                {/* CONTINUE */}
                 {saveInfo ? (
                   <button
                     onClick={() => handleStartGame(false)}
-                    className="group relative bg-gray-800/80 backdrop-blur-sm border-2 border-blue-500/50 hover:border-blue-400 rounded-xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/50"
+                    className="nd-panel relative"
+                    style={{
+                      padding: 20, textAlign: 'left', cursor: 'pointer',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--nd-amber)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--nd-hair)'}
                   >
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">SAVED</div>
-                    <div className="flex flex-col items-center space-y-4">
-                      <div className="text-6xl group-hover:scale-110 transition-transform">💾</div>
-                      <h2 className="text-2xl font-bold text-blue-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>이어하기</h2>
-                      <div className="w-full space-y-3">
-                        <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg p-3 border border-blue-500/30">
-                          <div className="text-center mb-2">
-                            <div className="text-3xl font-bold text-blue-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                              Stage {saveInfo.stage} - Wave {saveInfo.wave}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-1">
-                              {formatDate(saveInfo.timestamp)} ({formatRelativeTime(saveInfo.timestamp)})
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="bg-gray-900/50 rounded px-2 py-1 flex items-center justify-between">
-                              <span className="text-yellow-400">💰</span><span className="text-gray-300 font-bold">{saveInfo.gold}G</span>
-                            </div>
-                            <div className="bg-gray-900/50 rounded px-2 py-1 flex items-center justify-between">
-                              <span className="text-red-400">❤️</span><span className="text-gray-300 font-bold">{saveInfo.lives}</span>
-                            </div>
-                            <div className="bg-gray-900/50 rounded px-2 py-1 flex items-center justify-between">
-                              <span className="text-blue-400">🗼</span><span className="text-gray-300 font-bold">{saveInfo.towerCount}개</span>
-                            </div>
-                            <div className="bg-gray-900/50 rounded px-2 py-1 flex items-center justify-between">
-                              <span className="text-green-400">🛡️</span><span className="text-gray-300 font-bold">{saveInfo.supportCount}개</span>
-                            </div>
-                          </div>
+                    <span className="nd-reticle__c nd-reticle__c--tl" />
+                    <span className="nd-reticle__c nd-reticle__c--tr" />
+                    <span className="nd-reticle__c nd-reticle__c--bl" />
+                    <span className="nd-reticle__c nd-reticle__c--br" />
+
+                    <div
+                      className="nd-mono"
+                      style={{
+                        position: 'absolute', top: 12, right: 14,
+                        fontSize: 9, color: 'var(--nd-amber)', letterSpacing: 2,
+                        padding: '2px 8px', border: '1px solid rgba(255,169,77,0.4)',
+                      }}
+                    >
+                      SAVED
+                    </div>
+
+                    <div className="nd-eyebrow nd-eyebrow--amber" style={{ marginBottom: 8 }}>◆ RESUME · LAST SESSION</div>
+                    <div
+                      className="nd-mono"
+                      style={{ fontSize: 22, fontWeight: 700, color: '#fff', letterSpacing: 1, lineHeight: 1.2 }}
+                    >
+                      STAGE <span style={{ color: 'var(--nd-amber)' }}>{saveInfo.stage}</span>
+                      <span style={{ color: 'var(--nd-dimmer)', margin: '0 8px' }}>·</span>
+                      WAVE <span style={{ color: 'var(--nd-amber)' }}>{saveInfo.wave}</span>
+                    </div>
+                    <div
+                      className="nd-mono"
+                      style={{ fontSize: 10, color: 'var(--nd-dim)', letterSpacing: 1, marginTop: 4 }}
+                    >
+                      {formatDate(saveInfo.timestamp)} · {formatRelativeTime(saveInfo.timestamp)}
+                    </div>
+
+                    <div className="nd-hair" style={{ margin: '14px 0' }} />
+
+                    <div
+                      className="grid grid-cols-2 gap-2 nd-mono nd-tnum"
+                      style={{ fontSize: 11, letterSpacing: 0.5 }}
+                    >
+                      {[
+                        { lbl: '◆ GOLD',    val: `${saveInfo.gold}`,         c: 'var(--nd-gold)' },
+                        { lbl: '♥ LIVES',   val: `${saveInfo.lives}`,        c: 'var(--nd-red-life)' },
+                        { lbl: '▲ TOWERS',  val: `${saveInfo.towerCount}`,   c: 'var(--nd-crimson)' },
+                        { lbl: '◇ SUPPORT', val: `${saveInfo.supportCount}`, c: 'var(--nd-green)' },
+                      ].map(s => (
+                        <div
+                          key={s.lbl}
+                          style={{
+                            padding: '6px 10px', border: '1px solid var(--nd-hair)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          }}
+                        >
+                          <span style={{ color: s.c }}>{s.lbl}</span>
+                          <span style={{ color: '#fff', fontWeight: 700 }}>{s.val}</span>
                         </div>
-                        <div className="w-full bg-gray-900/50 rounded-full h-2 overflow-hidden">
-                          <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500" style={{ width: `${(saveInfo.stage / SPAWN.maxStage) * 100}%` }}></div>
-                        </div>
-                        <div className="text-xs text-gray-400 text-center">진행률: {Math.round((saveInfo.stage / SPAWN.maxStage) * 100)}%</div>
+                      ))}
+                    </div>
+
+                    <div style={{ marginTop: 14 }}>
+                      <div
+                        className="nd-mono"
+                        style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--nd-dim)', letterSpacing: 1.5, marginBottom: 4 }}
+                      >
+                        <span>CAMPAIGN PROGRESS</span>
+                        <span className="nd-tnum">{Math.round((saveInfo.stage / SPAWN.maxStage) * 100)}%</span>
                       </div>
-                      <div className="text-yellow-400 text-xs">💡 저장된 위치부터 계속 플레이</div>
+                      <div style={{ height: 3, background: 'rgba(255,255,255,0.08)' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${(saveInfo.stage / SPAWN.maxStage) * 100}%`,
+                          background: 'var(--nd-amber)',
+                          boxShadow: '0 0 6px var(--nd-amber)',
+                        }} />
+                      </div>
+                    </div>
+
+                    <div
+                      className="nd-mono"
+                      style={{
+                        marginTop: 14, fontSize: 9, color: 'var(--nd-dimmer)',
+                        letterSpacing: 1.5, textAlign: 'center',
+                      }}
+                    >
+                      ▸ RESUME FROM CHECKPOINT
                     </div>
                   </button>
                 ) : (
-                  <div className="relative bg-gray-800/50 backdrop-blur-sm border-2 border-gray-600/50 rounded-xl p-6 opacity-60">
-                    <div className="flex flex-col items-center space-y-4">
-                      <div className="text-6xl opacity-50">💾</div>
-                      <h2 className="text-2xl font-bold text-gray-500" style={{ fontFamily: 'Orbitron, sans-serif' }}>이어하기</h2>
-                      <p className="text-gray-500 text-sm text-center">저장된 게임이 없습니다<br />새 게임을 시작해주세요</p>
-                      <div className="w-full bg-gray-900/50 rounded-lg p-3 text-sm opacity-50 text-center text-gray-500">
-                        웨이브 시작 시 자동 저장됩니다
-                      </div>
+                  <div
+                    className="nd-panel relative"
+                    style={{ padding: 20, opacity: 0.45 }}
+                  >
+                    <span className="nd-reticle__c nd-reticle__c--tl" />
+                    <span className="nd-reticle__c nd-reticle__c--tr" />
+                    <span className="nd-reticle__c nd-reticle__c--bl" />
+                    <span className="nd-reticle__c nd-reticle__c--br" />
+                    <div className="nd-eyebrow nd-eyebrow--dim" style={{ marginBottom: 8 }}>◌ NO SAVE DATA</div>
+                    <div
+                      className="nd-mono"
+                      style={{ fontSize: 14, color: 'var(--nd-dim)', letterSpacing: 1, lineHeight: 1.6 }}
+                    >
+                      START A NEW GAME<br />TO CREATE A CHECKPOINT.
+                    </div>
+                    <div className="nd-hair" style={{ margin: '18px 0' }} />
+                    <div
+                      className="nd-mono"
+                      style={{ fontSize: 10, color: 'var(--nd-dimmer)', letterSpacing: 1.5, textAlign: 'center' }}
+                    >
+                      ◇ AUTO-SAVE ON WAVE START
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* 게임 모드 선택 */}
-              <div className="bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-lg p-4">
+              {/* MODE SELECT */}
+              <div className="nd-panel relative" style={{ padding: '12px 14px' }}>
+                <span className="nd-reticle__c nd-reticle__c--tl" />
+                <span className="nd-reticle__c nd-reticle__c--tr" />
+                <span className="nd-reticle__c nd-reticle__c--bl" />
+                <span className="nd-reticle__c nd-reticle__c--br" />
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-400 text-sm">게임 모드:</span>
-                  <div className="flex gap-2">
+                  <span
+                    className="nd-eyebrow"
+                    style={{ color: 'var(--nd-dim)', fontSize: 9, letterSpacing: 3 }}
+                  >
+                    ◇ MODE
+                  </span>
+                  <div className="flex" style={{ gap: 6, flex: 1 }}>
                     <button
-                      className={`px-4 py-2 rounded-lg font-bold transition-all ${selectedMode === 'campaign' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/50' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
-                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      onClick={() => setSelectedMode('campaign')}
+                      className="nd-mono"
+                      style={{
+                        padding: '6px 14px', cursor: 'pointer', fontSize: 11, letterSpacing: 1.5,
+                        background: selectedMode === 'campaign' ? 'rgba(255,61,110,0.15)' : 'transparent',
+                        border: '1px solid ' + (selectedMode === 'campaign' ? 'var(--nd-crimson)' : 'var(--nd-hair)'),
+                        color: selectedMode === 'campaign' ? '#fff' : 'var(--nd-dim)',
+                      }}
                     >
-                      🏰 캠페인
+                      ▣ CAMPAIGN
                     </button>
                     <button
                       onClick={() => { setSelectedMode('run'); onSelectMode && onSelectMode('run'); }}
-                      className={`px-4 py-2 rounded-lg font-bold transition-all relative ${selectedMode === 'run' ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/50' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`}
-                      style={{ fontFamily: 'Orbitron, sans-serif' }}
+                      className="nd-mono relative"
+                      style={{
+                        padding: '6px 14px', cursor: 'pointer', fontSize: 11, letterSpacing: 1.5,
+                        background: selectedMode === 'run' ? 'rgba(255,169,77,0.15)' : 'transparent',
+                        border: '1px solid ' + (selectedMode === 'run' ? 'var(--nd-amber)' : 'var(--nd-hair)'),
+                        color: selectedMode === 'run' ? '#fff' : 'var(--nd-dim)',
+                      }}
                     >
-                      🎲 런 모드
-                      <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-cyan-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">NEW</span>
+                      ◎ RUN MODE
+                      <span
+                        className="nd-mono"
+                        style={{
+                          position: 'absolute', top: -7, right: -7,
+                          fontSize: 8, color: '#000', background: 'var(--nd-amber)',
+                          padding: '1px 4px', letterSpacing: 1, fontWeight: 700,
+                        }}
+                      >
+                        NEW
+                      </span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* 게임 정보 */}
-              <div className="grid grid-cols-4 gap-2 text-xs">
+              {/* INFO TILES */}
+              <div className="grid grid-cols-4 gap-2">
                 {[
-                  { icon: '🎯', label: '난이도', value: '보통', color: 'text-purple-300' },
-                  { icon: '🗼', label: '타워 종류', value: '24개', color: 'text-blue-300' },
-                  { icon: '👾', label: '적 종류', value: '8종', color: 'text-red-300' },
-                  { icon: '🎁', label: '로그라이크', value: '영구버프', color: 'text-green-300' },
-                ].map(({ icon, label, value, color }) => (
-                  <div key={label} className="bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-lg p-3 text-center">
-                    <div className="text-2xl mb-1">{icon}</div>
-                    <div className="text-gray-400">{label}</div>
-                    <div className={'font-bold ' + color}>{value}</div>
+                  { lbl: 'DIFFICULTY', val: 'STANDARD', c: 'var(--nd-crimson)' },
+                  { lbl: 'TOWERS',     val: '24',       c: 'var(--nd-el-water)' },
+                  { lbl: 'ENEMIES',    val: '8',        c: 'var(--nd-red-life)' },
+                  { lbl: 'META',       val: 'BUFFS',    c: 'var(--nd-green)' },
+                ].map(t => (
+                  <div key={t.lbl} className="nd-panel relative" style={{ padding: '10px 12px', textAlign: 'left' }}>
+                    <div
+                      className="nd-mono"
+                      style={{ fontSize: 9, color: 'var(--nd-dim)', letterSpacing: 2 }}
+                    >
+                      ◇ {t.lbl}
+                    </div>
+                    <div
+                      className="nd-mono nd-tnum"
+                      style={{ fontSize: 16, color: t.c, fontWeight: 700, marginTop: 4, letterSpacing: 1 }}
+                    >
+                      {t.val}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* ===== 업그레이드 탭 ===== */}
-          <div style={{ display: activeTab === 'upgrade' ? 'block' : 'none' }}>
+          {/* ===== META (UPGRADE) ===== */}
+          {activeTab === 'meta' && (
             <div className="space-y-3 pb-2">
-              <div className="flex items-center justify-between bg-gray-800/60 backdrop-blur-sm border border-cyan-700/40 rounded-xl px-5 py-3">
-                <div>
-                  <div className="text-xs text-gray-400">보유 크리스탈</div>
-                  <div className="text-2xl font-black text-cyan-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                    💎 {((neonCrystals ?? metaProgress?.crystals) || 0).toLocaleString()}
+              <div className="nd-panel relative" style={{ padding: '14px 18px' }}>
+                <span className="nd-reticle__c nd-reticle__c--tl" />
+                <span className="nd-reticle__c nd-reticle__c--tr" />
+                <span className="nd-reticle__c nd-reticle__c--bl" />
+                <span className="nd-reticle__c nd-reticle__c--br" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="nd-eyebrow nd-eyebrow--gold">◆ NEON CRYSTAL · BALANCE</div>
+                    <div
+                      className="nd-mono nd-tnum"
+                      style={{ fontSize: 28, color: '#fff', fontWeight: 700, letterSpacing: 2, marginTop: 2 }}
+                    >
+                      {crystals.toLocaleString()}
+                    </div>
                   </div>
-                </div>
-                <div className="text-xs text-gray-500 text-right">
-                  <div>캠페인 &amp; 런 모드 공통 적용</div>
-                  <div className="text-cyan-600">게임 클리어 시 크리스탈 획득</div>
+                  <div
+                    className="nd-mono"
+                    style={{ fontSize: 10, color: 'var(--nd-dim)', textAlign: 'right', letterSpacing: 1, lineHeight: 1.7 }}
+                  >
+                    SHARED ACROSS CAMPAIGN &amp; RUN<br />
+                    <span style={{ color: 'var(--nd-amber)' }}>EARN ON CLEAR / FLOOR PROGRESSION</span>
+                  </div>
                 </div>
               </div>
               {metaProgress && onPurchaseUpgrade ? (
                 <MetaUpgradePanel
                   metaProgress={metaProgress}
-                  neonCrystals={neonCrystals ?? metaProgress.crystals}
+                  neonCrystals={crystals}
                   onPurchaseUpgrade={onPurchaseUpgrade}
                 />
               ) : (
-                <div className="text-center text-gray-500 py-8">업그레이드 데이터를 불러오는 중...</div>
+                <div
+                  className="nd-mono"
+                  style={{ textAlign: 'center', color: 'var(--nd-dim)', padding: 32, letterSpacing: 1 }}
+                >
+                  ◷ LOADING UPGRADE DATA…
+                </div>
               )}
             </div>
-          </div>
+          )}
 
-          {/* ===== 순위 탭 ===== */}
-          <div style={{ display: activeTab === 'ranking' ? 'block' : 'none' }}>
-            <div className="bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 border border-yellow-500/30 rounded-xl p-4 pb-2">
-              <h2 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400 mb-3"
-                style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                🏆 LEADERBOARD
-              </h2>
-              <LeaderboardTab initialMode="campaign" />
+          {/* ===== RANK ===== */}
+          {activeTab === 'rank' && (
+            <div className="space-y-3 pb-2">
+              <div className="nd-panel relative" style={{ padding: '14px 18px' }}>
+                <span className="nd-reticle__c nd-reticle__c--tl" />
+                <span className="nd-reticle__c nd-reticle__c--tr" />
+                <span className="nd-reticle__c nd-reticle__c--bl" />
+                <span className="nd-reticle__c nd-reticle__c--br" />
+                <div className="nd-eyebrow nd-eyebrow--amber">▲ LEADERBOARD · GLOBAL</div>
+                <div
+                  className="nd-mono"
+                  style={{
+                    fontSize: 22, color: '#fff', fontWeight: 200, letterSpacing: 4,
+                    marginTop: 2, fontFamily: 'var(--nd-font-sans)',
+                  }}
+                >
+                  RANKING
+                </div>
+                <div className="nd-hair" style={{ margin: '12px 0' }} />
+                <LeaderboardTab initialMode="campaign" />
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
 
-        {/* ── 하단 고정: 크리스탈 & 업적 & 버전 ── */}
-        {metaProgress && (
-          <div className="shrink-0 flex items-center justify-between bg-gray-800/60 backdrop-blur-sm border border-gray-700/50 rounded-lg px-4 py-2 mt-3">
-            <button
-              onClick={() => setActiveTab('upgrade')}
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <span className="text-lg">💎</span>
-              <div>
-                <div className="text-[10px] text-gray-400">크리스탈</div>
-                <div className="text-cyan-300 font-bold text-sm" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                  {(metaProgress.crystals || 0).toLocaleString()}
-                </div>
-              </div>
-            </button>
-            <div className="text-gray-600 text-xs">Neon Defense v1.1 · Made with ❤️ by Junghyun</div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🏆</span>
-              <div>
-                <div className="text-[10px] text-gray-400">업적</div>
-                <div className="text-yellow-300 font-bold text-sm">
-                  {AchievementSystem.getProgress().unlocked}/{AchievementSystem.getProgress().total}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ─────────── BOTTOM FOOTER ─────────── */}
+        <div
+          className="shrink-0 nd-mono relative"
+          style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '8px 14px', marginTop: 10, borderTop: '1px solid var(--nd-hair-strong)',
+            fontSize: 9, color: 'var(--nd-dimmer)', letterSpacing: 2,
+          }}
+        >
+          <span style={{ color: 'var(--nd-crimson)' }}>NEON DEFENSE</span>
+          <span>HOLOGRAPHIC COMMAND · v1.1</span>
+          <span>BUILD · {new Date().toISOString().slice(0, 10).replace(/-/g, '.')}</span>
+        </div>
 
       </div>
+
+      {showCollection && typeof CollectionModal !== 'undefined' && (
+        <CollectionModal isOpen={showCollection} onClose={() => setShowCollection(false)} />
+      )}
+      {showDailyLogin && typeof DailyLoginModal !== 'undefined' && (
+        <DailyLoginModal
+          isOpen={showDailyLogin}
+          onClose={() => setShowDailyLogin(false)}
+          onClaim={onDailyLoginReward}
+        />
+      )}
     </div>
   );
 };
 
-// 글로벌 등록
 window.MainMenu = MainMenu;

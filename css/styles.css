@@ -42,36 +42,9 @@ body {
   animation: hit 0.2s ease-out forwards;
 }
 
-/* Tiles (레거시 — 하위 호환용) */
-.path-tile {
-  background-image: url('../assets/tiles/path-tile.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.grass-tile {
-  background-image: url('../assets/tiles/grass-tile.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-/* ===== 모듈러 타일셋 (신규) ===== */
-.tile-path,
-.tile-grass,
-.tile-start,
-.tile-end {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-/* v2 타일은 픽셀 정렬되어 있어 봉합 트릭 불필요 (background-size: cover 그대로 사용) */
-.tile-grass        { background-image: url('../assets/tiles/path/grass.png'); }
-/* v4: 모든 path 타일은 동일한 omnidirectional conduit. 방향은 화살표 overlay로 표시. */
-.tile-path         { background-image: url('../assets/tiles/path/conduit.png'); }
-.tile-start        { background-image: url('../assets/tiles/points/start.png'); }
-.tile-end          { background-image: url('../assets/tiles/points/end.png'); }
+/* Legacy PNG tiles removed — Holographic Command spec uses CSS-only tile
+   composition (.nd-tile-build, .nd-tile-path, .nd-spawn, .nd-core).
+   See css/holo-tokens.css §9. */
 
 /* Tower Range */
 .tower-range {
@@ -129,40 +102,8 @@ body {
   cursor: grabbing;
 }
 
-/* Drop Preview */
-.drop-preview-valid {
-  background: rgba(0, 255, 0, 0.3) !important;
-  border: 2px solid #00ff00 !important;
-}
-
-.drop-preview-invalid {
-  background: rgba(255, 0, 0, 0.3) !important;
-  border: 2px solid #ff0000 !important;
-}
-
-/* 배치 가능 타일 하이라이트 — selectedTowerForPlacement 활성 시 모든 빈 타일에 표시.
-   타일은 이미 position: absolute 이므로 ::after 의 absolute 기준이 됨 — position 재정의 금지. */
-.tile-placement-available::after {
-  content: '';
-  position: absolute;
-  inset: 1px;
-  border: 2px dashed rgba(34, 211, 238, 0.95);
-  border-radius: 4px;
-  background: rgba(34, 211, 238, 0.18);
-  box-shadow: inset 0 0 10px rgba(34, 211, 238, 0.55), 0 0 6px rgba(34, 211, 238, 0.35);
-  pointer-events: none;
-  animation: placementAvailablePulse 1.2s ease-in-out infinite;
-  z-index: 2;
-}
-.tile-placement-available:hover::after {
-  border-color: rgba(250, 204, 21, 1);
-  background: rgba(250, 204, 21, 0.30);
-  box-shadow: inset 0 0 14px rgba(250, 204, 21, 0.7), 0 0 10px rgba(250, 204, 21, 0.6);
-}
-@keyframes placementAvailablePulse {
-  0%, 100% { opacity: 0.7; }
-  50%      { opacity: 1; }
-}
+/* Tile placement / drop-preview styles moved to css/holo-tokens.css §9.1
+   (.nd-tile-placeable, .nd-tile-drop-valid, .nd-tile-drop-invalid). */
 
 /* 조합 결과 위치: 황금 회전 링 */
 .combine-result-ring {
@@ -488,8 +429,8 @@ body {
 /* 300ms 터치 딜레이 제거 */
 button,
 .inventory-item,
-.grass-tile,
-.path-tile {
+.nd-tile-build,
+.nd-tile-path {
   touch-action: manipulation;
 }
 

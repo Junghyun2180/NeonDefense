@@ -1,126 +1,202 @@
-// GameHeader - 상단 정보 바 컴포넌트
+// GameHeader — Holographic Command top bar
+// Spec: design handoff v1.0 / Page A · Game Play
+//   ◇ OPERATION · NEON DEFENSE   ◈ WAVE  ▣ STAGE  ◆ GOLD  ♥ LIFE  ✕ KILLS
 const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null, onMainMenu = null }) => {
     const { useState } = React;
     const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-    // 활성 버프 목록
     const activeBuffs = typeof PermanentBuffManager !== 'undefined'
         ? PermanentBuffManager.getActiveBuffsList(permanentBuffs)
         : [];
 
     const activeSPAWN = spawnConfig || SPAWN;
     const isRunMode = !!gameMode;
+    const wavesTotal = activeSPAWN.wavesPerStage;
+    const isDangerWave = wave === wavesTotal;
+    const enemiesPerWave = activeSPAWN.enemiesPerWave(stage, wave);
+    const maxStageLabel = gameMode === 'endless' ? '∞' : activeSPAWN.maxStage;
+    const themeTag = (!isRunMode && typeof WaveThemeSystem !== 'undefined')
+        ? WaveThemeSystem.getTheme(stage, wave) : null;
+
+    const safePct = (num, den, fallback = 0) => {
+        if (!den || !isFinite(den)) return fallback;
+        const v = Math.max(0, Math.min(100, (num / den) * 100));
+        return Number.isFinite(v) ? v : fallback;
+    };
+
+    const vitals = [
+        { key: 'wave',  label: 'WAVE',  icon: isDangerWave ? '🚨' : '◈',
+          val: `${wave}/${wavesTotal}`, color: isDangerWave ? 'var(--nd-red-life)' : 'var(--nd-crimson)',
+          pct: safePct(wave, wavesTotal) },
+        { key: 'stage', label: 'STAGE', icon: '▣',
+          val: gameMode === 'endless' ? `${stage}/∞` : `${stage}/${maxStageLabel}`,
+          color: 'var(--nd-green)',
+          pct: gameMode === 'endless' ? 100 : safePct(stage, activeSPAWN.maxStage) },
+        { key: 'gold',  label: 'GOLD',  icon: '◆',
+          val: Number(gold || 0).toLocaleString(), color: 'var(--nd-gold)',
+          // gold has no upper bound — show a flat indicator at 100%
+          pct: 100 },
+        { key: 'life',  label: 'LIFE',  icon: '♥',
+          val: `${lives}`, color: 'var(--nd-red-life)',
+          pct: Math.max(0, Math.min(100, lives * 5)) },
+        { key: 'kills', label: 'KILLS', icon: '✕',
+          val: isPlaying ? `${killedCount}/${enemiesPerWave}` : `${killedCount}`,
+          color: 'var(--nd-amber)',
+          pct: isPlaying ? safePct(killedCount, enemiesPerWave) : 0 },
+    ];
 
     return (
-        <div className="max-w-4xl mx-auto mb-2 sm:mb-4">
-            <h1 className="text-xl sm:text-4xl font-black text-center mb-2 sm:mb-4 tracking-wider" style={{ background: 'linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96e6a1, #dda0dd, #ffd93d)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 0 30px rgba(78, 205, 196, 0.5)' }}>
-                ⚡ NEON DEFENSE ⚡
-            </h1>
-            <div className="relative flex items-center justify-center mb-2 sm:mb-3 text-xs sm:text-sm">
-                {/* 좌측: 메인메뉴 버튼 */}
-                {onMainMenu && (
-                    <button onClick={() => setShowExitConfirm(true)} className="absolute left-0 text-xs text-gray-400 hover:text-white transition-all whitespace-nowrap">← 메인 메뉴</button>
-                )}
-                {/* 가운데: 상태 뱃지 */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                    {isRunMode && (
-                        <div className="px-2 py-1 bg-gray-900 rounded-lg border border-orange-500/50">
-                            <span className="font-bold text-orange-300 text-xs" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                                {gameMode === 'endless' ? '♾️ ENDLESS' : gameMode === 'daily' ? '📅 DAILY' : '🎲 RUN'}
-                            </span>
-                        </div>
+        <div className="max-w-4xl mx-auto mb-2 sm:mb-4" style={{ fontFamily: 'var(--nd-font-sans)' }}>
+            {/* Holographic top bar — single wide panel with reticle corners */}
+            <div className="nd-topbar-panel" style={{ marginBottom: 10 }}>
+                <span className="nd-reticle__c nd-reticle__c--tl" />
+                <span className="nd-reticle__c nd-reticle__c--tr" />
+                <span className="nd-reticle__c nd-reticle__c--bl" />
+                <span className="nd-reticle__c nd-reticle__c--br" />
+
+                {/* Identity block: back button + OPERATION + sector */}
+                <div className="nd-identity">
+                    {onMainMenu && (
+                        <button
+                            onClick={() => setShowExitConfirm(true)}
+                            className="nd-mono"
+                            style={{
+                                background: 'transparent', border: 'none', cursor: 'pointer',
+                                color: 'var(--nd-dim)', padding: 0, fontSize: 9, letterSpacing: 2,
+                                marginBottom: 2, display: 'block',
+                            }}
+                            aria-label="메인 메뉴로"
+                        >
+                            ◀ MAIN
+                        </button>
                     )}
-                    {/* 합의 10: Floor 표시 (캠페인만) */}
-                    {!isRunMode && floor > 0 && (
-                        <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-purple-500/50 flex items-center gap-1" title={`Floor ${floor} — HP ×${calcFloorHpMultiplier(floor).toFixed(2)}`}>
-                            <span className="text-purple-400">🏯</span>
-                            <span className="font-bold text-purple-300 whitespace-nowrap">F{floor}</span>
-                        </div>
-                    )}
-                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-emerald-500/50 flex items-center gap-1">
-                        <span className="text-emerald-400">🏰</span>
-                        <span className="font-bold text-emerald-300 whitespace-nowrap">{stage}/{gameMode === 'endless' ? '∞' : activeSPAWN.maxStage}</span>
+                    <div className="nd-identity__op">◇ OPERATION</div>
+                    <div className="nd-identity__title">NEON DEFENSE</div>
+                    <div className="nd-identity__sector">
+                        <span style={{ display: 'inline-block', width: 6, height: 6,
+                            background: 'var(--nd-green)', boxShadow: '0 0 6px var(--nd-green)',
+                            marginRight: 6, verticalAlign: 'middle' }} />
+                        SECTOR-{String(stage).padStart(2, '0')} · {isPlaying ? 'ACTIVE' : 'STANDBY'}
                     </div>
-                    <div
-                        className={'px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border flex items-center gap-1 ' +
-                            (wave === activeSPAWN.wavesPerStage
-                                ? 'bg-red-900/60 border-red-500 animate-pulse'
-                                : 'bg-gray-900 border-cyan-500/50')}
-                        title={wave === activeSPAWN.wavesPerStage ? '🚨 DANGER WAVE — 적 속도/체력 강화' : ''}
-                    >
-                        <span className={wave === activeSPAWN.wavesPerStage ? 'text-red-400' : 'text-cyan-400'}>
-                            {wave === activeSPAWN.wavesPerStage ? '🚨' : '🌊'}
-                        </span>
-                        <span className={'font-bold whitespace-nowrap ' + (wave === activeSPAWN.wavesPerStage ? 'text-red-300' : 'text-cyan-300')}>
-                            {wave}/{activeSPAWN.wavesPerStage}
-                        </span>
-                    </div>
-                    {/* 웨이브 테마 태그 (캠페인 한정, 활성 테마가 있을 때만 표시) */}
-                    {!isRunMode && (() => {
-                        const theme = (typeof WaveThemeSystem !== 'undefined')
-                            ? WaveThemeSystem.getTheme(stage, wave) : null;
-                        if (!theme) return null;
-                        return (
-                            <div
-                                className="px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border flex items-center gap-1 whitespace-nowrap"
-                                style={{ background: theme.color + '20', borderColor: theme.color + '99', boxShadow: '0 0 8px ' + theme.color + '60' }}
-                                title={theme.name + ' — ' + theme.hint}
-                            >
-                                <span style={{ color: theme.color }}>{theme.icon}</span>
-                                <span className="font-bold text-xs" style={{ color: theme.color }}>{theme.name}</span>
+                </div>
+
+                {/* 5 vital stats — equal-width horizontal gauges */}
+                <div className="nd-vital-grid">
+                    {vitals.map(s => (
+                        <div key={s.key} className="nd-vital">
+                            <div className="nd-vital__head">
+                                <span className="nd-vital__lbl" style={{ color: s.color }}>
+                                    <span style={{ marginRight: 4 }}>{s.icon}</span>{s.label}
+                                </span>
+                                <span className="nd-vital__val">{s.val}</span>
                             </div>
-                        );
-                    })()}
-                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-yellow-500/50 flex items-center gap-1">
-                        <span className="text-yellow-400">💰</span>
-                        <span className="font-bold text-yellow-300 whitespace-nowrap">{gold}</span>
-                    </div>
-                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-red-500/50 flex items-center gap-1">
-                        <span className="text-red-400">❤️</span>
-                        <span className="font-bold text-red-300 whitespace-nowrap">{lives}</span>
-                    </div>
-                    <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-orange-500/50 flex items-center gap-1">
-                        <span className="text-orange-400">🛤️</span>
-                        <span className="font-bold text-orange-300 whitespace-nowrap">{pathCount}</span>
-                    </div>
-                    {isPlaying && (
-                        <div className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gray-900 rounded-lg border border-purple-500/50 flex items-center gap-1">
-                            <span className="text-purple-400">👾</span>
-                            <span className="font-bold text-purple-300 whitespace-nowrap">{killedCount}/{activeSPAWN.enemiesPerWave(stage, wave)}</span>
+                            <div className="nd-vital__bar">
+                                <div style={{
+                                    width: `${s.pct}%`,
+                                    background: s.color,
+                                    boxShadow: `0 0 8px ${s.color}`,
+                                }} />
+                            </div>
                         </div>
-                    )}
+                    ))}
                 </div>
             </div>
-            {/* 영구 버프 표시 */}
+
+            {/* Secondary chip row — run mode / floor / wave theme / paths.
+                These are contextual, only show when relevant. */}
+            {(isRunMode || (!isRunMode && floor > 0) || themeTag || pathCount > 1) && (
+                <div className="flex flex-wrap items-center gap-2 mb-2 nd-mono" style={{ fontSize: 10, letterSpacing: 1.5 }}>
+                    {isRunMode && (
+                        <span style={{
+                            padding: '4px 10px', border: '1px solid rgba(255,169,77,0.4)',
+                            color: 'var(--nd-amber)', background: 'rgba(255,169,77,0.05)',
+                        }}>
+                            {gameMode === 'endless' ? '♾ ENDLESS' : gameMode === 'daily' ? '◆ DAILY' : '◎ RUN'}
+                        </span>
+                    )}
+                    {!isRunMode && floor > 0 && (
+                        <span
+                            title={`Floor ${floor} — HP ×${calcFloorHpMultiplier(floor).toFixed(2)}`}
+                            style={{
+                                padding: '4px 10px', border: '1px solid rgba(199,125,255,0.4)',
+                                color: 'var(--nd-el-dark)', background: 'rgba(199,125,255,0.05)',
+                            }}>
+                            ▲ F{floor}
+                        </span>
+                    )}
+                    {themeTag && (
+                        <span
+                            title={themeTag.name + ' — ' + themeTag.hint}
+                            style={{
+                                padding: '4px 10px', border: `1px solid ${themeTag.color}66`,
+                                color: themeTag.color, background: `${themeTag.color}10`,
+                            }}>
+                            {themeTag.icon} {themeTag.name}
+                        </span>
+                    )}
+                    {pathCount > 1 && (
+                        <span style={{
+                            padding: '4px 10px', border: '1px solid var(--nd-hair-strong)',
+                            color: 'var(--nd-dim)',
+                        }}>
+                            ◇ PATHS · {pathCount}
+                        </span>
+                    )}
+                </div>
+            )}
+
+            {/* Active permanent buffs — chip row */}
             {activeBuffs.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-1 mb-2">
+                <div className="flex flex-wrap gap-1 mb-2">
                     {activeBuffs.map(buff => (
                         <div
                             key={buff.id}
-                            className="px-2 py-1 rounded-full text-xs flex items-center gap-1"
+                            className="nd-mono"
                             style={{
-                                backgroundColor: `${buff.color}20`,
-                                border: `1px solid ${buff.color}`,
+                                padding: '3px 8px',
+                                background: `${buff.color}15`,
+                                border: `1px solid ${buff.color}66`,
                                 color: buff.color,
+                                fontSize: 10, letterSpacing: 1,
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
                             }}
                             title={`${buff.name}: ${buff.description}`}
                         >
-                            <span>{buff.icon}</span>
-                            {buff.stacks > 1 && <span className="font-bold">×{buff.stacks}</span>}
+                            <span style={{ fontFamily: 'var(--nd-font-sans)' }}>{buff.icon}</span>
+                            {buff.stacks > 1 && <span style={{ fontWeight: 700 }}>×{buff.stacks}</span>}
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* 메인 메뉴 복귀 확인 모달 */}
+            {/* Exit confirm modal — restyled to Holo language */}
             {showExitConfirm && (
-                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-                    <div className="bg-gray-900 p-6 rounded-xl border border-gray-600 text-center max-w-sm mx-4" style={{ boxShadow: '0 0 30px rgba(0,0,0,0.5)' }}>
-                        <p className="text-lg text-white font-bold mb-2">메인 메뉴로 돌아가시겠습니까?</p>
-                        <p className="text-sm text-gray-400 mb-5">현재 진행 상황이 저장되지 않습니다.</p>
+                <div className="fixed inset-0 flex items-center justify-center z-50"
+                    style={{ background: 'rgba(8,8,10,0.78)' }}>
+                    <div className="nd-panel nd-panel-strong" style={{
+                        background: 'var(--nd-bg-2)', padding: 28, maxWidth: 380, margin: '0 16px',
+                        textAlign: 'center', fontFamily: 'var(--nd-font-sans)',
+                    }}>
+                        <span className="nd-reticle__c nd-reticle__c--tl" />
+                        <span className="nd-reticle__c nd-reticle__c--tr" />
+                        <span className="nd-reticle__c nd-reticle__c--bl" />
+                        <span className="nd-reticle__c nd-reticle__c--br" />
+                        <div className="nd-eyebrow nd-eyebrow--amber" style={{ marginBottom: 10 }}>
+                            ◆ ABORT OPERATION
+                        </div>
+                        <p style={{ color: '#fff', fontSize: 16, fontWeight: 600, margin: '0 0 6px' }}>
+                            메인 메뉴로 돌아가시겠습니까?
+                        </p>
+                        <p style={{ color: 'var(--nd-dim)', fontSize: 12, margin: '0 0 22px' }}>
+                            현재 진행 상황이 저장되지 않습니다.
+                        </p>
                         <div className="flex gap-3 justify-center">
-                            <button onClick={() => setShowExitConfirm(false)} className="px-6 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-bold text-gray-300 transition-all">취소</button>
-                            <button onClick={() => { setShowExitConfirm(false); onMainMenu(); }} className="px-6 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 rounded-lg font-bold text-white transition-all">나가기</button>
+                            <button onClick={() => setShowExitConfirm(false)} className="nd-btn-ghost">
+                                × CANCEL
+                            </button>
+                            <button onClick={() => { setShowExitConfirm(false); onMainMenu(); }} className="nd-btn-deploy">
+                                ▶ EXIT
+                            </button>
                         </div>
                     </div>
                 </div>

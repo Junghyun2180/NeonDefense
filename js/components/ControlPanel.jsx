@@ -1,58 +1,106 @@
-// 적 타입별 한글 이름·간단 설명 (정보 카드용)
+// ControlPanel & InventoryPanel — Holographic Command
+// Spec: design handoff v1.0 / Page A · Game Play
+//   - ControlPanel = right rail "SELECTED UNIT" + selected enemy + selected support
+//   - InventoryPanel = bottom panel: tabs + element-tinted grid + action buttons
+
 const ENEMY_INFO = {
-    normal:     { label: '일반',        icon: '👾', desc: '기본 적' },
-    fast:       { label: '빠른 적',     icon: '💨', desc: '이동 속도 높음' },
-    elite:      { label: '엘리트',      icon: '⭐', desc: '고체력 + 방어력' },
-    boss:       { label: '보스',        icon: '👑', desc: '실드 + 방어력 + 패턴' },
-    jammer:     { label: '재머',        icon: '📡', desc: '주변 타워 공속 감소' },
-    suppressor: { label: '서프레서',    icon: '🛡️', desc: '주변 타워 공격력 감소 + 두꺼운 방어' },
-    healer:     { label: '힐러',        icon: '💚', desc: '주변 적 회복' },
-    splitter:   { label: '분열체',      icon: '💠', desc: '사망 시 분열' },
-    aegis:      { label: '이지스',      icon: '🛡', desc: '큰 실드 + 깨진 후 1회 재생' },
+    normal:     { label: '일반',      icon: '👾', desc: '기본 적' },
+    fast:       { label: '빠른 적',   icon: '💨', desc: '이동 속도 높음' },
+    elite:      { label: '엘리트',    icon: '⭐', desc: '고체력 + 방어력' },
+    boss:       { label: '보스',      icon: '👑', desc: '실드 + 방어력 + 패턴' },
+    jammer:     { label: '재머',      icon: '📡', desc: '주변 타워 공속 감소' },
+    suppressor: { label: '서프레서',  icon: '🛡️', desc: '주변 타워 공격력 감소 + 두꺼운 방어' },
+    healer:     { label: '힐러',      icon: '💚', desc: '주변 적 회복' },
+    splitter:   { label: '분열체',    icon: '💠', desc: '사망 시 분열' },
+    aegis:      { label: '이지스',    icon: '🛡', desc: '큰 실드 + 깨진 후 1회 재생' },
 };
 
-// ControlPanel - 맵 우측 사이드 패널 (선택된 타워/서포트/적 정보)
+// Reticle corner helper — adds 4 absolute-positioned 14px L-shapes
+const HoloReticle = () => React.createElement(React.Fragment, null,
+    React.createElement('span', { className: 'nd-reticle__c nd-reticle__c--tl' }),
+    React.createElement('span', { className: 'nd-reticle__c nd-reticle__c--tr' }),
+    React.createElement('span', { className: 'nd-reticle__c nd-reticle__c--bl' }),
+    React.createElement('span', { className: 'nd-reticle__c nd-reticle__c--br' }),
+);
+
+// ─────────────── ControlPanel (right rail) ───────────────
 const ControlPanel = ({
-    // 인벤토리 (조합용 카운트)
     inventory,
     selectedInventory,
     getElementInfo,
     selectedTowers,
     totalSellPrice,
-    // 서포트
     selectedSupportInventory,
     selectedSupportTowers,
     totalSupportSellPrice,
-    // 적 (신규)
     selectedEnemy,
     clearSelectedEnemy,
 }) => {
     const hasSelection = selectedTowers.length > 0 || selectedSupportTowers.length > 0 || !!selectedEnemy;
 
     return (
-        <div className="flex flex-col gap-2 w-40 shrink-0" style={{ visibility: hasSelection ? 'visible' : 'hidden' }}>
-            {/* 선택된 타워 정보 */}
-            {selectedTowers.length > 0 && (
-                <div className="bg-gray-900/80 rounded-lg p-2 border border-emerald-500/50">
-                    <p className="text-xs font-bold text-emerald-400 mb-1">🏗️ 선택 타워 ({selectedTowers.length})</p>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                            style={{ background: 'radial-gradient(circle, ' + selectedTowers[0].color + ' 0%, ' + selectedTowers[0].color + '80 50%, transparent 70%)' }}>
-                            {(() => {
-                                const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(selectedTowers[0].element, selectedTowers[0].tier) : null;
-                                return url
-                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                    : <span className="text-xs">{getElementInfo(selectedTowers[0].element).icon}</span>;
-                            })()}
+        <div
+            className="flex flex-col w-40 shrink-0"
+            style={{
+                gap: 8,
+                visibility: hasSelection ? 'visible' : 'hidden',
+                fontFamily: 'var(--nd-font-sans)',
+            }}
+        >
+            {/* ── SELECTED TOWER ── */}
+            {selectedTowers.length > 0 && (() => {
+                const t = selectedTowers[0];
+                const info = getElementInfo(t.element);
+                const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(t.element, t.tier) : null;
+                return (
+                    <div className="nd-panel relative" style={{ padding: '10px 12px' }}>
+                        <HoloReticle />
+                        <div className="nd-eyebrow" style={{ color: 'var(--nd-crimson)', letterSpacing: 2 }}>
+                            ◆ SELECTED UNIT {selectedTowers.length > 1 && (
+                                <span className="nd-tnum" style={{ color: 'var(--nd-text)', marginLeft: 4 }}>×{selectedTowers.length}</span>
+                            )}
                         </div>
-                        <span className="text-gray-300 text-xs truncate">{selectedTowers[0].name}</span>
-                        <span className="text-gray-500 text-xs shrink-0">T{selectedTowers[0].tier}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                            <div
+                                style={{
+                                    width: 32, height: 32,
+                                    background: `radial-gradient(circle, ${t.color}55 0%, transparent 70%)`,
+                                    border: `1px solid ${t.color}66`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}
+                            >
+                                {url
+                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 3px ${t.color})` }} />
+                                    : <span style={{ fontSize: 14 }}>{info.icon}</span>}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                                <div
+                                    style={{
+                                        fontSize: 12, color: '#fff', fontWeight: 700,
+                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                    }}
+                                    title={t.name}
+                                >
+                                    {t.name}
+                                </div>
+                                <div className="nd-mono" style={{ fontSize: 9, color: t.color, letterSpacing: 1, marginTop: 2 }}>
+                                    T{t.tier} · {info.name?.toUpperCase?.() || ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="nd-hair" style={{ margin: '8px 0' }} />
+                        <div
+                            className="nd-mono nd-tnum"
+                            style={{ fontSize: 10, color: 'var(--nd-amber)', letterSpacing: 1 }}
+                        >
+                            ◆ SELL <span style={{ color: '#fff', fontWeight: 700, marginLeft: 4 }}>+{totalSellPrice}G</span>
+                        </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">판매 시 {totalSellPrice}G 환급</p>
-                </div>
-            )}
+                );
+            })()}
 
-            {/* 선택된 적 정보 (신규) */}
+            {/* ── SELECTED ENEMY ── */}
             {selectedEnemy && (() => {
                 const info = ENEMY_INFO[selectedEnemy.type] || { label: selectedEnemy.type, icon: '❓', desc: '' };
                 const hpPct = Math.round((selectedEnemy.health / selectedEnemy.maxHealth) * 100);
@@ -63,102 +111,193 @@ const ControlPanel = ({
                     ? selectedEnemy.ability.getDescription()
                     : null;
                 return (
-                    <div className="bg-gray-900/80 rounded-lg p-2 border border-rose-500/50">
-                        <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs font-bold text-rose-400">👾 선택 적</p>
-                            <button onClick={clearSelectedEnemy} className="text-gray-500 hover:text-gray-200 text-xs leading-none px-1">✕</button>
+                    <div className="nd-panel relative" style={{ padding: '10px 12px' }}>
+                        <HoloReticle />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="nd-eyebrow" style={{ color: 'var(--nd-red-life)', letterSpacing: 2 }}>
+                                ✕ TARGET INTEL
+                            </div>
+                            <button
+                                onClick={clearSelectedEnemy}
+                                aria-label="close"
+                                style={{
+                                    background: 'transparent', border: 'none', cursor: 'pointer',
+                                    color: 'var(--nd-dim)', padding: 0, fontSize: 11, lineHeight: 1,
+                                }}
+                            >×</button>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-base leading-none">{info.icon}</span>
-                            <span className="text-gray-200 text-xs font-bold truncate">{info.label}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                            <span style={{ fontSize: 16 }}>{info.icon}</span>
+                            <span
+                                style={{
+                                    fontSize: 12, color: '#fff', fontWeight: 700,
+                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                }}
+                            >
+                                {info.label}
+                            </span>
                             {selectedEnemy.type === 'boss' && (
-                                <span className="text-[9px] font-black text-red-300 bg-red-900/60 px-1.5 py-0.5 rounded leading-none">BOSS</span>
+                                <span
+                                    className="nd-mono"
+                                    style={{
+                                        fontSize: 8, color: '#000', background: 'var(--nd-red-life)',
+                                        padding: '1px 4px', letterSpacing: 1, fontWeight: 700,
+                                    }}
+                                >BOSS</span>
                             )}
                             {selectedEnemy.isMiniboss && (
-                                <span className="text-[9px] font-black text-orange-300 bg-orange-900/60 px-1.5 py-0.5 rounded leading-none">MINI</span>
+                                <span
+                                    className="nd-mono"
+                                    style={{
+                                        fontSize: 8, color: '#000', background: 'var(--nd-amber)',
+                                        padding: '1px 4px', letterSpacing: 1, fontWeight: 700,
+                                    }}
+                                >MINI</span>
                             )}
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{info.desc}</p>
+                        <p
+                            className="nd-mono"
+                            style={{
+                                fontSize: 9, color: 'var(--nd-dim)', letterSpacing: 0.5,
+                                marginTop: 4, lineHeight: 1.4,
+                            }}
+                        >{info.desc}</p>
 
-                        {/* HP */}
-                        <div className="mt-1.5">
-                            <div className="flex items-center justify-between text-[10px] text-gray-400">
-                                <span>HP</span>
-                                <span className="text-green-300">{Math.max(0, Math.floor(selectedEnemy.health))}/{selectedEnemy.maxHealth}</span>
+                        {/* HP gauge */}
+                        <div style={{ marginTop: 8 }}>
+                            <div
+                                className="nd-mono nd-tnum"
+                                style={{
+                                    display: 'flex', justifyContent: 'space-between',
+                                    fontSize: 9, letterSpacing: 1.5,
+                                }}
+                            >
+                                <span style={{ color: 'var(--nd-green)' }}>HP</span>
+                                <span style={{ color: '#fff' }}>
+                                    {Math.max(0, Math.floor(selectedEnemy.health))}/{selectedEnemy.maxHealth}
+                                </span>
                             </div>
-                            <div className="w-full h-1 bg-gray-800 rounded mt-0.5 overflow-hidden">
-                                <div className="h-full bg-green-500" style={{ width: hpPct + '%' }} />
+                            <div className="nd-vital__bar" style={{ marginTop: 3 }}>
+                                <div style={{ width: hpPct + '%', background: 'var(--nd-green)' }} />
                             </div>
                         </div>
 
-                        {/* Shield */}
+                        {/* Shield gauge */}
                         {shieldPct !== null && (
-                            <div className="mt-1">
-                                <div className="flex items-center justify-between text-[10px] text-gray-400">
-                                    <span>실드</span>
-                                    <span className="text-cyan-300">{Math.max(0, Math.floor(selectedEnemy.shield))}/{selectedEnemy.shieldMax}</span>
+                            <div style={{ marginTop: 6 }}>
+                                <div
+                                    className="nd-mono nd-tnum"
+                                    style={{
+                                        display: 'flex', justifyContent: 'space-between',
+                                        fontSize: 9, letterSpacing: 1.5,
+                                    }}
+                                >
+                                    <span style={{ color: 'var(--nd-el-water)' }}>SHIELD</span>
+                                    <span style={{ color: '#fff' }}>
+                                        {Math.max(0, Math.floor(selectedEnemy.shield))}/{selectedEnemy.shieldMax}
+                                    </span>
                                 </div>
-                                <div className="w-full h-1 bg-gray-800 rounded mt-0.5 overflow-hidden">
-                                    <div className="h-full bg-cyan-400" style={{ width: shieldPct + '%' }} />
+                                <div className="nd-vital__bar" style={{ marginTop: 3 }}>
+                                    <div style={{ width: shieldPct + '%', background: 'var(--nd-el-water)' }} />
                                 </div>
                             </div>
                         )}
 
-                        {/* Armor */}
-                        {(selectedEnemy.armor || 0) > 0 && (
-                            <div className="mt-1 flex items-center justify-between text-[10px]">
-                                <span className="text-gray-400">방어력</span>
-                                <span className="text-yellow-300 font-bold">{selectedEnemy.armor}</span>
-                            </div>
-                        )}
-
-                        {/* Speed */}
-                        <div className="mt-0.5 flex items-center justify-between text-[10px]">
-                            <span className="text-gray-400">이동 속도</span>
-                            <span className="text-gray-300">{(selectedEnemy.speed || selectedEnemy.baseSpeed || 0).toFixed(2)}</span>
+                        {/* compact stat row */}
+                        <div className="nd-hair" style={{ margin: '8px 0' }} />
+                        <div
+                            className="nd-mono nd-tnum"
+                            style={{
+                                display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 3,
+                                fontSize: 9, letterSpacing: 1,
+                            }}
+                        >
+                            {(selectedEnemy.armor || 0) > 0 && (<>
+                                <span style={{ color: 'var(--nd-dim)' }}>ARMOR</span>
+                                <span style={{ color: 'var(--nd-gold)', fontWeight: 700 }}>{selectedEnemy.armor}</span>
+                            </>)}
+                            <span style={{ color: 'var(--nd-dim)' }}>SPEED</span>
+                            <span style={{ color: '#fff' }}>{(selectedEnemy.speed || selectedEnemy.baseSpeed || 0).toFixed(2)}</span>
+                            {selectedEnemy.goldReward != null && (<>
+                                <span style={{ color: 'var(--nd-dim)' }}>BOUNTY</span>
+                                <span style={{ color: 'var(--nd-amber)', fontWeight: 700 }}>+{selectedEnemy.goldReward}G</span>
+                            </>)}
                         </div>
 
-                        {/* Gold reward */}
-                        {selectedEnemy.goldReward != null && (
-                            <div className="mt-0.5 flex items-center justify-between text-[10px]">
-                                <span className="text-gray-400">처치 보상</span>
-                                <span className="text-yellow-200">{selectedEnemy.goldReward}G</span>
-                            </div>
-                        )}
-
-                        {/* Ability description */}
                         {abilityDesc && (
-                            <p className="text-[10px] text-purple-300 mt-1 leading-tight">{abilityDesc}</p>
+                            <div
+                                className="nd-mono"
+                                style={{
+                                    marginTop: 6, padding: '4px 6px',
+                                    borderLeft: '2px solid var(--nd-el-dark)',
+                                    background: 'rgba(199,125,255,0.05)',
+                                    fontSize: 9, color: 'var(--nd-el-dark)', lineHeight: 1.4,
+                                }}
+                            >
+                                {abilityDesc}
+                            </div>
                         )}
                     </div>
                 );
             })()}
 
-            {/* 선택된 서포트 타워 정보 */}
-            {selectedSupportTowers.length > 0 && (
-                <div className="bg-gray-900/80 rounded-lg p-2 border border-orange-500/50">
-                    <p className="text-xs font-bold text-orange-400 mb-1">🛡️ 선택 서포트 ({selectedSupportTowers.length})</p>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 flex items-center justify-center shrink-0"
-                            style={{ background: 'linear-gradient(135deg, ' + selectedSupportTowers[0].color + ' 0%, ' + selectedSupportTowers[0].color + '80 100%)', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}>
-                            {(() => {
-                                const url = (typeof SupportSprite !== 'undefined') ? SupportSprite.getUrl(selectedSupportTowers[0].supportType, selectedSupportTowers[0].tier) : null;
-                                return url
-                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                    : <span className="text-xs">{SUPPORT_UI[selectedSupportTowers[0].supportType].icon}</span>;
-                            })()}
+            {/* ── SELECTED SUPPORT ── */}
+            {selectedSupportTowers.length > 0 && (() => {
+                const s = selectedSupportTowers[0];
+                const supportInfo = SUPPORT_UI[s.supportType];
+                const url = (typeof SupportSprite !== 'undefined') ? SupportSprite.getUrl(s.supportType, s.tier) : null;
+                return (
+                    <div className="nd-panel relative" style={{ padding: '10px 12px' }}>
+                        <HoloReticle />
+                        <div className="nd-eyebrow nd-eyebrow--amber" style={{ letterSpacing: 2 }}>
+                            ◇ SUPPORT UNIT {selectedSupportTowers.length > 1 && (
+                                <span className="nd-tnum" style={{ color: 'var(--nd-text)', marginLeft: 4 }}>×{selectedSupportTowers.length}</span>
+                            )}
                         </div>
-                        <span className="text-gray-300 text-xs truncate">{selectedSupportTowers[0].name}</span>
-                        <span className="text-gray-500 text-xs shrink-0">S{selectedSupportTowers[0].tier}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                            <div
+                                style={{
+                                    width: 32, height: 32,
+                                    background: `radial-gradient(circle, ${s.color}55 0%, transparent 70%)`,
+                                    border: `1px solid ${s.color}66`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    flexShrink: 0,
+                                }}
+                            >
+                                {url
+                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 3px ${s.color})` }} />
+                                    : <span style={{ fontSize: 14 }}>{supportInfo?.icon}</span>}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                                <div
+                                    style={{
+                                        fontSize: 12, color: '#fff', fontWeight: 700,
+                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                    }}
+                                    title={s.name}
+                                >
+                                    {s.name}
+                                </div>
+                                <div className="nd-mono" style={{ fontSize: 9, color: s.color, letterSpacing: 1, marginTop: 2 }}>
+                                    S{s.tier} · {(supportInfo?.name || '').toUpperCase()}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="nd-hair" style={{ margin: '8px 0' }} />
+                        <div
+                            className="nd-mono nd-tnum"
+                            style={{ fontSize: 10, color: 'var(--nd-amber)', letterSpacing: 1 }}
+                        >
+                            ◆ SELL <span style={{ color: '#fff', fontWeight: 700, marginLeft: 4 }}>+{totalSupportSellPrice}G</span>
+                        </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">판매 시 {totalSupportSellPrice}G 환급</p>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 };
 
-// InventoryPanel - 하단 전체: 탭 기반 통합 인벤토리
+// ─────────────── InventoryPanel ───────────────
 const InventoryPanel = ({
     gold,
     isPlaying,
@@ -170,7 +309,6 @@ const InventoryPanel = ({
     drawRandomSupport,
     drawRandomSupport10,
     effectiveDrawCost,
-    // 인벤토리
     inventory,
     selectedInventory,
     selectedTowerForPlacement,
@@ -183,7 +321,6 @@ const InventoryPanel = ({
     selectedTowers,
     totalSellPrice,
     canCombineTowers,
-    // 서포트 인벤토리
     supportInventory,
     selectedSupportInventory,
     combineSupports,
@@ -193,7 +330,6 @@ const InventoryPanel = ({
     selectedSupportTowers,
     totalSupportSellPrice,
     canCombineSupportTowers,
-    // 속도감 설정
     autoCombine,
     setAutoCombine,
     autoSupportCombine,
@@ -206,16 +342,28 @@ const InventoryPanel = ({
     setMaxGameSpeed,
 }) => {
     const [activeTab, setActiveTab] = React.useState('tower');
-    // 필터 (탭별 분리, 세션 유지). null = 전체
-    const [towerFilter, setTowerFilter] = React.useState(null);     // 0~5 (element index)
-    const [supportFilter, setSupportFilter] = React.useState(null); // 0~3 (supportType)
-    // 정렬 모드: 'tier'(티어 우선, 기본) | 'group'(속성 묶음) | 'combinable'(3+ 모인 그룹 우선)
+    const [towerFilter, setTowerFilter] = React.useState(null);
+    const [supportFilter, setSupportFilter] = React.useState(null);
     const [sortMode, setSortMode] = React.useState('tier');
+
+    // 스프라이트 로드 완료 감지 → 리렌더 트리거
+    const [spritesReady, setSpritesReady] = React.useState(() =>
+        (typeof TowerSprite !== 'undefined' && TowerSprite._available?.size > 0)
+        || (typeof SupportSprite !== 'undefined' && SupportSprite._available?.size > 0));
+    React.useEffect(() => {
+        const h = () => setSpritesReady(true);
+        window.addEventListener('tower-sprites-ready', h);
+        window.addEventListener('support-sprites-ready', h);
+        return () => {
+            window.removeEventListener('tower-sprites-ready', h);
+            window.removeEventListener('support-sprites-ready', h);
+        };
+    }, []);
 
     const activeFilter = activeTab === 'tower' ? towerFilter : supportFilter;
     const setActiveFilter = activeTab === 'tower' ? setTowerFilter : setSupportFilter;
 
-    // 그룹별 카운트 헬퍼 (combinable 정렬용)
+    // group counts (for combinable sort)
     const towerGroupCounts = React.useMemo(() => {
         const map = {};
         (inventory || []).forEach(n => {
@@ -234,7 +382,6 @@ const InventoryPanel = ({
         return map;
     }, [supportInventory]);
 
-    // --- 표시용 정렬 (필터 + 정렬 모드 적용) ---
     const sortedInventory = React.useMemo(() => {
         let list = [...(inventory || [])];
         if (towerFilter !== null) list = list.filter(n => (n.colorIndex ?? n.element) === towerFilter);
@@ -276,7 +423,6 @@ const InventoryPanel = ({
         });
     }, [supportInventory, supportFilter, sortMode, supportGroupCounts]);
 
-    // --- 통합 뽑기 ---
     const drawHandler = activeTab === 'tower' ? drawRandomNeon : drawRandomSupport;
     const drawHandler10 = activeTab === 'tower' ? drawRandomNeon10 : drawRandomSupport10;
     const drawCost = activeTab === 'tower' ? effectiveDrawCost : ECONOMY.supportDrawCost;
@@ -285,7 +431,6 @@ const InventoryPanel = ({
     const setActiveAutoCombine = activeTab === 'tower' ? setAutoCombine : setAutoSupportCombine;
     const presetCount = Object.keys(t4RolePresets || {}).length;
 
-    // 10연뽑 시 실제 가능 횟수 (골드/슬롯 제한 반영) — 버튼 레이블 오인 방지
     const remainingSlots = activeTab === 'tower'
         ? (ECONOMY.maxInventory - (inventory?.length || 0))
         : (ECONOMY.maxSupportInventory - (supportInventory?.length || 0));
@@ -293,7 +438,6 @@ const InventoryPanel = ({
     const draw10Count = Math.max(0, Math.min(10, remainingSlots, maxByGold));
     const draw10Cost = draw10Count * drawCost;
 
-    // --- 통합 조합 ---
     const handleCombine = () => {
         if (selectedTowers.length > 0) return combineTowers();
         if (selectedSupportTowers.length > 0) return combineSupportTowers();
@@ -309,13 +453,11 @@ const InventoryPanel = ({
         || (selectedSupportInventory.length === 3 && selectedSupportInventory[0]?.tier < 3);
     const combineCount = selectedTowers.length + selectedInventory.length + selectedSupportTowers.length + selectedSupportInventory.length;
 
-    // --- 통합 전체 조합 ---
     const handleCombineAll = activeTab === 'tower' ? combineAllNeons : combineAllSupports;
     const combinableCount = activeTab === 'tower'
         ? TowerSystem.getCombinableCount(inventory)
         : TowerSystem.getSupportCombinableCount(supportInventory);
 
-    // --- 통합 판매 ---
     const handleSell = () => {
         if (selectedTowers.length > 0) return sellSelectedTowers();
         if (selectedSupportTowers.length > 0) return sellSelectedSupportTowers();
@@ -323,200 +465,465 @@ const InventoryPanel = ({
     const sellPrice = selectedTowers.length > 0 ? totalSellPrice : totalSupportSellPrice;
     const canSell = selectedTowers.length > 0 || selectedSupportTowers.length > 0;
 
+    // ─── shared button helper ───
+    const holoBtn = ({
+        label, sub, color, onClick, disabled, title,
+        flex = 1, primary = false, isStart = false,
+    }) => {
+        const base = {
+            flex, padding: isStart ? '6px 14px' : '6px 10px',
+            fontFamily: 'var(--nd-font-mono)',
+            fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.4 : 1,
+            border: '1px solid', borderRadius: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            whiteSpace: 'nowrap', minWidth: 0,
+            transition: 'background 0.12s, border-color 0.12s',
+        };
+        const variant = primary
+            ? {
+                background: 'linear-gradient(90deg, var(--nd-crimson) 0%, var(--nd-amber) 100%)',
+                color: '#000', border: 'none',
+            }
+            : {
+                background: `${color}12`, borderColor: `${color}66`, color,
+            };
+        return (
+            <button
+                type="button" onClick={onClick} disabled={disabled} title={title}
+                style={{ ...base, ...variant }}
+            >
+                <span>{label}</span>
+                {sub && (
+                    <span
+                        className="nd-tnum"
+                        style={{ fontSize: 10, opacity: primary ? 0.85 : 0.7, fontWeight: 500 }}
+                    >
+                        {sub}
+                    </span>
+                )}
+            </button>
+        );
+    };
+
     return (
-        <div className="max-w-4xl mx-auto mt-3 space-y-1.5">
-            {/* 버튼 행: 시작 / 뽑기 x1 / 뽑기 x10 / 조합 / 전체 조합 / 판매 */}
-            <div className="flex gap-1.5 flex-wrap">
-                <button type="button" onClick={startWave} disabled={isPlaying}
-                    className="btn-neon px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-cyan-400/30 text-sm whitespace-nowrap shrink-0">
-                    {isPlaying ? '⏳ 전투 중' : '▶ 시작'}
-                </button>
-                <button type="button" onClick={drawHandler} disabled={gold < drawCost || isFull}
-                    className={'flex-1 btn-neon px-2 py-1.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap border ' + (activeTab === 'tower' ? 'bg-gradient-to-r from-pink-600 to-purple-600 border-pink-400/30' : 'bg-gradient-to-r from-orange-500 to-amber-500 border-orange-400/30')}>
-                    {isFull ? '📦 가득 참' : '🎲 x1 (' + drawCost + 'G)'}
-                </button>
-                <button type="button" onClick={drawHandler10} disabled={gold < drawCost || isFull || draw10Count === 0}
-                    className={'flex-1 btn-neon px-2 py-1.5 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap border ' + (activeTab === 'tower' ? 'bg-gradient-to-r from-fuchsia-700 to-purple-700 border-fuchsia-400/50' : 'bg-gradient-to-r from-orange-600 to-rose-600 border-orange-400/50')}
-                    title={'최대 10회 연속 뽑기 — 실제 ' + draw10Count + '회 (' + draw10Cost + 'G)'}>
-                    {draw10Count === 10 ? '🎲 x10' : ('🎲 x' + draw10Count)} ({draw10Cost}G)
-                </button>
-                <div className="w-px bg-gray-700 self-stretch" />
-                <button type="button" onClick={handleCombine} disabled={!canCombine}
-                    className="flex-1 btn-neon px-2 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400/30 text-sm whitespace-nowrap">
-                    {isMaxTier ? '⚡ 최대' : '⚡ 조합 (' + combineCount + '/3)'}
-                </button>
-                <button type="button" onClick={handleCombineAll} disabled={combinableCount === 0}
-                    className="flex-1 btn-neon px-2 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-amber-400/30 text-sm whitespace-nowrap">
-                    🔄 전체 ({combinableCount})
-                </button>
-                <button type="button" onClick={handleSell} disabled={!canSell}
-                    className="flex-1 btn-neon px-2 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed border border-red-400/30 text-sm whitespace-nowrap">
-                    💰 판매 {canSell ? '(+' + sellPrice + 'G)' : ''}
-                </button>
+        <div
+            className="max-w-4xl mx-auto"
+            style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8, fontFamily: 'var(--nd-font-sans)' }}
+        >
+            {/* ── ACTION BAR ── */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {holoBtn({
+                    label: isPlaying ? '⏳ IN COMBAT' : '▶ DEPLOY',
+                    onClick: startWave, disabled: isPlaying,
+                    primary: true, flex: '0 0 auto', isStart: true,
+                })}
+                {holoBtn({
+                    label: isFull ? '◌ INVENTORY FULL' : '◇ ROLL ×1',
+                    sub: isFull ? null : `${drawCost}G`,
+                    color: activeTab === 'tower' ? 'var(--nd-crimson)' : 'var(--nd-amber)',
+                    onClick: drawHandler, disabled: gold < drawCost || isFull,
+                })}
+                {holoBtn({
+                    label: draw10Count === 10 ? '◇ ROLL ×10' : `◇ ROLL ×${draw10Count}`,
+                    sub: `${draw10Cost}G`,
+                    color: activeTab === 'tower' ? 'var(--nd-el-dark)' : 'var(--nd-amber)',
+                    onClick: drawHandler10, disabled: gold < drawCost || isFull || draw10Count === 0,
+                    title: `최대 10회 연속 — 실제 ${draw10Count}회 (${draw10Cost}G)`,
+                })}
+                <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--nd-hair)' }} />
+                {holoBtn({
+                    label: isMaxTier ? '⚡ MAX TIER' : '⚡ FUSE',
+                    sub: isMaxTier ? null : `${combineCount}/3`,
+                    color: 'var(--nd-gold)',
+                    onClick: handleCombine, disabled: !canCombine,
+                })}
+                {holoBtn({
+                    label: '⚡ FUSE-ALL',
+                    sub: combinableCount > 0 ? `×${combinableCount}` : null,
+                    color: 'var(--nd-amber)',
+                    onClick: handleCombineAll, disabled: combinableCount === 0,
+                })}
+                {holoBtn({
+                    label: '◢ SELL',
+                    sub: canSell ? `+${sellPrice}G` : null,
+                    color: 'var(--nd-red-life)',
+                    onClick: handleSell, disabled: !canSell,
+                })}
             </div>
 
-            {/* 자동화 옵션 행 */}
-            <div className="flex gap-3 items-center text-xs text-gray-400 px-1 flex-wrap">
-                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200">
-                    <input type="checkbox" checked={!!activeAutoCombine}
+            {/* ── AUTOMATION ROW ── */}
+            <div
+                className="nd-mono"
+                style={{
+                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
+                    fontSize: 10, letterSpacing: 1, color: 'var(--nd-dim)',
+                    padding: '0 4px',
+                }}
+            >
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                    <input
+                        type="checkbox"
+                        checked={!!activeAutoCombine}
                         onChange={(e) => setActiveAutoCombine && setActiveAutoCombine(e.target.checked)}
-                        className="w-3.5 h-3.5 accent-cyan-400" />
-                    <span>뽑기 후 자동 조합</span>
+                        style={{ accentColor: 'var(--nd-crimson)', width: 12, height: 12 }}
+                    />
+                    AUTO-FUSE ON ROLL
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200">
-                    <input type="checkbox" checked={!!autoNextWave}
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                    <input
+                        type="checkbox"
+                        checked={!!autoNextWave}
                         onChange={(e) => setAutoNextWave && setAutoNextWave(e.target.checked)}
-                        className="w-3.5 h-3.5 accent-cyan-400" />
-                    <span>자동 다음 웨이브</span>
+                        style={{ accentColor: 'var(--nd-crimson)', width: 12, height: 12 }}
+                    />
+                    AUTO NEXT WAVE
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer select-none hover:text-gray-200" title="최대 배속 슬라이더">
-                    <span>최대 배속</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="최대 배속 슬라이더">
+                    <span>MAX SPEED</span>
                     <select
                         value={maxGameSpeed ?? 5}
                         onChange={(e) => setMaxGameSpeed && setMaxGameSpeed(Number(e.target.value))}
-                        className="bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 text-gray-200 text-xs"
+                        className="nd-mono nd-tnum"
+                        style={{
+                            background: 'var(--nd-bg-2)', border: '1px solid var(--nd-hair)',
+                            color: '#fff', padding: '2px 6px', fontSize: 10, letterSpacing: 1,
+                        }}
                     >
-                        <option value={3}>3x</option>
-                        <option value={4}>4x</option>
-                        <option value={5}>5x</option>
+                        <option value={3}>×3</option>
+                        <option value={4}>×4</option>
+                        <option value={5}>×5</option>
                     </select>
                 </label>
                 {presetCount > 0 && (
-                    <button type="button" onClick={clearAllT4RolePresets}
-                        className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2"
-                        title="저장된 T4 역할 프리셋 초기화">
-                        T4 역할 기억 초기화 ({presetCount})
+                    <button
+                        type="button" onClick={clearAllT4RolePresets}
+                        title="저장된 T4 역할 프리셋 초기화"
+                        className="nd-mono"
+                        style={{
+                            background: 'transparent', border: 'none', cursor: 'pointer',
+                            color: 'var(--nd-amber)', textDecoration: 'underline',
+                            fontSize: 10, letterSpacing: 1, padding: 0, marginLeft: 'auto',
+                        }}
+                    >
+                        ◇ RESET T4 PRESET ({presetCount})
                     </button>
                 )}
             </div>
 
-            {/* 탭 + 인벤토리 그리드 */}
-            <div className="bg-gray-900/80 rounded-lg border border-gray-700 overflow-hidden">
-                {/* 탭 헤더 */}
-                <div className="flex border-b border-gray-700">
-                    <button type="button" onClick={() => setActiveTab('tower')}
-                        className={'flex-1 px-3 py-1.5 text-xs font-bold transition-colors ' + (activeTab === 'tower' ? 'text-cyan-400 bg-gray-800/80 border-b-2 border-cyan-400' : 'text-gray-500 hover:text-gray-300')}>
-                        📦 타워 ({inventory.length}/{ECONOMY.maxInventory})
-                    </button>
-                    <button type="button" onClick={() => setActiveTab('support')}
-                        className={'flex-1 px-3 py-1.5 text-xs font-bold transition-colors ' + (activeTab === 'support' ? 'text-orange-400 bg-gray-800/80 border-b-2 border-orange-400' : 'text-gray-500 hover:text-gray-300')}>
-                        🛡️ 서포트 ({supportInventory.length}/{ECONOMY.maxSupportInventory})
-                    </button>
+            {/* ── TABS + GRID PANEL ── */}
+            <div className="nd-panel relative" style={{ overflow: 'hidden' }}>
+                <HoloReticle />
+
+                {/* Tab header */}
+                <div className="nd-tabs" style={{ gap: 0, padding: '0 14px' }}>
+                    {[
+                        { k: 'tower',   label: 'ARSENAL', count: `${inventory.length}/${ECONOMY.maxInventory}`,        c: 'var(--nd-crimson)' },
+                        { k: 'support', label: 'SUPPORT', count: `${supportInventory.length}/${ECONOMY.maxSupportInventory}`, c: 'var(--nd-amber)' },
+                    ].map(t => {
+                        const active = activeTab === t.k;
+                        return (
+                            <button
+                                key={t.k} type="button" onClick={() => setActiveTab(t.k)}
+                                className={'nd-tab' + (active ? ' nd-tab--active' : '')}
+                                style={{
+                                    color: active ? '#fff' : t.c,
+                                    borderBottomColor: active ? t.c : 'transparent',
+                                    paddingLeft: 0, paddingRight: 18,
+                                }}
+                            >
+                                {t.label}
+                                <span
+                                    className="nd-tnum"
+                                    style={{
+                                        marginLeft: 6, fontSize: 10, color: active ? 'var(--nd-amber)' : 'var(--nd-dimmer)',
+                                        fontWeight: 500, letterSpacing: 1,
+                                    }}
+                                >
+                                    {t.count}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
 
-                {/* 필터 칩 + 정렬 토글 */}
-                <div className="flex items-center gap-1.5 px-2 pt-1.5 pb-1 border-b border-gray-800/60 flex-wrap">
-                    <button type="button"
-                        onClick={() => setActiveFilter(null)}
-                        className={'text-[10px] px-1.5 py-0.5 rounded border ' + (activeFilter === null ? 'bg-gray-700 border-gray-500 text-white' : 'bg-gray-900/60 border-gray-700 text-gray-400 hover:text-gray-200')}
-                        title="전체 보기">전체</button>
-                    {activeTab === 'tower' ? (
-                        [0, 1, 2, 3, 4, 5].map(elIdx => {
+                {/* Filter chips + sort toggle */}
+                <div
+                    style={{
+                        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4,
+                        padding: '6px 10px', borderBottom: '1px solid var(--nd-hair)',
+                    }}
+                >
+                    <button
+                        type="button" onClick={() => setActiveFilter(null)}
+                        className="nd-mono"
+                        style={{
+                            fontSize: 9, letterSpacing: 1, padding: '2px 8px',
+                            background: activeFilter === null ? 'rgba(255,255,255,0.06)' : 'transparent',
+                            border: '1px solid ' + (activeFilter === null ? 'var(--nd-hair-strong)' : 'var(--nd-hair)'),
+                            color: activeFilter === null ? '#fff' : 'var(--nd-dim)',
+                            cursor: 'pointer',
+                        }}
+                        title="전체 보기"
+                    >
+                        ALL
+                    </button>
+                    {activeTab === 'tower'
+                        ? [0, 1, 2, 3, 4, 5].map(elIdx => {
                             const info = getElementInfo(elIdx);
                             const active = towerFilter === elIdx;
                             return (
-                                <button key={'fc-' + elIdx} type="button"
+                                <button
+                                    key={'fc-' + elIdx} type="button"
                                     onClick={() => setTowerFilter(active ? null : elIdx)}
-                                    className={'text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-0.5 ' + (active ? 'border-white text-white' : 'border-gray-700 text-gray-300 hover:border-gray-500')}
-                                    style={active ? { boxShadow: '0 0 6px ' + info.color, background: info.color + '30' } : null}
-                                    title={info.name + ' 필터'}>
-                                    <span>{info.icon}</span>
+                                    title={info.name + ' 필터'}
+                                    style={{
+                                        fontSize: 11, padding: '2px 6px',
+                                        border: '1px solid ' + (active ? info.color : 'var(--nd-hair)'),
+                                        background: active ? `${info.color}1f` : 'transparent',
+                                        color: active ? '#fff' : info.color,
+                                        cursor: 'pointer',
+                                        boxShadow: active ? `0 0 4px ${info.color}` : 'none',
+                                    }}
+                                >
+                                    {info.icon}
                                 </button>
                             );
                         })
-                    ) : (
-                        [0, 1, 2, 3].map(stIdx => {
+                        : [0, 1, 2, 3].map(stIdx => {
                             const info = SUPPORT_UI[stIdx];
                             const active = supportFilter === stIdx;
                             return (
-                                <button key={'fs-' + stIdx} type="button"
+                                <button
+                                    key={'fs-' + stIdx} type="button"
                                     onClick={() => setSupportFilter(active ? null : stIdx)}
-                                    className={'text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-0.5 ' + (active ? 'border-white text-white' : 'border-gray-700 text-gray-300 hover:border-gray-500')}
-                                    style={active ? { boxShadow: '0 0 6px ' + info.color, background: info.color + '30' } : null}
-                                    title={info.name + ' 필터'}>
-                                    <span>{info.icon}</span>
+                                    title={info.name + ' 필터'}
+                                    style={{
+                                        fontSize: 11, padding: '2px 6px',
+                                        border: '1px solid ' + (active ? info.color : 'var(--nd-hair)'),
+                                        background: active ? `${info.color}1f` : 'transparent',
+                                        color: active ? '#fff' : info.color,
+                                        cursor: 'pointer',
+                                        boxShadow: active ? `0 0 4px ${info.color}` : 'none',
+                                    }}
+                                >
+                                    {info.icon}
                                 </button>
                             );
-                        })
-                    )}
-                    <div className="ml-auto flex items-center gap-1">
-                        <span className="text-[10px] text-gray-500">정렬</span>
-                        <button type="button"
+                        })}
+
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span className="nd-mono" style={{ fontSize: 9, color: 'var(--nd-dimmer)', letterSpacing: 1.5 }}>
+                            SORT
+                        </span>
+                        <button
+                            type="button"
                             onClick={() => {
                                 const next = sortMode === 'tier' ? 'group' : sortMode === 'group' ? 'combinable' : 'tier';
                                 setSortMode(next);
                             }}
-                            className="text-[10px] px-1.5 py-0.5 rounded border border-gray-700 bg-gray-900/60 text-gray-300 hover:text-white hover:border-gray-500"
-                            title="정렬 모드 전환">
-                            {sortMode === 'tier' ? '티어 ↓' : sortMode === 'group' ? '속성 묶음' : '조합 가능'}
+                            title="정렬 모드 전환"
+                            className="nd-mono"
+                            style={{
+                                fontSize: 9, letterSpacing: 1, padding: '2px 8px',
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid var(--nd-hair)', color: 'var(--nd-text)',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            {sortMode === 'tier' ? '◆ TIER ↓' : sortMode === 'group' ? '◇ GROUP' : '⚡ FUSABLE'}
                         </button>
                     </div>
                 </div>
 
-                {/* 인벤토리 그리드 — 슬롯 최소폭을 TILE_SIZE로 잡아 맵 위 타워와 사이즈 매치.
-                    컨테이너 폭에 따라 컬럼 수 자동 조정 (auto-fill). 필터 적용 시 빈 셀 생략. */}
-                <div className="p-2">
+                {/* Inventory grid */}
+                <div style={{ padding: 8 }}>
                     {activeTab === 'tower' ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`, gap: '2px' }}>
+                        <div
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`,
+                                gap: 4,
+                            }}
+                        >
                             {Array.from({ length: towerFilter === null ? ECONOMY.maxInventory : sortedInventory.length }, (_, i) => {
                                 const neon = sortedInventory[i];
-                                if (neon) {
-                                    const isSelected = selectedInventory.some(n => n.id === neon.id);
-                                    const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === neon.id;
-                                    const elementInfo = getElementInfo(neon.element);
-                                    let borderClass = 'border-transparent hover:border-gray-500';
-                                    let boxShadow = 'none';
-                                    if (isInPlacementMode) { borderClass = 'border-yellow-400'; boxShadow = '0 0 8px #facc15'; }
-                                    else if (isSelected) { borderClass = 'border-white selected'; boxShadow = '0 0 8px ' + neon.color; }
+                                if (!neon) {
                                     return (
-                                        <div key={neon.id}
-                                            onClick={(e) => { e.stopPropagation(); handleInventoryClick(neon); }}
-                                            className={'inventory-item aspect-square rounded flex flex-col items-center justify-center border-2 cursor-pointer ' + borderClass}
-                                            style={{ background: 'radial-gradient(circle, ' + neon.color + '80 0%, ' + neon.color + '40 70%)', color: neon.color, boxShadow }}
-                                            title={neon.name + '\nTier ' + neon.tier + '\n' + elementInfo.icon + ' ' + elementInfo.name + ': ' + elementInfo.desc}>
-                                            {(() => {
-                                                const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(neon.element, neon.tier) : null;
-                                                return url
-                                                    ? <img src={url} alt="" draggable={false} style={{ width: '85%', height: '85%', objectFit: 'contain', pointerEvents: 'none', filter: 'drop-shadow(0 0 3px ' + neon.color + ')' }} />
-                                                    : <span className="text-xs leading-none">{elementInfo.icon}</span>;
-                                            })()}
-                                            <span className="text-[10px] font-black text-white drop-shadow leading-none">T{neon.tier}</span>
-                                        </div>
+                                        <div
+                                            key={'empty-' + i}
+                                            style={{
+                                                aspectRatio: '1',
+                                                border: '1px dashed var(--nd-hair)',
+                                                background: 'rgba(255,255,255,0.015)',
+                                            }}
+                                        />
                                     );
                                 }
-                                return <div key={'empty-' + i} className="aspect-square rounded border border-gray-700/50 bg-gray-800/30" />;
+                                const isSelected = selectedInventory.some(n => n.id === neon.id);
+                                const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === neon.id;
+                                const elementInfo = getElementInfo(neon.element);
+                                const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(neon.element, neon.tier) : null;
+                                const groupKey = neon.tier + ':' + (neon.colorIndex ?? neon.element ?? 0);
+                                const fusableHint = !isSelected && !isInPlacementMode && (towerGroupCounts[groupKey] || 0) >= 3 && neon.tier < 4;
+
+                                let borderColor = `${neon.color}55`;
+                                let boxShadow = 'none';
+                                let bgFill = `linear-gradient(135deg, ${neon.color}26 0%, rgba(0,0,0,0.4) 100%)`;
+                                if (isInPlacementMode) {
+                                    borderColor = 'var(--nd-gold)';
+                                    boxShadow = '0 0 8px var(--nd-gold)';
+                                } else if (isSelected) {
+                                    borderColor = '#fff';
+                                    boxShadow = `0 0 8px ${neon.color}`;
+                                    bgFill = `linear-gradient(135deg, ${neon.color}40 0%, rgba(0,0,0,0.3) 100%)`;
+                                }
+
+                                return (
+                                    <div
+                                        key={neon.id}
+                                        onClick={(e) => { e.stopPropagation(); handleInventoryClick(neon); }}
+                                        className="inventory-item"
+                                        style={{
+                                            aspectRatio: '1', position: 'relative',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: bgFill,
+                                            border: `1px solid ${borderColor}`,
+                                            color: neon.color, cursor: 'pointer', boxShadow,
+                                            transition: 'border-color 0.12s, box-shadow 0.12s',
+                                        }}
+                                        title={neon.name + '\nTier ' + neon.tier + '\n' + elementInfo.icon + ' ' + elementInfo.name + ': ' + elementInfo.desc}
+                                    >
+                                        {/* tier badge — handoff spec: top-left, mono, element color chip */}
+                                        <span
+                                            className="nd-mono"
+                                            style={{
+                                                position: 'absolute', top: 2, left: 3, zIndex: 2,
+                                                fontSize: 9, padding: '0 4px',
+                                                background: neon.color, color: '#000',
+                                                fontWeight: 800, letterSpacing: 0.5, lineHeight: 1.4,
+                                            }}
+                                        >
+                                            T{neon.tier}
+                                        </span>
+                                        {/* fusable hint */}
+                                        {fusableHint && (
+                                            <span
+                                                className="nd-motion-pulse"
+                                                style={{
+                                                    position: 'absolute', top: 2, right: 4, zIndex: 2,
+                                                    fontSize: 9, color: 'var(--nd-green)',
+                                                    fontWeight: 700, textShadow: '0 0 4px var(--nd-green)',
+                                                }}
+                                            >
+                                                ⚡
+                                            </span>
+                                        )}
+                                        {url
+                                            ? <img src={url} alt="" draggable={false}
+                                                style={{
+                                                    width: '85%', height: '85%', objectFit: 'contain',
+                                                    pointerEvents: 'none',
+                                                    filter: `drop-shadow(0 0 3px ${neon.color})`,
+                                                }} />
+                                            : <span style={{ fontSize: 16 }}>{elementInfo.icon}</span>}
+                                    </div>
+                                );
                             })}
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`, gap: '2px' }}>
+                        <div
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`,
+                                gap: 4,
+                            }}
+                        >
                             {Array.from({ length: supportFilter === null ? ECONOMY.maxSupportInventory : sortedSupportInventory.length }, (_, i) => {
                                 const support = sortedSupportInventory[i];
-                                if (support) {
-                                    const isSelected = selectedSupportInventory.some(s => s.id === support.id);
-                                    const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === support.id;
-                                    const supportInfo = SUPPORT_UI[support.supportType];
-                                    let borderClass = 'border-transparent hover:border-gray-500';
-                                    let boxShadow = 'none';
-                                    if (isInPlacementMode) { borderClass = 'border-yellow-400'; boxShadow = '0 0 8px #facc15'; }
-                                    else if (isSelected) { borderClass = 'border-white selected'; boxShadow = '0 0 8px ' + support.color; }
+                                if (!support) {
                                     return (
-                                        <div key={support.id}
-                                            onClick={(e) => { e.stopPropagation(); handleInventoryClick(support); }}
-                                            className={'inventory-item aspect-square flex flex-col items-center justify-center border-2 cursor-pointer ' + borderClass}
-                                            style={{ background: 'linear-gradient(135deg, ' + support.color + '80 0%, ' + support.color + '40 100%)', color: support.color, boxShadow, clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
-                                            title={support.name + '\nS' + support.tier + '\n' + supportInfo.icon + ' ' + supportInfo.name}>
-                                            {(() => {
-                                                const url = (typeof SupportSprite !== 'undefined') ? SupportSprite.getUrl(support.supportType, support.tier) : null;
-                                                return url
-                                                    ? <img src={url} alt="" draggable={false} style={{ width: '85%', height: '85%', objectFit: 'contain', pointerEvents: 'none', filter: 'drop-shadow(0 0 3px ' + support.color + ')' }} />
-                                                    : <span className="text-xs leading-none">{supportInfo.icon}</span>;
-                                            })()}
-                                            <span className="text-[10px] font-black text-white drop-shadow leading-none">S{support.tier}</span>
-                                        </div>
+                                        <div
+                                            key={'support-empty-' + i}
+                                            style={{
+                                                aspectRatio: '1',
+                                                border: '1px dashed var(--nd-hair)',
+                                                background: 'rgba(255,255,255,0.015)',
+                                                clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                                            }}
+                                        />
                                     );
                                 }
-                                return <div key={'support-empty-' + i} className="aspect-square border border-gray-700/50 bg-gray-800/30"
-                                    style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }} />;
+                                const isSelected = selectedSupportInventory.some(s => s.id === support.id);
+                                const isInPlacementMode = selectedTowerForPlacement && selectedTowerForPlacement.id === support.id;
+                                const supportInfo = SUPPORT_UI[support.supportType];
+                                const url = (typeof SupportSprite !== 'undefined') ? SupportSprite.getUrl(support.supportType, support.tier) : null;
+                                const groupKey = support.tier + ':s' + (support.supportType ?? 0);
+                                const fusableHint = !isSelected && !isInPlacementMode && (supportGroupCounts[groupKey] || 0) >= 3 && support.tier < 3;
+
+                                let borderColor = `${support.color}55`;
+                                let boxShadow = 'none';
+                                let bgFill = `linear-gradient(135deg, ${support.color}26 0%, rgba(0,0,0,0.4) 100%)`;
+                                if (isInPlacementMode) {
+                                    borderColor = 'var(--nd-gold)';
+                                    boxShadow = '0 0 8px var(--nd-gold)';
+                                } else if (isSelected) {
+                                    borderColor = '#fff';
+                                    boxShadow = `0 0 8px ${support.color}`;
+                                    bgFill = `linear-gradient(135deg, ${support.color}40 0%, rgba(0,0,0,0.3) 100%)`;
+                                }
+
+                                return (
+                                    <div
+                                        key={support.id}
+                                        onClick={(e) => { e.stopPropagation(); handleInventoryClick(support); }}
+                                        className="inventory-item"
+                                        style={{
+                                            aspectRatio: '1', position: 'relative',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            background: bgFill,
+                                            border: `1px solid ${borderColor}`,
+                                            color: support.color, cursor: 'pointer', boxShadow,
+                                            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+                                            transition: 'border-color 0.12s, box-shadow 0.12s',
+                                        }}
+                                        title={support.name + '\nS' + support.tier + '\n' + supportInfo.icon + ' ' + supportInfo.name}
+                                    >
+                                        <span
+                                            className="nd-mono"
+                                            style={{
+                                                position: 'absolute', top: '14%', left: '50%',
+                                                transform: 'translateX(-50%)', zIndex: 2,
+                                                fontSize: 8, padding: '0 4px',
+                                                background: support.color, color: '#000',
+                                                fontWeight: 800, letterSpacing: 0.5, lineHeight: 1.4,
+                                            }}
+                                        >
+                                            S{support.tier}
+                                        </span>
+                                        {fusableHint && (
+                                            <span
+                                                className="nd-motion-pulse"
+                                                style={{
+                                                    position: 'absolute', top: '18%', right: '18%', zIndex: 2,
+                                                    fontSize: 9, color: 'var(--nd-green)',
+                                                    fontWeight: 700, textShadow: '0 0 4px var(--nd-green)',
+                                                }}
+                                            >
+                                                ⚡
+                                            </span>
+                                        )}
+                                        {url
+                                            ? <img src={url} alt="" draggable={false}
+                                                style={{
+                                                    width: '78%', height: '78%', objectFit: 'contain',
+                                                    pointerEvents: 'none',
+                                                    filter: `drop-shadow(0 0 3px ${support.color})`,
+                                                }} />
+                                            : <span style={{ fontSize: 16 }}>{supportInfo.icon}</span>}
+                                    </div>
+                                );
                             })}
                         </div>
                     )}

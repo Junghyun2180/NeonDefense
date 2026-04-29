@@ -44,6 +44,43 @@ const GameMap = ({
     // 모듈러 타일 선택용: 경로 이동 인접성 맵 (grid 근접이 아닌 실제 경로 기반)
     const pathAdjacency = useMemo(() => buildPathAdjacency(pathData), [pathData]);
 
+    // Holo §9.2.2 — path flow polylines (continuous dashed line per path).
+    // Reference: bigger, more elongated arrowheads sit on the line at
+    // segment midpoints (between two tile centers). Heads are placed every
+    // HEAD_INTERVAL segments, but skipped near the spawn and core so the
+    // markers don't crowd those endpoints.
+    const HEAD_INTERVAL = 3;  // segments between arrowheads
+    const HEAD_SKIP_END = 2;  // tiles to leave clean near spawn and core
+    const pathFlows = useMemo(() => {
+        if (!pathData?.paths) return [];
+        return pathData.paths.map(path => {
+            const tiles = path.tiles || [];
+            const points = tiles.map(t => ({
+                x: t.x * TILE_SIZE + TILE_SIZE / 2,
+                y: t.y * TILE_SIZE + TILE_SIZE / 2,
+            }));
+            const heads = [];
+            const lastIdx = tiles.length - 1;
+            const startI = Math.max(1, HEAD_SKIP_END + 1);
+            const endI   = lastIdx - HEAD_SKIP_END;
+            for (let i = startI; i <= endI; i += HEAD_INTERVAL) {
+                const a = tiles[i - 1];
+                const b = tiles[i];
+                if (!a || !b) continue;
+                const dx = b.x - a.x;
+                const dy = b.y - a.y;
+                if (dx === 0 && dy === 0) continue;
+                heads.push({
+                    // midpoint between two tile centers = on the boundary edge
+                    x: ((a.x + b.x) / 2) * TILE_SIZE + TILE_SIZE / 2,
+                    y: ((a.y + b.y) / 2) * TILE_SIZE + TILE_SIZE / 2,
+                    angle: Math.atan2(dy, dx) * 180 / Math.PI,
+                });
+            }
+            return { id: path.id, points, heads };
+        });
+    }, [pathData]);
+
     // 조합 미리보기: 맵 타워 1개 이상 + 인벤토리 합 = 3, 같은 element/tier, tier < 4 일 때
     // 결과는 selectedTowers[0] 위치에 생성됨 (combineTowers 로직과 동일)
     const combinePreview = useMemo(() => {
@@ -132,45 +169,88 @@ const GameMap = ({
     }, []);
 
     return (
-        <div className="relative">
-            {/* 컨트롤 바: 좌(배속) / 가운데(배치 취소) / 우(음소거+?) — 항상 같은 높이 */}
+        <div className="relative" style={{ fontFamily: 'var(--nd-font-sans)' }}>
+            {/* Holo control bar — speed / cancel placement / audio + help */}
             <div className="flex justify-between items-center mb-2 px-1">
-                {/* 좌: 배속 */}
-                <div className="flex gap-1">
+                {/* speed */}
+                <div className="flex" style={{ gap: 4 }}>
                     {speedOptions.map(s => (
                         <button
                             key={s}
                             onClick={() => setGameSpeed(s)}
-                            className={'px-2.5 py-1 rounded text-sm font-bold transition-all ' + (gameSpeed === s ? 'bg-cyan-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700')}
-                            style={gameSpeed === s ? { boxShadow: '0 0 10px rgba(0,255,255,0.5)' } : {}}
-                        >
-                            {s}x
-                        </button>
+                            className={'nd-speed-btn' + (gameSpeed === s ? ' nd-speed-btn--active' : '')}
+                            title={`${s}배속`}
+                        >×{s}</button>
                     ))}
                 </div>
 
-                {/* 가운데: 배치 취소 (없을 땐 투명하게 공간 유지) */}
+                {/* cancel placement */}
                 <button
                     onClick={cancelPlacementMode}
-                    className="px-4 py-1 bg-red-700 border border-red-500 rounded-lg text-sm font-bold text-white hover:bg-red-600 transition-all"
-                    style={{ visibility: selectedTowerForPlacement ? 'visible' : 'hidden', touchAction: 'manipulation' }}
+                    className="nd-mono"
+                    style={{
+                        visibility: selectedTowerForPlacement ? 'visible' : 'hidden',
+                        touchAction: 'manipulation',
+                        background: 'rgba(255,77,109,0.10)',
+                        border: '1px solid rgba(255,77,109,0.50)',
+                        color: 'var(--nd-red-life)',
+                        padding: '5px 14px', fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+                        cursor: 'pointer',
+                    }}
                 >
-                    ✕ 배치 취소
+                    ✕ CANCEL PLACEMENT
                 </button>
 
-                {/* 우: 음소거 + 도움말 */}
-                <div className="flex gap-1 items-center">
-                    <button onClick={toggleBgm} className={'px-2 py-1 rounded text-sm transition-all ' + (bgmEnabled ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500')} title="BGM 토글">🎵</button>
-                    <button onClick={toggleSfx} className={'px-2 py-1 rounded text-sm transition-all ' + (sfxEnabled ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-500')} title="효과음 토글">🔊</button>
-                    <button onClick={() => setShowHelp(true)} className="w-8 h-8 rounded-full bg-gray-800 border border-cyan-500/50 flex items-center justify-center text-cyan-400 hover:bg-gray-700 hover:border-cyan-400 transition-all" style={{ boxShadow: '0 0 10px rgba(0,255,255,0.3)' }}>
-                        <span className="text-sm font-bold">?</span>
-                    </button>
+                {/* audio + help */}
+                <div className="flex items-center" style={{ gap: 4 }}>
+                    <button
+                        onClick={toggleBgm}
+                        title="BGM 토글"
+                        className="nd-mono"
+                        style={{
+                            background: bgmEnabled ? 'rgba(199,125,255,0.15)' : 'transparent',
+                            border: '1px solid ' + (bgmEnabled ? 'rgba(199,125,255,0.45)' : 'var(--nd-hair)'),
+                            color: bgmEnabled ? 'var(--nd-el-dark)' : 'var(--nd-dim)',
+                            padding: '4px 8px', fontSize: 11, cursor: 'pointer', letterSpacing: 1,
+                        }}
+                    >♪</button>
+                    <button
+                        onClick={toggleSfx}
+                        title="효과음 토글"
+                        className="nd-mono"
+                        style={{
+                            background: sfxEnabled ? 'rgba(199,125,255,0.15)' : 'transparent',
+                            border: '1px solid ' + (sfxEnabled ? 'rgba(199,125,255,0.45)' : 'var(--nd-hair)'),
+                            color: sfxEnabled ? 'var(--nd-el-dark)' : 'var(--nd-dim)',
+                            padding: '4px 8px', fontSize: 11, cursor: 'pointer', letterSpacing: 1,
+                        }}
+                    >♬</button>
+                    <button
+                        onClick={() => setShowHelp(true)}
+                        className="nd-mono"
+                        title="도움말"
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid var(--nd-hair-strong)',
+                            color: 'var(--nd-text)',
+                            padding: '4px 10px', fontSize: 11, cursor: 'pointer',
+                            letterSpacing: 1, fontWeight: 700,
+                        }}
+                    >?</button>
                 </div>
             </div>
 
+            {/* Holo map frame: dark + reticle corners + hairline grid baseline */}
             <div className="relative mx-auto overflow-hidden" style={{ width: GRID_WIDTH * TILE_SIZE * mapScale, height: GRID_HEIGHT * TILE_SIZE * mapScale }}>
                 <div ref={mapRef} className="relative" style={{ width: GRID_WIDTH * TILE_SIZE, height: GRID_HEIGHT * TILE_SIZE, transform: `scale(${mapScale})`, transformOrigin: 'top left' }}>
-                    <div className="absolute inset-0 rounded-lg overflow-hidden border-2 border-cyan-500/30" style={{ boxShadow: '0 0 30px rgba(78, 205, 196, 0.2), inset 0 0 30px rgba(0,0,0,0.5)' }}>
+                    <div
+                        className="nd-game-map-frame nd-game-map-grid absolute inset-0"
+                        style={{ '--nd-tile': TILE_SIZE + 'px' }}
+                    >
+                        <span className="nd-reticle__c nd-reticle__c--tl" />
+                        <span className="nd-reticle__c nd-reticle__c--tr" />
+                        <span className="nd-reticle__c nd-reticle__c--bl" />
+                        <span className="nd-reticle__c nd-reticle__c--br" />
                         {Array.from({ length: GRID_HEIGHT }, (_, y) => (
                             Array.from({ length: GRID_WIDTH }, (_, x) => {
                                 let pathInfo = null;
@@ -187,16 +267,14 @@ const GameMap = ({
                                 const canPlace = !isPath && !hasTower && !hasSupport;
                                 const isPlacementAvailable = !!selectedTowerForPlacement && canPlace && !isDropPreview && !isSelectedTile;
                                 let extraClass = '';
-                                if (isPlacementAvailable) extraClass = 'tile-placement-available';
-                                if (isDropPreview) extraClass = dropPreview.valid ? 'drop-preview-valid' : 'drop-preview-invalid';
-                                if (isSelectedTile) extraClass = 'ring-2 ring-white ring-opacity-80';
+                                if (isPlacementAvailable) extraClass = 'nd-tile-placeable';
+                                if (isDropPreview) extraClass = dropPreview.valid ? 'nd-tile-drop-valid' : 'nd-tile-drop-invalid';
+                                if (isSelectedTile) extraClass = 'nd-tile-selected';
 
-                                // v4: 모든 path 타일은 단일 omnidirectional conduit 사용 (방향은 화살표 overlay로 표시)
-                                // 구 클래스명(path-tile / grass-tile)도 함께 부여 — 레거시 E2E/선택자 호환
-                                const tileClass = isPath
-                                    ? 'tile-path path-tile'
-                                    : 'tile-grass grass-tile';
-                                // 경로별 색상 틴트는 제거 — 타일 이미지 자체의 네온 색상 유지 (셀 박스 사라지게)
+                                // Holo Command spec §9.1: tile composition is CSS-only.
+                                // Path tiles get a faint cyan-tinted channel; build tiles
+                                // rely entirely on the .nd-game-map-grid hairline baseline.
+                                const tileClass = isPath ? 'nd-tile-path' : 'nd-tile-build';
                                 const pathStyle = {};
 
                                 const startPath = startPoint && pathData.paths.find(p => p.startPoint.id === startPoint.id);
@@ -205,58 +283,30 @@ const GameMap = ({
                                 return (
                                     <div key={x + '-' + y} className={'absolute ' + tileClass + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => handleTileClick(x, y)}>
                                         {startPoint && startPath && (() => {
-                                            // 경로 방향에 따른 화살표 결정
+                                            // SPAWN — 그린 보더 사각 + ▶ (방향은 첫 두 타일 차로 판정)
                                             const tiles = startPath.tiles;
-                                            let startArrow = '▶';
+                                            let glyph = '▶';
                                             if (tiles.length > 1) {
                                                 const dx = tiles[1].x - tiles[0].x;
                                                 const dy = tiles[1].y - tiles[0].y;
-                                                if (dx > 0) startArrow = '▶';
-                                                else if (dx < 0) startArrow = '◀';
-                                                else if (dy > 0) startArrow = '▼';
-                                                else if (dy < 0) startArrow = '▲';
+                                                if (dx > 0) glyph = '▶';
+                                                else if (dx < 0) glyph = '◀';
+                                                else if (dy > 0) glyph = '▼';
+                                                else if (dy < 0) glyph = '▲';
                                             }
-                                            const arrowColor = startPath.id === 'A' ? '#FFD700' : startPath.color;
-                                            const arrowDir = ARROW_DIR[startArrow];
-                                            const arrowImg = arrowPng[arrowDir];
                                             return (
-                                                <div className="tile-start w-full h-full flex items-center justify-center relative">
-                                                    {arrowImg ? (
-                                                        <img src={arrowImg} alt="" draggable={false}
-                                                            className="relative z-10"
-                                                            style={{ width: 18, height: 18, filter: `drop-shadow(0 0 6px ${arrowColor})` }} />
-                                                    ) : (
-                                                        <span className="text-lg font-bold relative z-10" style={{ color: arrowColor, textShadow: '0 0 8px ' + arrowColor + ', 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000', filter: 'drop-shadow(0 0 6px ' + arrowColor + ')' }}>{startArrow}</span>
-                                                    )}
+                                                <div className="nd-spawn">
+                                                    <span className="nd-spawn__glyph">{glyph}</span>
                                                 </div>
                                             );
                                         })()}
                                         {endPoint && endPaths && endPaths.length > 0 && !pathData.isSquareMap && (
-                                            <div className="tile-end w-full h-full" />
-                                        )}
-                                        {!startPoint && !endPoint && pathArrows[`${x},${y}`] && pathArrows[`${x},${y}`].length > 0 && (
-                                            <div className="w-full h-full flex items-center justify-center pointer-events-none flex-wrap gap-0" style={{ opacity: 0.9 }}>
-                                                {pathArrows[`${x},${y}`].map((arrowInfo, idx) => {
-                                                    // 화살표 방향 판별 (→←↓↑) → PNG 매핑
-                                                    const turnDir = arrowInfo.arrow === '→' ? 'right'
-                                                        : arrowInfo.arrow === '←' ? 'left'
-                                                        : arrowInfo.arrow === '↓' ? 'down'
-                                                        : arrowInfo.arrow === '↑' ? 'up'
-                                                        : ARROW_DIR[arrowInfo.arrow];
-                                                    const png = arrowPng[turnDir];
-                                                    if (png) {
-                                                        const sz = pathArrows[`${x},${y}`].length > 1 ? 12 : 16;
-                                                        return <img key={idx} src={png} alt="" draggable={false}
-                                                            style={{ width: sz, height: sz, filter: `drop-shadow(0 0 4px ${arrowInfo.color})` }} />;
-                                                    }
-                                                    return (
-                                                        <span key={idx} style={{ color: arrowInfo.color, fontSize: pathArrows[`${x},${y}`].length > 1 ? '11px' : '14px', lineHeight: 1, fontWeight: 'bold', textShadow: '1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 6px ' + arrowInfo.color }}>
-                                                            {arrowInfo.arrow}
-                                                        </span>
-                                                    );
-                                                })}
+                                            // CORE — 레드 보더 사각 + 타겟 마커, 펄스 (CSS keyframe)
+                                            <div className="nd-core">
+                                                <span className="nd-core__glyph">◎</span>
                                             </div>
                                         )}
+                                        {/* Path arrows are now drawn as a single SVG overlay (see .nd-path-flow below) — no per-tile rendering. */}
                                         {/* 클릭 배치 모드 타워 프리뷰 — 실제 설치될 스프라이트와 동일 (스킨 교체 호환) */}
                                         {isDropPreview && selectedTowerForPlacement && (() => {
                                             const neon = selectedTowerForPlacement;
@@ -293,6 +343,27 @@ const GameMap = ({
                             })
                         ))}
 
+                        {/* Holo §9.2.2 — path flow: continuous cyan dashed polyline per path,
+                            with arrowheads at every turn vertex and at the path end. */}
+                        <svg className="nd-path-flow">
+                            {pathFlows.map(flow => (
+                                <g key={flow.id}>
+                                    <polyline
+                                        className="nd-path-flow__line"
+                                        points={flow.points.map(p => `${p.x},${p.y}`).join(' ')}
+                                    />
+                                    {flow.heads.map((h, i) => (
+                                        <polygon
+                                            key={i}
+                                            className="nd-path-flow__head"
+                                            points="-12,-7 16,0 -12,7"
+                                            transform={`translate(${h.x},${h.y}) rotate(${h.angle})`}
+                                        />
+                                    ))}
+                                </g>
+                            ))}
+                        </svg>
+
                         {/* 체인 라이트닝 SVG */}
                         <svg className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%' }}>
                             {chainLightnings.map(chain => (
@@ -312,7 +383,17 @@ const GameMap = ({
                             const isCombineConsumed = combinePreview && combinePreview.kind === 'tower' && combinePreview.consumedIds.includes(tower.id);
                             return (
                                 <div key={tower.id}>
-                                    {isSelected && <div className="absolute rounded-full tower-range pointer-events-none" style={{ left: tower.x - displayRange, top: tower.y - displayRange, width: displayRange * 2, height: displayRange * 2, border: '2px solid ' + (isSelected ? '#ffffff' : tower.color) + '40', background: 'radial-gradient(circle, ' + tower.color + '10 0%, transparent 70%)' }} />}
+                                    {isSelected && <div
+                                        className="nd-range"
+                                        data-state="selected"
+                                        style={{
+                                            '--el': tower.color,
+                                            left: tower.x - displayRange,
+                                            top: tower.y - displayRange,
+                                            width: displayRange * 2,
+                                            height: displayRange * 2,
+                                        }}
+                                    />}
                                     {/* 조합 결과 위치 표시: 황금 회전 링 */}
                                     {isCombineResult && (
                                         <div className="absolute pointer-events-none combine-result-ring"
@@ -403,7 +484,17 @@ const GameMap = ({
                             const isCombineConsumed = combinePreview && combinePreview.kind === 'support' && combinePreview.consumedIds.includes(support.id);
                             return (
                                 <div key={support.id}>
-                                    {isSelected && <div className="absolute rounded-full support-range pointer-events-none" style={{ left: support.x - support.range, top: support.y - support.range, width: support.range * 2, height: support.range * 2, border: '2px dashed ' + (isSelected ? '#ffffff' : support.color) + '60', background: 'radial-gradient(circle, ' + support.color + '15 0%, transparent 70%)' }} />}
+                                    {isSelected && <div
+                                        className="nd-range"
+                                        data-state="selected"
+                                        style={{
+                                            '--el': support.color,
+                                            left: support.x - support.range,
+                                            top: support.y - support.range,
+                                            width: support.range * 2,
+                                            height: support.range * 2,
+                                        }}
+                                    />}
                                     {isCombineResult && (
                                         <div className="absolute pointer-events-none combine-result-ring"
                                              style={{ left: support.x - SPR_SIZE / 2 - 6, top: support.y - SPR_SIZE / 2 - 6, width: SPR_SIZE + 12, height: SPR_SIZE + 12 }} />

@@ -154,7 +154,12 @@ const SaveSystem = {
         lives: saveData.lives,
         towers: restoredTowers,
         supportTowers: restoredSupports,
-        inventory: saveData.inventory,
+        // 인벤토리 마이그레이션: element 누락된 오래된 데이터 호환
+        inventory: (saveData.inventory || []).map(n => {
+          if (n.element == null && n.colorIndex != null) n.element = n.colorIndex;
+          if (n.colorIndex == null && n.element != null) n.colorIndex = n.element;
+          return n;
+        }),
         supportInventory: saveData.supportInventory,
         permanentBuffs: saveData.permanentBuffs,
         stats: saveData.stats,

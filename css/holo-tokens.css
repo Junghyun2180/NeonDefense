@@ -1,0 +1,547 @@
+/* =====================================================================
+ * Neon Defense · Holographic Command Design Tokens
+ * Source: design handoff v1.0 (project/handoff/index.html)
+ *
+ * Philosophy: hairline-first · mono = data, sans = chrome ·
+ *             accents on text/icons only, never panel washes ·
+ *             flat dark base #08080a · color used sparingly with intent
+ * ===================================================================== */
+
+:root {
+  /* Surface · Hairline */
+  --nd-bg:           #08080a;
+  --nd-bg-2:         #0c0c10;
+  --nd-panel:        rgba(255,255,255,0.02);
+  --nd-panel-hover:  rgba(255,255,255,0.04);
+  --nd-hair:         rgba(255,255,255,0.08);
+  --nd-hair-strong:  rgba(255,255,255,0.16);
+
+  /* Text */
+  --nd-text-pure:    #ffffff;
+  --nd-text:         #e8e8ec;
+  --nd-dim:          #9a9aa6;
+  --nd-dimmer:       #6a6a76;
+
+  /* Accent · Status */
+  --nd-crimson:      #ff3d6e;
+  --nd-amber:        #ffa94d;
+  --nd-gold:         #ffb627;
+  --nd-green:        #80ed99;
+  --nd-red-life:     #ff4d6d;
+
+  /* Element (game identity — never override) */
+  --nd-el-fire:      #ff4d6d;
+  --nd-el-water:     #4cc9f0;
+  --nd-el-electric:  #ffd60a;
+  --nd-el-wind:      #80ed99;
+  --nd-el-light:     #fff5b7;
+  --nd-el-dark:      #c77dff;
+
+  /* Spacing scale (4px base) */
+  --nd-space-1: 4px;
+  --nd-space-2: 8px;
+  --nd-space-3: 12px;
+  --nd-space-4: 16px;
+  --nd-space-5: 20px;
+  --nd-space-6: 24px;
+  --nd-space-7: 28px;
+  --nd-space-8: 32px;
+
+  /* Typography stacks */
+  --nd-font-sans: 'Inter', 'Pretendard', -apple-system, 'Apple SD Gothic Neo',
+                  'Malgun Gothic', system-ui, sans-serif;
+  --nd-font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+}
+
+/* =====================================================================
+ * 4.1 Panel — base container
+ * ===================================================================== */
+.nd-panel {
+  position: relative;
+  background: var(--nd-panel);
+  border: 1px solid var(--nd-hair);
+  border-radius: 2px;
+}
+
+.nd-panel-strong {
+  border-color: var(--nd-hair-strong);
+}
+
+/* =====================================================================
+ * 4.2 Reticle corners — 14px L-shape on each corner
+ * Add four <span class="nd-reticle__c nd-reticle__c--{tl,tr,bl,br}"> as
+ * children of a position:relative ancestor.
+ * ===================================================================== */
+.nd-reticle__c {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.nd-reticle__c--tl { top: -1px; left: -1px;
+  border-top: 1px solid var(--nd-crimson);
+  border-left: 1px solid var(--nd-crimson); }
+.nd-reticle__c--tr { top: -1px; right: -1px;
+  border-top: 1px solid var(--nd-crimson);
+  border-right: 1px solid var(--nd-crimson); }
+.nd-reticle__c--bl { bottom: -1px; left: -1px;
+  border-bottom: 1px solid var(--nd-crimson);
+  border-left: 1px solid var(--nd-crimson); }
+.nd-reticle__c--br { bottom: -1px; right: -1px;
+  border-bottom: 1px solid var(--nd-crimson);
+  border-right: 1px solid var(--nd-crimson); }
+
+/* =====================================================================
+ * 4.3 Buttons
+ * ===================================================================== */
+.nd-btn-deploy {
+  background: linear-gradient(90deg, var(--nd-crimson) 0%, var(--nd-amber) 100%);
+  border: none;
+  color: #000;
+  font-weight: 800;
+  letter-spacing: 2px;
+  font-size: 11px;
+  padding: 8px 18px;
+  font-family: var(--nd-font-mono);
+  cursor: pointer;
+  border-radius: 0;
+  transition: filter 0.12s ease-out;
+}
+.nd-btn-deploy:hover { filter: brightness(1.15); }
+.nd-btn-deploy:disabled { filter: grayscale(0.6) brightness(0.6); cursor: not-allowed; }
+
+.nd-btn-amber {
+  background: rgba(255,169,77,0.10);
+  border: 1px solid rgba(255,169,77,0.40);
+  color: var(--nd-amber);
+  font-family: var(--nd-font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.12s ease-out;
+}
+.nd-btn-amber:hover { background: rgba(255,169,77,0.18); }
+
+.nd-btn-ghost {
+  background: transparent;
+  border: 1px solid var(--nd-hair-strong);
+  color: var(--nd-text);
+  font-family: var(--nd-font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: border-color 0.12s ease-out, color 0.12s ease-out;
+}
+.nd-btn-ghost:hover { border-color: var(--nd-text); color: var(--nd-text-pure); }
+
+/* Speed control toggle — used in the top-bar speed selector */
+.nd-speed-btn {
+  background: transparent;
+  border: 1px solid rgba(255,61,110,0.30);
+  color: var(--nd-crimson);
+  padding: 6px 10px;
+  font-family: var(--nd-font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.nd-speed-btn:hover { border-color: var(--nd-crimson); color: #fff; }
+.nd-speed-btn--active {
+  background: rgba(255,61,110,0.20);
+  border-color: var(--nd-crimson);
+  color: #fff;
+}
+
+/* =====================================================================
+ * 4.4 Vital stat — horizontal gauge
+ * ===================================================================== */
+.nd-vital-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  flex: 1;
+}
+.nd-vital__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+  gap: 6px;
+}
+.nd-vital__lbl {
+  font-family: var(--nd-font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nd-vital__val {
+  font-family: var(--nd-font-mono);
+  font-size: 11px;
+  color: #fff;
+  font-weight: 700;
+  font-feature-settings: "tnum";
+  white-space: nowrap;
+}
+.nd-vital__bar {
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 0;
+  overflow: hidden;
+}
+.nd-vital__bar > div {
+  height: 100%;
+  transition: width 0.25s ease-out;
+}
+
+/* =====================================================================
+ * 4.5 Mono eyebrow / 4.6 hairline divider / shared text utilities
+ * ===================================================================== */
+.nd-eyebrow {
+  font-family: var(--nd-font-mono);
+  font-size: 10px;
+  color: var(--nd-crimson);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.nd-eyebrow--amber  { color: var(--nd-amber); }
+.nd-eyebrow--gold   { color: var(--nd-gold); }
+.nd-eyebrow--green  { color: var(--nd-green); }
+.nd-eyebrow--dim    { color: var(--nd-dim); }
+
+.nd-hair { height: 1px; background: var(--nd-hair); }
+.nd-hair--vertical { width: 1px; height: auto; align-self: stretch; }
+
+.nd-mono { font-family: var(--nd-font-mono); }
+.nd-tnum { font-feature-settings: "tnum"; }
+
+/* =====================================================================
+ * 4.8 Tab bar — inventory / page tabs
+ * ===================================================================== */
+.nd-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--nd-hair);
+}
+.nd-tab {
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--nd-font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--nd-dim);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.nd-tab:hover { color: var(--nd-text); }
+.nd-tab--active {
+  color: #fff;
+  border-bottom-color: var(--nd-crimson);
+}
+
+/* =====================================================================
+ * Holographic Command — composed layout patterns
+ * ===================================================================== */
+
+/* Game-screen top-bar wrapper — matches handoff layout 1fr | 300px right rail.
+   On narrow viewports it stacks. */
+.nd-topbar-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 12px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .nd-topbar-grid { grid-template-columns: 1fr; }
+}
+.nd-topbar-panel {
+  position: relative;
+  background: var(--nd-panel);
+  border: 1px solid var(--nd-hair);
+  border-radius: 2px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 56px;
+  font-family: var(--nd-font-mono);
+  color: var(--nd-text);
+}
+.nd-topbar-panel--right {
+  padding: 10px 14px;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+/* Identity block on the left of the top bar */
+.nd-identity {
+  flex-shrink: 0;
+  padding-right: 16px;
+  border-right: 1px solid rgba(255,61,110,0.20);
+  min-width: 132px;
+}
+.nd-identity__op {
+  font-size: 9px;
+  color: var(--nd-crimson);
+  letter-spacing: 3px;
+  font-family: var(--nd-font-mono);
+}
+.nd-identity__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-top: 2px;
+  line-height: 1.1;
+  font-family: var(--nd-font-sans);
+  letter-spacing: 0.5px;
+}
+.nd-identity__sector {
+  font-size: 9px;
+  color: var(--nd-green);
+  margin-top: 3px;
+  letter-spacing: 1px;
+  font-family: var(--nd-font-mono);
+}
+
+/* =====================================================================
+ * Motion — keep brief, info-supporting only
+ * ===================================================================== */
+@keyframes nd-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+@keyframes nd-wave-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.nd-motion-pulse { animation: nd-pulse-soft 1.6s ease-in-out infinite; }
+
+/* =====================================================================
+ * §9 ASSETS · TILES & PATH (handoff v2)
+ * Reference: assets/reference/tile-system.png
+ * Spec: spawn (green) / core (red, pulsing) / path arrows (cyan dashed flow)
+ *       grid hairlines / range disc colored per tower element
+ * ===================================================================== */
+
+/* 9.2.1 — game-map root: hairline cross-grid baseline.
+   The TILE_SIZE used by this project is 56px (constants.js). The grid
+   background draws faint vertical+horizontal hairlines on every tile edge. */
+.nd-game-map-frame {
+  /* positioning is provided by the parent (typically `absolute inset-0`).
+     Using `position: relative` here collapsed the element when paired with
+     Tailwind absolute utilities. */
+  background: var(--nd-bg);
+  border: 1px solid var(--nd-hair-strong);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.nd-game-map-grid {
+  background-color: var(--nd-bg);
+  background-image:
+    linear-gradient(to right,  rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: var(--nd-tile, 56px) var(--nd-tile, 56px);
+}
+
+/* 9.1 — tile cells (3 states: build / path / placeable)
+   The grid baseline (.nd-game-map-grid) draws hairlines on every tile edge.
+   Tile classes only add per-state tint/border on top — no PNG. */
+
+/* Build cell: relies entirely on the grid baseline for visual structure.
+   Empty class kept for selector compatibility. */
+.nd-tile-build {
+  background: transparent;
+}
+
+/* Path cell: subtle cyan-tinted channel. The flowing arrow overlay
+   (.nd-path-arrow) carries the direction; this tile just reads as
+   "this cell is on the path". */
+.nd-tile-path {
+  background: rgba(76, 201, 240, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(76, 201, 240, 0.10);
+}
+
+/* Placeable highlight — shown when a tower is selected for placement.
+   Crimson dashed outline + soft fill, gentle pulse for affordance. */
+.nd-tile-placeable {
+  position: relative;
+}
+.nd-tile-placeable::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px dashed rgba(255, 61, 110, 0.55);
+  background: rgba(255, 61, 110, 0.06);
+  pointer-events: none;
+  animation: nd-tile-place-pulse 1.4s ease-in-out infinite;
+  z-index: 2;
+}
+.nd-tile-placeable:hover::after {
+  border-color: var(--nd-amber);
+  background: rgba(255, 169, 77, 0.12);
+}
+@keyframes nd-tile-place-pulse {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+/* Drop preview during drag — green = valid, red = invalid */
+.nd-tile-drop-valid {
+  background: rgba(128, 237, 153, 0.18) !important;
+  outline: 1px solid var(--nd-green);
+  outline-offset: -1px;
+}
+.nd-tile-drop-invalid {
+  background: rgba(255, 77, 109, 0.20) !important;
+  outline: 1px solid var(--nd-red-life);
+  outline-offset: -1px;
+}
+
+/* Selected tile (after click in placement mode) */
+.nd-tile-selected {
+  outline: 1px solid #fff;
+  outline-offset: -1px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
+}
+
+/* 9.x — spawn portal · green outlined square with ▶ */
+.nd-spawn {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--nd-green);
+  background: rgba(128,237,153,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  box-shadow:
+    0 0 8px rgba(128,237,153,0.35),
+    inset 0 0 6px rgba(128,237,153,0.18);
+}
+.nd-spawn::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid rgba(128,237,153,0.25);
+}
+.nd-spawn__glyph {
+  font-family: var(--nd-font-mono);
+  font-size: 14px;
+  color: var(--nd-green);
+  text-shadow: 0 0 6px var(--nd-green);
+  z-index: 1;
+}
+
+/* 9.2.3 — core (goal): red outlined square with target reticle, pulsing */
+.nd-core {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--nd-crimson);
+  background: rgba(255,61,110,0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: nd-core-pulse 1.6s ease-in-out infinite;
+}
+.nd-core::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 1px solid rgba(255,61,110,0.25);
+}
+.nd-core__glyph {
+  font-family: var(--nd-font-mono);
+  font-size: 12px;
+  color: var(--nd-crimson);
+  text-shadow: 0 0 6px var(--nd-crimson);
+  z-index: 1;
+}
+@keyframes nd-core-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--nd-crimson),
+                         0 0 14px rgba(255,61,110,0.30); }
+  50%      { box-shadow: 0 0 0 1px var(--nd-crimson),
+                         0 0 26px rgba(255,61,110,0.65); }
+}
+
+/* 9.2.2 — path flow: ONE continuous cyan dashed polyline per path.
+   Reference (assets/reference/tile-system.png) shows the dashes as a
+   single flowing line that snakes through every path tile, with
+   arrowheads only at turns and at the path end. We draw the polyline
+   in a single SVG overlay positioned over the whole map; per-tile
+   arrows would create gaps at tile boundaries. */
+.nd-path-flow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.nd-path-flow__line {
+  fill: none;
+  stroke: rgba(76, 201, 240, 0.65);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: nd-path-flow 1.2s linear infinite;
+  filter: drop-shadow(0 0 3px rgba(76, 201, 240, 0.5));
+}
+.nd-path-flow__head {
+  fill: rgba(76, 201, 240, 0.9);
+  stroke: none;
+  filter: drop-shadow(0 0 3px rgba(76, 201, 240, 0.7));
+}
+@keyframes nd-path-flow {
+  to { stroke-dashoffset: -10; }
+}
+
+/* 9.2.4 — range disc · per-element color via --el custom property.
+   Each tower DOM should set `style="--el: <element-color>"`.
+   color-mix() is used so the disc/border color naturally inherits intensity
+   from the tower's element token. */
+.nd-range {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid color-mix(in oklch, var(--el, var(--nd-amber)) 25%, transparent);
+}
+.nd-range[data-state="idle"] {
+  background: transparent;
+}
+.nd-range[data-state="selected"] {
+  background: radial-gradient(circle,
+    color-mix(in oklch, var(--el, var(--nd-amber)) 22%, transparent) 0%,
+    color-mix(in oklch, var(--el, var(--nd-amber)) 8%,  transparent) 60%,
+    transparent 100%);
+  border: 1px dashed color-mix(in oklch, var(--el, var(--nd-amber)) 60%, transparent);
+}
+
+/* =====================================================================
+ * MainMenu Holo title — used to retone the legacy title bar
+ * ===================================================================== */
+.nd-main-title {
+  font-family: var(--nd-font-sans);
+  font-weight: 200;
+  letter-spacing: -1.5px;
+  color: #fff;
+  font-size: 48px;
+  line-height: 1;
+  margin: 0;
+}
+.nd-main-title__accent { color: var(--nd-crimson); }
+.nd-main-eyebrow {
+  font-family: var(--nd-font-mono);
+  font-size: 10px;
+  color: var(--nd-crimson);
+  letter-spacing: 4px;
+}
