@@ -160,8 +160,8 @@ class GustAbility extends Ability {
   constructor(tier) {
     super(tier, {
       ...ELEMENT_EFFECTS[ELEMENT_TYPES.WIND],
-      knockbackBonus: 15,
-      bossBonus: 0.3, // 보스 30% 추가 피해
+      knockbackBonus: 12,
+      bossBonus: 0.15,
     });
     this.type = GustAbility.TYPE;
   }

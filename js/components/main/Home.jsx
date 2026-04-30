@@ -1,6 +1,25 @@
-// Neon Defense — Home page (T08)
-// 홀로 프로젝션 챔버 + 미션 카드 + DEPLOY.
-// HoloShell 안에 마운트되는 페이지.
+// Neon Defense — Home page
+// Mission select + holographic arsenal preview.
+
+const HOME_TOWER_PREVIEWS = [
+  { element: 0, key: 'fire', title: 'PHOENIX', ident: 'IGN-04', role: '화염 지속', color: '#ff3d6e', soft: 'rgba(255,61,110,0.36)' },
+  { element: 1, key: 'water', title: 'ABYSSAL', ident: 'CRY-04', role: '냉기 제어', color: '#45b7ff', soft: 'rgba(69,183,255,0.32)' },
+  { element: 2, key: 'electric', title: 'NOVA', ident: 'ELC-04', role: '전격 연쇄', color: '#ffd166', soft: 'rgba(255,209,102,0.32)' },
+  { element: 3, key: 'wind', title: 'VERDANT', ident: 'WND-04', role: '질풍 타격', color: '#80ed99', soft: 'rgba(128,237,153,0.30)' },
+  { element: 4, key: 'void', title: 'NULLION', ident: 'VOD-04', role: '공허 관통', color: '#c77dff', soft: 'rgba(199,125,255,0.34)' },
+  { element: 5, key: 'light', title: 'AUREL', ident: 'LUX-04', role: '광휘 정밀', color: '#f5f5f5', soft: 'rgba(245,245,245,0.24)' },
+];
+
+const shuffleHomeTowerPreviews = () => {
+  const items = HOME_TOWER_PREVIEWS.slice();
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = items[i];
+    items[i] = items[j];
+    items[j] = tmp;
+  }
+  return items;
+};
 
 const Home = ({
   saveInfo,
@@ -9,346 +28,229 @@ const Home = ({
   onSelectMode,
   metaProgress,
 }) => {
-  const { useState } = React;
+  const { useEffect, useMemo, useState } = React;
   const [mission, setMission] = useState('campaign');
+  const [previewOrder] = useState(() => shuffleHomeTowerPreviews());
+  const [previewIndex, setPreviewIndex] = useState(0);
 
   const highestSector = metaProgress?.stats?.highestCampaignSector || 0;
+  const highestEndless = metaProgress?.stats?.highestEndlessStage || 0;
   const nextSector = highestSector + 1;
   const sectorHpMult = (typeof calcSectorHpMultiplier !== 'undefined')
     ? calcSectorHpMultiplier(nextSector) : 1;
+  const maxStage = typeof SPAWN !== 'undefined' ? SPAWN.maxStage : 3;
+  const wavesPerStage = typeof SPAWN !== 'undefined' ? SPAWN.wavesPerStage : 10;
+  const startLives = typeof ECONOMY !== 'undefined' ? ECONOMY.startLives : 30;
 
-  const formatDate = (timestamp) => {
-    const d = new Date(timestamp);
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
-    return `${m}/${day} ${hh}:${mm}`;
-  };
+  const saveTime = saveInfo?.timestamp
+    ? new Date(saveInfo.timestamp)
+    : null;
+
+  const lastSessionLabel = saveTime
+    ? `${String(saveTime.getMonth() + 1).padStart(2, '0')}/${String(saveTime.getDate()).padStart(2, '0')} · ${String(saveTime.getHours()).padStart(2, '0')}:${String(saveTime.getMinutes()).padStart(2, '0')}`
+    : 'NO ACTIVE CHECKPOINT';
+
+  const stageStars = useMemo(() => {
+    if (typeof StarRating === 'undefined') return [];
+    return Array.from({ length: maxStage }, (_, idx) => {
+      const stage = idx + 1;
+      return { stage, stars: StarRating.getStars(stage) };
+    });
+  }, [maxStage]);
+
+  useEffect(() => {
+    if (previewOrder.length <= 1) return undefined;
+    const id = setInterval(() => {
+      setPreviewIndex(idx => (idx + 1) % previewOrder.length);
+    }, 3400);
+    return () => clearInterval(id);
+  }, [previewOrder.length]);
+
+  const preview = previewOrder[previewIndex] || HOME_TOWER_PREVIEWS[4];
+  const previewSrc = (
+    typeof TowerSprite !== 'undefined'
+      ? TowerSprite.getUrl(preview.element, 4)
+      : null
+  ) || `assets/towers/${preview.key}/t4.png`;
 
   const missions = [
     {
       id: 'campaign',
-      code: '◇ CAMPAIGN',
-      title: 'SECTOR ASCENT',
-      desc: '3 STAGES × 10 WAVES · 매 웨이브 자동 저장',
-      reward: 'CRYSTAL UP TO 200+',
-      duration: '15-20 MIN',
-      accent: 'var(--nd-crimson)',
+      eyebrow: 'CMP-01',
+      title: '캠페인',
+      subtitle: `${maxStage} 스테이지 · 확정 맵`,
+      line: `STG ${Math.min(Math.max(1, highestSector + 1), maxStage)} / ${maxStage}`,
+      progress: Math.min(100, ((highestSector || 0) / Math.max(1, maxStage)) * 100),
       enabled: true,
+      accent: 'var(--nd-crimson)',
+      action: 'INITIATE DEPLOYMENT',
     },
     {
       id: 'run',
-      code: '◎ RUN MODE',
-      title: 'ROGUELIKE RUN',
-      desc: '랜덤 시드 · 영구 업그레이드 적용',
-      reward: 'CRYSTAL VARIABLE',
-      duration: '10-30 MIN',
-      accent: 'var(--nd-amber)',
+      eyebrow: 'RUN-∞',
+      title: '로그라이크 런',
+      subtitle: '영구 버프 · 점수전',
+      line: highestSector > 0 ? `BEST: SECTOR ${highestSector}` : 'BEST: STG 12',
+      progress: 44,
       enabled: true,
-      badge: 'NEW',
+      accent: 'var(--nd-amber)',
+      action: 'OPEN RUN SELECT',
     },
     {
       id: 'endless',
-      code: '∞ ENDLESS',
-      title: 'INFINITE TIDE',
-      desc: '잠금 해제: SECTOR 5 클리어',
-      reward: '???',
-      duration: 'NO LIMIT',
+      eyebrow: 'END-∞',
+      title: '엔드리스',
+      subtitle: '무한 웨이브',
+      line: highestSector >= 5 ? `BEST: STG ${highestEndless || 1}` : 'LOCKED · 스테이지 15 클리어',
+      progress: highestSector >= 5 ? Math.min(100, highestEndless * 4) : 0,
+      enabled: highestSector >= 5,
       accent: 'var(--nd-dim)',
-      enabled: false,
-      badge: 'LOCKED',
+      action: 'OPEN ENDLESS',
     },
   ];
 
-  const handleDeploy = (isContinue) => {
+  const selectedMission = missions.find(m => m.id === mission) || missions[0];
+
+  const handleDeploy = () => {
+    if (mission === 'campaign') {
+      onNewGame && onNewGame();
+      return;
+    }
     if (mission === 'run') {
       onSelectMode && onSelectMode('run');
       return;
     }
-    if (isContinue && saveInfo) onLoadGame();
-    else onNewGame();
+    if (mission === 'endless') {
+      onSelectMode && onSelectMode('endless');
+    }
+  };
+
+  const handleResume = () => {
+    if (!saveInfo) return;
+    onLoadGame && onLoadGame();
   };
 
   return (
-    <div
-      style={{
-        padding: '20px 24px',
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) 380px',
-        gap: 16, height: '100%', minHeight: 0,
-        alignItems: 'stretch',
-      }}
-    >
-      {/* ─────────── LEFT · PROJECTION CHAMBER ─────────── */}
-      <div
-        className="nd-panel relative"
-        style={{
-          padding: 20,
-          display: 'flex', flexDirection: 'column',
-          minHeight: 0,
-        }}
+    <div className="nd-home">
+      <section
+        className="nd-home__projection nd-panel"
+        style={{ '--nd-preview-color': preview.color, '--nd-preview-soft': preview.soft }}
       >
         <span className="nd-reticle__c nd-reticle__c--tl" />
         <span className="nd-reticle__c nd-reticle__c--tr" />
         <span className="nd-reticle__c nd-reticle__c--bl" />
         <span className="nd-reticle__c nd-reticle__c--br" />
 
-        <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-          <div>
-            <div className="nd-eyebrow">◇ HOLO PROJECTION · SECTOR PREVIEW</div>
-            <div
-              className="nd-mono"
-              style={{
-                fontSize: 24, color: '#fff', fontWeight: 700,
-                letterSpacing: 2, marginTop: 4, lineHeight: 1.1,
-              }}
-            >
-              SECTOR <span style={{ color: 'var(--nd-crimson)' }}>{nextSector}</span>
-              <span style={{ color: 'var(--nd-dimmer)', margin: '0 10px', fontWeight: 200 }}>·</span>
-              <span style={{ color: 'var(--nd-amber)', fontSize: 14 }}>HP ×{sectorHpMult.toFixed(2)}</span>
-            </div>
-          </div>
-          <div
-            className="nd-mono"
-            style={{
-              padding: '4px 10px', border: '1px solid var(--nd-hair-strong)',
-              fontSize: 9, letterSpacing: 2, color: 'var(--nd-green)',
-            }}
-          >
-            ◇ READY FOR DEPLOY
+        <div className="nd-home__panel-head">
+          <div className="nd-eyebrow">◇ HOLO-PROJECTION · ARSENAL PREVIEW</div>
+          <div className="nd-home__counter">
+            {String(previewIndex + 1).padStart(2, '0')} / {String(previewOrder.length).padStart(2, '0')}
           </div>
         </div>
 
-        {/* Tower visualization */}
-        <div
-          style={{
-            flex: 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background:
-              'radial-gradient(ellipse at center, rgba(255,61,110,0.06) 0%, transparent 60%), ' +
-              'repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 24px), ' +
-              'repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 24px)',
-            border: '1px solid var(--nd-hair)',
-            position: 'relative', minHeight: 0, padding: 16,
-            overflow: 'auto',
-          }}
-        >
-          {/* corner reticles inside chamber */}
-          <span style={{ position: 'absolute', top: 6, left: 6, color: 'var(--nd-crimson)', fontSize: 10, letterSpacing: 2 }} className="nd-mono">▸ S{nextSector}</span>
-          <span style={{ position: 'absolute', top: 6, right: 6, color: 'var(--nd-amber)', fontSize: 10, letterSpacing: 2 }} className="nd-mono">THREAT ▮▮▮▮▯</span>
+        <div className="nd-home__scan">
+          <div className="nd-home__rings" aria-hidden="true">
+            <span className="nd-home__ring nd-home__ring--outer" />
+            <span className="nd-home__ring nd-home__ring--inner" />
+            <span className="nd-home__axis nd-home__axis--v" />
+            <span className="nd-home__axis nd-home__axis--h" />
+          </div>
 
-          {typeof SectorTower !== 'undefined' && (
-            <SectorTower highestSector={highestSector} />
-          )}
+          <div className="nd-home__tower-wrap">
+            <img
+              className="nd-home__tower"
+              src={previewSrc}
+              alt={`Tier 4 ${preview.key} tower preview`}
+            />
+            <span className="nd-home__tower-glow" />
+          </div>
+
+          <div className="nd-home__platform" aria-hidden="true">
+            <span />
+            <i />
+          </div>
         </div>
 
-        {/* Stage stars row */}
-        {typeof StarRating !== 'undefined' && typeof SPAWN !== 'undefined' && (
-          <div style={{ marginTop: 12 }}>
-            <div
-              className="nd-mono"
-              style={{
-                fontSize: 9, color: 'var(--nd-dimmer)', letterSpacing: 2,
-                marginBottom: 6, textAlign: 'center',
-              }}
-            >
-              ◇ STAGE PROGRESS · {StarRating.totalStars()} / {SPAWN.maxStage * 3}
-            </div>
-            <div
-              style={{
-                display: 'grid', gap: 4,
-                gridTemplateColumns: `repeat(${SPAWN.maxStage}, 1fr)`,
-              }}
-            >
-              {Array.from({ length: SPAWN.maxStage }, (_, idx) => {
-                const s = idx + 1;
-                const stars = StarRating.getStars(s);
-                const color = stars === 3 ? 'var(--nd-gold)' :
-                              stars === 2 ? 'var(--nd-amber)' :
-                              stars === 1 ? 'var(--nd-dim)' : 'var(--nd-dimmer)';
-                return (
-                  <div
-                    key={s}
-                    style={{
-                      padding: '4px 0', textAlign: 'center',
-                      border: '1px solid var(--nd-hair)',
-                      background: 'rgba(255,255,255,0.015)',
-                    }}
-                  >
-                    <div className="nd-mono" style={{ fontSize: 9, color: 'var(--nd-dim)', letterSpacing: 1 }}>S{s}</div>
-                    <div style={{ fontSize: 11, color, fontWeight: 700 }}>
-                      {stars === 3 ? '★★★' : stars === 2 ? '★★☆' : stars === 1 ? '★☆☆' : '☆☆☆'}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        <div className="nd-home__arsenal-copy">
+          <div className="nd-home__ident">IDENT · {preview.ident}</div>
+          <h1>{preview.title}</h1>
+          <div className="nd-home__meta">
+            <span>TIER 4</span>
+            <span>{preview.role}</span>
+            <span>HP ×{sectorHpMult.toFixed(2)}</span>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* ─────────── RIGHT · MISSION SELECT + DEPLOY ─────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
-        {/* Mission cards */}
-        <div className="nd-panel relative" style={{ padding: '14px 14px 12px', flex: '0 0 auto' }}>
+        <div className="nd-home__stage-strip" aria-label="Stage star progress">
+          {(stageStars.length ? stageStars : [{ stage: 1, stars: 0 }, { stage: 2, stars: 0 }, { stage: 3, stars: 0 }]).map(s => (
+            <span
+              key={s.stage}
+              className={s.stars > 0 ? 'is-lit' : ''}
+              title={`Stage ${s.stage}: ${s.stars || 0} stars`}
+            />
+          ))}
+        </div>
+      </section>
+
+      <aside className="nd-home__side">
+        <section className="nd-panel nd-home__mission-panel">
           <span className="nd-reticle__c nd-reticle__c--tl" />
           <span className="nd-reticle__c nd-reticle__c--tr" />
           <span className="nd-reticle__c nd-reticle__c--bl" />
           <span className="nd-reticle__c nd-reticle__c--br" />
-          <div className="nd-eyebrow" style={{ marginBottom: 10 }}>◇ MISSION · 3 OPTIONS</div>
+          <div className="nd-eyebrow">◇ MISSION SELECT</div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="nd-home__mission-list">
             {missions.map(m => {
               const active = mission === m.id;
               return (
                 <button
                   key={m.id}
-                  onClick={() => m.enabled && setMission(m.id)}
+                  type="button"
                   disabled={!m.enabled}
-                  className="nd-mono"
-                  style={{
-                    position: 'relative',
-                    textAlign: 'left',
-                    padding: '10px 12px',
-                    background: active ? 'rgba(255,61,110,0.08)' : 'transparent',
-                    border: '1px solid ' + (active ? m.accent : 'var(--nd-hair)'),
-                    color: m.enabled ? '#fff' : 'var(--nd-dimmer)',
-                    cursor: m.enabled ? 'pointer' : 'not-allowed',
-                    opacity: m.enabled ? 1 : 0.5,
-                    transition: 'border-color 0.12s, background 0.12s',
-                  }}
-                  onMouseEnter={e => {
-                    if (m.enabled && !active)
-                      e.currentTarget.style.borderColor = m.accent;
-                  }}
-                  onMouseLeave={e => {
-                    if (m.enabled && !active)
-                      e.currentTarget.style.borderColor = 'var(--nd-hair)';
-                  }}
+                  onClick={() => m.enabled && setMission(m.id)}
+                  className={'nd-home__mission' + (active ? ' is-active' : '')}
                 >
-                  {m.badge && (
-                    <span
-                      style={{
-                        position: 'absolute', top: -7, right: 10,
-                        fontSize: 8, color: '#000',
-                        background: m.id === 'endless' ? 'var(--nd-dim)' : m.accent,
-                        padding: '1px 5px', letterSpacing: 1, fontWeight: 700,
-                      }}
-                    >
-                      {m.badge}
-                    </span>
-                  )}
-                  <div style={{
-                    fontSize: 9, letterSpacing: 2,
-                    color: active ? m.accent : 'var(--nd-dimmer)',
-                    marginBottom: 4,
-                  }}>
-                    {m.code}
-                  </div>
-                  <div style={{
-                    fontSize: 13, fontWeight: 700, letterSpacing: 1,
-                    marginBottom: 4,
-                  }}>
-                    {m.title}
-                  </div>
-                  <div style={{
-                    fontSize: 10, letterSpacing: 0.5,
-                    color: 'var(--nd-dim)', marginBottom: 6,
-                    fontFamily: 'var(--nd-font-sans)',
-                  }}>
-                    {m.desc}
-                  </div>
-                  <div
-                    className="nd-tnum"
-                    style={{
-                      display: 'flex', justifyContent: 'space-between',
-                      fontSize: 9, letterSpacing: 1, color: 'var(--nd-dim)',
-                    }}
-                  >
-                    <span>◷ {m.duration}</span>
-                    <span style={{ color: m.enabled ? 'var(--nd-amber)' : 'var(--nd-dimmer)' }}>
-                      ◆ {m.reward}
-                    </span>
-                  </div>
+                  <span className="nd-home__mission-code">{m.eyebrow}</span>
+                  <strong>{m.title}</strong>
+                  <small>{m.subtitle}</small>
+                  <em>{m.line}</em>
+                  <i>
+                    <span style={{ width: `${m.progress}%`, background: m.enabled ? m.accent : 'var(--nd-dimmer)' }} />
+                  </i>
                 </button>
               );
             })}
           </div>
-        </div>
+        </section>
 
-        {/* Continue (saved game) */}
-        {saveInfo ? (
-          <button
-            onClick={() => handleDeploy(true)}
-            className="nd-panel relative"
-            style={{
-              padding: '10px 14px', textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'border-color 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--nd-amber)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--nd-hair)'}
-          >
-            <span className="nd-reticle__c nd-reticle__c--tl" />
-            <span className="nd-reticle__c nd-reticle__c--tr" />
-            <span className="nd-reticle__c nd-reticle__c--bl" />
-            <span className="nd-reticle__c nd-reticle__c--br" />
-            <div className="nd-eyebrow nd-eyebrow--amber" style={{ marginBottom: 4 }}>
-              ◆ RESUME · LAST SESSION
-            </div>
-            <div
-              className="nd-mono"
-              style={{ fontSize: 14, color: '#fff', fontWeight: 700, letterSpacing: 1 }}
-            >
-              STAGE <span style={{ color: 'var(--nd-amber)' }}>{saveInfo.stage}</span>
-              <span style={{ color: 'var(--nd-dimmer)', margin: '0 6px' }}>·</span>
-              WAVE <span style={{ color: 'var(--nd-amber)' }}>{saveInfo.wave}</span>
-            </div>
-            <div
-              className="nd-mono"
-              style={{ fontSize: 9, color: 'var(--nd-dim)', letterSpacing: 1, marginTop: 2 }}
-            >
-              {formatDate(saveInfo.timestamp)}
-              {typeof formatRelativeTime !== 'undefined' && (
-                <> · {formatRelativeTime(saveInfo.timestamp)}</>
-              )}
-            </div>
-          </button>
-        ) : (
-          <div
-            className="nd-panel relative"
-            style={{ padding: '10px 14px', opacity: 0.45 }}
-          >
-            <span className="nd-reticle__c nd-reticle__c--tl" />
-            <span className="nd-reticle__c nd-reticle__c--tr" />
-            <span className="nd-reticle__c nd-reticle__c--bl" />
-            <span className="nd-reticle__c nd-reticle__c--br" />
-            <div className="nd-eyebrow nd-eyebrow--dim">◌ NO CHECKPOINT</div>
-            <div
-              className="nd-mono"
-              style={{ fontSize: 11, color: 'var(--nd-dim)', letterSpacing: 1, marginTop: 4 }}
-            >
-              새 게임으로 체크포인트를 생성합니다.
-            </div>
-          </div>
-        )}
-
-        {/* DEPLOY button */}
         <button
-          onClick={() => handleDeploy(false)}
-          className="nd-btn-deploy nd-mono"
-          style={{
-            padding: '14px 16px',
-            fontSize: 13, letterSpacing: 3, fontWeight: 700,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            marginTop: 'auto',
-          }}
+          type="button"
+          onClick={handleDeploy}
+          disabled={!selectedMission.enabled}
+          className="nd-home__deploy nd-mono"
         >
-          <span>▸ DEPLOY · {missions.find(m => m.id === mission)?.code.replace(/^\S+\s/, '')}</span>
-          <span style={{ fontSize: 16 }}>⟶</span>
+          <span>▸ {selectedMission.action}</span>
+          <small><b /> ALL SYSTEMS NOMINAL</small>
         </button>
-      </div>
+
+        <section className="nd-panel nd-home__session">
+          <span className="nd-reticle__c nd-reticle__c--tl" />
+          <span className="nd-reticle__c nd-reticle__c--tr" />
+          <span className="nd-reticle__c nd-reticle__c--bl" />
+          <span className="nd-reticle__c nd-reticle__c--br" />
+          <div className="nd-eyebrow">◇ LAST SESSION</div>
+          <strong>{lastSessionLabel}</strong>
+          <span>
+            {saveInfo
+              ? `STAGE ${saveInfo.stage} · WAVE ${saveInfo.wave} · ${saveInfo.lives ?? '--'}/${startLives}`
+              : `${maxStage} STAGES · ${wavesPerStage} WAVES`}
+          </span>
+          <button type="button" onClick={handleResume} disabled={!saveInfo}>
+            ▸ RESUME
+          </button>
+        </section>
+      </aside>
     </div>
   );
 };

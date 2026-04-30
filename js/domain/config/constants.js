@@ -51,8 +51,8 @@ const ELEMENT_EFFECTS = {
   },
   [ELEMENT_TYPES.WIND]: {
     name: '질풍', icon: '🌪️', desc: '고데미지 + 넉백',
-    damageMultiplier: { 1: 1.5, 2: 1.8, 3: 2.2, 4: 3.0 },
-    knockbackDistance: { 1: 15, 2: 20, 3: 25, 4: 35 },
+    damageMultiplier: { 1: 1.25, 2: 1.45, 3: 1.75, 4: 2.0 },
+    knockbackDistance: { 1: 12, 2: 16, 3: 22, 4: 30 },
     // T4 전용 수치
     t4AoeDamageRatio: 0.5,   // 광역 분쇄형: 광역 피해 배율
     t4PullRange: 100,        // 흡인 제어형: 끌어당김 탐색 반경 (px)
@@ -85,19 +85,19 @@ const NEON_TYPES = {
     tier: 2,
     colors: ['#FF4444', '#1E90FF', '#FFD700', '#32CD32', '#BA55D3', '#D8D8D8'],
     names: ['크림슨 블레이즈', '오션 포스', '골든 플레어', '네이처 빔', '아메시스트 레이', '스틸 글로우'],
-    damage: 30, range: 100, speed: 800,
+    damage: 28, range: 100, speed: 850,
   },
   3: {
     tier: 3,
     colors: ['#FF0000', '#0066FF', '#FFAA00', '#00FF00', '#9400D3', '#E8E8E8'],
     names: ['인페르노', '딥 시', '솔라 프리즘', '포레스트 가디언', '보이드 워커', '미스릴 코어'],
-    damage: 100, range: 120, speed: 600,
+    damage: 85, range: 120, speed: 700,
   },
   4: {
     tier: 4,
     colors: ['#FF0066', '#0044FF', '#FF6600', '#00FF88', '#7B00FF', '#F5F5F5'],
     names: ['피닉스 라이즈', '애비스 로드', '노바 버스트', '월드 트리', '다크 매터', '플래티넘 스타'],
-    damage: 350, range: 150, speed: 400,
+    damage: 280, range: 150, speed: 500,
   },
 };
 
@@ -213,20 +213,26 @@ const SPAWN_RULES = [
 
 
 // ===== 체력 스케일링 (3×10 캠페인 기준 — 합의 10) =====
-// HP: base × (1 + (s-1)×0.30) × (1 + (w-1)×0.10) × (W∈{5,10}? 보스 보너스 : 1)
-// Stage 1 W1 normal:  30 × 1.0 × 1.0 = 30
-// Stage 1 W10 normal: 30 × 1.0 × 1.9 = 57
-// Stage 3 W10 normal: 30 × 1.6 × 1.9 = 91
-// W5 미니보스 / W10 스테이지보스는 enemy-system.js 에서 별도 가산
+// HP: base × stageScale × waveScale × lateWaveBonus × sectorScale × typeHealthMult
+// stageScale = 1 + (stage-1)×stageGrowth
+// waveScale  = 1 + (wave-1)×waveGrowth
+// 의도: 초반 W5 미니보스의 방어 벽은 낮추고, S2~S3 후반부는 타워 성장/버프를 따라가게 만든다.
 const HEALTH_SCALING = {
-  base: 30,
-  stageGrowth: 0.30,       // 0.32 → 0.30 (3 stage 짧아진 만큼 곡선 완화)
-  waveGrowth: 0.10,        // 0.13 → 0.10 (10 wave 길어진 만큼 매끈화)
-  lateWaveThreshold: 9999, // 합의 10: lateWaveBonus 비활성. 보스 보너스로 대체
-  lateWaveBonus: 1.0,
-  bossFormula: (stage) => 10 + stage * 1.5,
-  minibossHealthMult: 4.0, // W5 미니보스: elite healthMult × 이 값
-  minibossArmorBonus: 2,   // W5 미니보스: 기존 armor + 이 값
+  base: 32,
+  stageGrowth: 0.42,
+  waveGrowth: 0.13,
+  lateWaveThreshold: 7,
+  lateWaveBonus: 1.15,
+  bossFormula: (stage) => 12 + stage * 3 + stage * stage,
+  minibossHealthMult: 3.0,
+  armorScaling: {
+    enabledFromStage: 2,
+    stageGrowth: 0.25,
+    waveGrowth: 0.035,
+    bossMultiplier: 1.25,
+    minibossBonus: 1,
+    minibossEarlyArmor: 1,
+  },
 };
 
 // ===== 경제 설정 =====
@@ -432,8 +438,8 @@ const T4_ROLES = {
     {
       id: 'C', name: '돌풍 타격형', icon: '🌪️',
       desc: '넉백 강화, 고데미지\n범위 감소',
-      statMod: { damage: 1.4, range: 0.85, speed: 1.0 },
-      special: { knockbackBonus: 25, bossBonus: 0.3 },
+      statMod: { damage: 1.25, range: 0.85, speed: 1.0 },
+      special: { knockbackBonus: 18, bossBonus: 0.15 },
     },
   ],
   // 🌀 공허 계열

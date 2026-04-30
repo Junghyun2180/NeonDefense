@@ -479,8 +479,15 @@ const NeonDefense = () => {
   const handleSelectMode = useCallback((mode) => {
     if (mode === 'run') {
       setShowRunMenu(true);
+      return;
     }
-  }, []);
+    if (mode === 'endless') {
+      runModeState.startRun('endless');
+      setShowRunMenu(false);
+      saveLoadState.setShowMainMenu(false);
+      saveLoadState.setGameStarted(true);
+    }
+  }, [runModeState, saveLoadState]);
 
   const handleStartRun = useCallback((mode, modifiers = []) => {
     runModeState.startRun(mode, modifiers);

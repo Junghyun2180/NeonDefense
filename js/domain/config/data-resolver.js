@@ -68,8 +68,8 @@ const DataResolver = {
     // 합의 10: sector 인자 — Sector N 의 HP 는 base × 1.15^(N-1) (Sector 1 = ×1.0)
     calcBaseHealth(modeId, stage, wave, sector = 1) {
         const hs = this.getHealthScaling(modeId);
-        const stageScale = 1 + (stage - 1) * hs.stageGrowth;
-        const waveScale = 1 + (wave - 1) * hs.waveGrowth;
+        const stageScale = 1 + Math.max(0, stage - 1) * hs.stageGrowth;
+        const waveScale = 1 + Math.max(0, wave - 1) * hs.waveGrowth;
         let health = Math.floor(hs.base * stageScale * waveScale * calcSectorHpMultiplier(sector));
 
         // 후반 웨이브 보너스
@@ -84,6 +84,42 @@ const DataResolver = {
         const hs = this.getHealthScaling(modeId);
         const baseHealth = this.calcBaseHealth(modeId, stage, wave, sector);
         return Math.floor(baseHealth * hs.bossFormula(stage));
+    },
+
+    // 방어력 계산 (통합)
+    // armor = baseArmor × (1 + stageStep×stageGrowth + waveStep×waveGrowth) × typeModifier
+    // Stage 1 일반 적은 방어를 주지 않고, W5 미니보스만 낮은 early armor를 부여한다.
+    calcArmor(modeId, enemyType, stage, wave, options = {}) {
+        const config = this.getEnemyConfig(enemyType);
+        if (!config) return 0;
+
+        const hs = this.getHealthScaling(modeId);
+        const armorCfg = hs.armorScaling || {};
+        const baseArmor = config.armor || 0;
+        const isMiniboss = !!options.isMiniboss;
+        const enabledFromStage = armorCfg.enabledFromStage ?? 2;
+
+        if (stage < enabledFromStage) {
+            return isMiniboss ? (armorCfg.minibossEarlyArmor ?? 1) : 0;
+        }
+
+        if (baseArmor <= 0 && !isMiniboss) return 0;
+
+        const stageStep = Math.max(0, stage - enabledFromStage);
+        const waveStep = Math.max(0, wave - 1);
+        const stageGrowth = armorCfg.stageGrowth ?? 0;
+        const waveGrowth = armorCfg.waveGrowth ?? 0;
+        const scale = 1 + stageStep * stageGrowth + waveStep * waveGrowth;
+
+        let armor = Math.floor(baseArmor * scale);
+        if (enemyType === 'boss') {
+            armor = Math.floor(armor * (armorCfg.bossMultiplier ?? 1));
+        }
+        if (isMiniboss) {
+            armor += armorCfg.minibossBonus ?? (hs.minibossArmorBonus || 0);
+        }
+
+        return Math.max(0, armor);
     },
 
     // ===== 공유 데이터 접근 =====

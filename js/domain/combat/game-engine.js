@@ -30,6 +30,7 @@ const GameEngine = {
           towerY: proj.towerY,
           towerId: proj.towerId,   // 속성 스택 추적
           color: proj.color,
+          isCrit: !!proj.isCrit,
           // T4 특수 능력 정보 전달
           special: proj.special || {},
           role: proj.role || null,

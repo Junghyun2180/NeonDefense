@@ -32,8 +32,8 @@ const AbilitySystem = {
     'wind-C': GustAbility,           // 돌풍 타격형
     // 공허
     'void-A': SynergyBuffAbility,    // 시너지 촉매형
-    'void-B': EnhancedPierceAbility, // 차원 파열형
-    'void-C': BalancedAbility,       // 균형 딜러형
+    'void-B': BalancedAbility,       // 균형 딜러형
+    'void-C': EnhancedPierceAbility, // 차원 파열형
     // 광휘
     'light-A': CriticalAbility,      // 파쇄 타격형
     'light-B': LightKnockbackAbility,// 넉백 제어형

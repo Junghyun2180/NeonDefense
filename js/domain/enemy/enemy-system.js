@@ -154,13 +154,9 @@ const EnemySystem = {
       health = Math.floor(health * 1.12);
     }
 
-    // 합의 06: Armor / Shield — Stage 2+ 에서만 적용 (S1은 진입 장벽 X)
-    // 합의 10: W5 미니보스 = armor 가산
-    let armor = (stage >= 2 && config.armor) ? config.armor : 0;
-    if (isMinibossSlot) {
-      const hs = DataResolver.getHealthScaling(modeId);
-      armor = (config.armor || 0) + (hs.minibossArmorBonus || 2);
-    }
+    // Armor는 DataResolver 공식으로 계산한다.
+    // Stage 1 일반 적은 방어 없음, W5 미니보스만 낮은 early armor를 부여한다.
+    const armor = DataResolver.calcArmor(modeId, type, stage, wave, { isMiniboss: isMinibossSlot });
     const shieldMax = (stage >= 2 && config.shieldRatio) ? Math.floor(health * config.shieldRatio) : 0;
 
     const initFacing = this._computeInitialFacing(pathTiles);
