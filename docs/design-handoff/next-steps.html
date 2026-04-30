@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>Neon Defense · Holographic Command — Next Steps</title>
+<meta name="viewport" content="width=1180" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #08080a;
+    --bg-2: #0c0c10;
+    --panel: rgba(255,255,255,0.02);
+    --hair: rgba(255,255,255,0.08);
+    --hair-strong: rgba(255,255,255,0.16);
+    --text: #e8e8ec;
+    --dim: #9a9aa6;
+    --dimmer: #6a6a76;
+    --crimson: #ff3d6e;
+    --amber: #ffa94d;
+    --gold: #ffb627;
+    --green: #80ed99;
+    --red: #ff4d6d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif; font-weight: 400; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  body { padding: 60px 80px 120px; max-width: 1180px; margin: 0 auto; }
+
+  /* ---- HEADER ---- */
+  .doc-header {
+    border-bottom: 1px solid var(--hair-strong);
+    padding-bottom: 32px; margin-bottom: 40px;
+    display: flex; justify-content: space-between; align-items: flex-end;
+  }
+  .doc-header .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--crimson); letter-spacing: 4px; margin-bottom: 14px;
+  }
+  .doc-header h1 {
+    font-size: 48px; font-weight: 200; letter-spacing: -1.5px;
+    margin: 0; color: #fff; line-height: 1;
+  }
+  .doc-header h1 .accent { color: var(--crimson); }
+  .doc-header .meta {
+    font-size: 11px; color: var(--dim); letter-spacing: 1.5px;
+    text-align: right; line-height: 1.8;
+  }
+  .doc-header .meta .v { color: var(--text); }
+
+  /* doc nav */
+  .doc-nav {
+    display: flex; gap: 16px; padding: 14px 0; margin-bottom: 56px;
+    border-bottom: 1px solid var(--hair);
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 2px;
+  }
+  .doc-nav a { color: var(--dim); text-decoration: none; padding: 6px 12px;
+    border: 1px solid transparent; }
+  .doc-nav a:hover { color: var(--text); border-color: var(--hair); }
+  .doc-nav a.active { color: #fff; border-color: var(--crimson); background: rgba(255,61,110,0.06); }
+
+  /* sections */
+  section { margin-bottom: 80px; }
+  h2 {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--dim); letter-spacing: 4px; text-transform: uppercase;
+    margin: 0 0 8px; font-weight: 500;
+  }
+  h2 .num { color: var(--crimson); margin-right: 14px; }
+  .h2-title {
+    font-size: 32px; font-weight: 200; letter-spacing: -0.5px;
+    color: #fff; margin: 0 0 24px;
+  }
+  .h2-desc { font-size: 15px; color: var(--dim); line-height: 1.7;
+    max-width: 760px; margin-bottom: 36px; }
+  h3 {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--amber); letter-spacing: 3px; text-transform: uppercase;
+    margin: 32px 0 14px; font-weight: 500;
+  }
+
+  /* sprint cards */
+  .sprint-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+  .sprint {
+    border: 1px solid var(--hair); padding: 24px; position: relative;
+    background: var(--panel);
+  }
+  .sprint::before {
+    content: ''; position: absolute; top: -1px; left: -1px; right: -1px;
+    height: 2px; background: var(--accent, var(--crimson));
+  }
+  .sprint .num {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--dim); letter-spacing: 3px;
+  }
+  .sprint .title {
+    font-size: 18px; color: #fff; font-weight: 500;
+    margin: 6px 0 4px; letter-spacing: -0.3px;
+  }
+  .sprint .when { font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--amber); letter-spacing: 2px; margin-bottom: 14px; }
+  .sprint .when .days { color: var(--text); }
+  .sprint p {
+    font-size: 12px; color: var(--dim); line-height: 1.7; margin: 0;
+  }
+  .sprint .meta {
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hair);
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--dim); letter-spacing: 1.5px;
+  }
+  .sprint .meta .pri { color: var(--crimson); }
+
+  /* ticket */
+  .ticket {
+    border: 1px solid var(--hair); margin-bottom: 14px;
+    background: var(--panel);
+  }
+  .ticket .top {
+    display: grid; grid-template-columns: 110px 1fr auto auto auto;
+    gap: 16px; padding: 14px 18px; align-items: center;
+    border-bottom: 1px solid var(--hair);
+  }
+  .ticket .id {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--crimson); letter-spacing: 2px; font-weight: 600;
+  }
+  .ticket .name {
+    font-size: 14px; color: #fff; font-weight: 500;
+  }
+  .ticket .pill {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    padding: 3px 8px; letter-spacing: 1.5px;
+    border: 1px solid var(--hair-strong);
+  }
+  .ticket .pill.p1 { color: var(--crimson); border-color: var(--crimson); }
+  .ticket .pill.p2 { color: var(--amber); border-color: rgba(255,169,77,0.5); }
+  .ticket .pill.p3 { color: var(--dim); }
+  .ticket .effort {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--dim); letter-spacing: 1.5px;
+  }
+  .ticket .effort .v { color: var(--text); }
+  .ticket .body { padding: 14px 18px; }
+  .ticket .body .row {
+    display: grid; grid-template-columns: 100px 1fr; gap: 16px;
+    padding: 8px 0; align-items: start;
+    border-top: 1px solid var(--hair);
+  }
+  .ticket .body .row:first-child { border-top: none; padding-top: 4px; }
+  .ticket .body .k {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    color: var(--amber); letter-spacing: 2px; padding-top: 2px;
+  }
+  .ticket .body .v {
+    font-size: 13px; color: var(--text); line-height: 1.7;
+  }
+  .ticket .body .v ul { margin: 0; padding-left: 16px; }
+  .ticket .body .v ul li { padding: 2px 0; }
+  .ticket .body .v code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: var(--bg-2); padding: 1px 6px; border: 1px solid var(--hair);
+    color: var(--crimson);
+  }
+
+  /* code */
+  pre.code {
+    background: var(--bg-2); border: 1px solid var(--hair);
+    border-left: 2px solid var(--crimson);
+    padding: 16px 20px; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--text); line-height: 1.6;
+    overflow-x: auto; margin: 0 0 16px;
+  }
+  pre.code .com { color: var(--dimmer); }
+  pre.code .key { color: var(--crimson); }
+  pre.code .val { color: var(--amber); }
+  pre.code .str { color: var(--green); }
+  pre.code .add { color: var(--green); }
+  pre.code .del { color: var(--red); text-decoration: line-through; opacity: 0.7; }
+  pre.code .file { color: var(--gold); }
+
+  /* file map */
+  .file-map {
+    border: 1px solid var(--hair); margin-bottom: 32px;
+  }
+  .file-map .row {
+    display: grid; grid-template-columns: 280px 1fr 110px;
+    gap: 16px; padding: 12px 18px; align-items: center;
+    border-top: 1px solid var(--hair);
+  }
+  .file-map .row:first-child { border-top: none; }
+  .file-map .row .file {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);
+  }
+  .file-map .row .file .path { color: var(--dimmer); }
+  .file-map .row .file .name { color: var(--crimson); }
+  .file-map .row .change { font-size: 12px; color: var(--dim); line-height: 1.6; }
+  .file-map .row .change .del { color: var(--red); }
+  .file-map .row .change .new { color: var(--green); }
+  .file-map .row .badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    padding: 3px 8px; letter-spacing: 1.5px; text-align: center;
+    border: 1px solid var(--hair-strong);
+    color: var(--dim);
+  }
+  .file-map .row .badge.touch { color: var(--amber); border-color: rgba(255,169,77,0.4); }
+  .file-map .row .badge.rebuild { color: var(--crimson); border-color: var(--crimson); }
+  .file-map .row .badge.new { color: var(--green); border-color: rgba(128,237,153,0.4); }
+
+  /* checklist */
+  ul.checklist { list-style: none; padding: 0; margin: 0; }
+  ul.checklist li {
+    padding: 12px 0 12px 26px; border-bottom: 1px solid var(--hair);
+    position: relative; font-size: 14px; color: var(--text); line-height: 1.6;
+  }
+  ul.checklist li::before {
+    content: '◇'; position: absolute; left: 0; color: var(--crimson);
+    font-size: 10px; top: 16px;
+  }
+  ul.checklist li.done::before { content: '◆'; color: var(--green); }
+  ul.checklist li .meta {
+    color: var(--dim); font-size: 12px; margin-left: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  ul.checklist li code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: var(--amber); background: var(--bg-2); padding: 1px 6px;
+    border: 1px solid var(--hair);
+  }
+
+  /* risk grid */
+  .risk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .risk-table th, .risk-table td {
+    text-align: left; padding: 14px 16px; vertical-align: top;
+    border-bottom: 1px solid var(--hair);
+  }
+  .risk-table th {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    color: var(--dim); letter-spacing: 2px; text-transform: uppercase;
+    font-weight: 500; border-bottom-color: var(--hair-strong);
+  }
+  .risk-table .risk { color: #fff; font-weight: 500; }
+  .risk-table .pill {
+    display: inline-block; padding: 2px 8px; font-size: 10px;
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 1.5px;
+    border: 1px solid var(--hair-strong);
+  }
+  .risk-table .pill.high { color: var(--crimson); border-color: var(--crimson); }
+  .risk-table .pill.med  { color: var(--amber);   border-color: rgba(255,169,77,0.5); }
+  .risk-table .pill.low  { color: var(--green);   border-color: rgba(128,237,153,0.4); }
+  .risk-table .mit { color: var(--dim); line-height: 1.6; }
+
+  /* timeline */
+  .timeline {
+    border: 1px solid var(--hair); padding: 32px 24px;
+    background: var(--panel); position: relative; overflow: hidden;
+  }
+  .tl-row {
+    display: grid; grid-template-columns: 120px 1fr;
+    gap: 24px; padding: 14px 0; border-top: 1px solid var(--hair);
+  }
+  .tl-row:first-child { border-top: none; padding-top: 0; }
+  .tl-week { font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--crimson); letter-spacing: 2px; padding-top: 4px; }
+  .tl-bars { display: flex; flex-direction: column; gap: 6px; }
+  .tl-bar { display: grid; grid-template-columns: 1fr; align-items: center;
+    position: relative; height: 24px; }
+  .tl-bar .fill {
+    height: 24px; border: 1px solid var(--c, var(--crimson));
+    background: rgba(255,255,255,0.02);
+    display: flex; align-items: center; padding: 0 12px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 1.5px; color: var(--c, var(--crimson));
+  }
+
+  /* footer */
+  footer {
+    margin-top: 80px; padding-top: 32px; border-top: 1px solid var(--hair-strong);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--dimmer); letter-spacing: 2px;
+  }
+  footer .ver { color: var(--crimson); }
+
+  /* defs of done block */
+  .dod {
+    border: 1px solid var(--hair); padding: 24px; background: var(--panel);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+  }
+  .dod h4 {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--crimson); letter-spacing: 3px; text-transform: uppercase;
+    margin: 0 0 12px; font-weight: 500;
+  }
+  .dod ul { padding-left: 18px; margin: 0; font-size: 13px; color: var(--text); line-height: 1.8; }
+  .dod ul li { padding: 2px 0; }
+
+  /* metrics */
+  .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+    border: 1px solid var(--hair); margin-bottom: 24px; }
+  .metric {
+    padding: 24px; border-right: 1px solid var(--hair);
+  }
+  .metric:last-child { border-right: none; }
+  .metric .lbl {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    color: var(--dim); letter-spacing: 2px; margin-bottom: 8px;
+  }
+  .metric .val {
+    font-family: 'JetBrains Mono', monospace; font-size: 28px;
+    color: #fff; font-weight: 700; font-feature-settings: '"tnum"';
+    letter-spacing: -1px; line-height: 1;
+  }
+  .metric .delta {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    margin-top: 8px; letter-spacing: 1.5px;
+  }
+  .metric .delta.up { color: var(--green); }
+  .metric .delta.down { color: var(--red); }
+
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div>
+    <div class="eyebrow">◇ NEXT STEPS · v1.0</div>
+    <h1>Implementation <span class="accent">Plan</span></h1>
+  </div>
+  <div class="meta">
+    PROJECT &nbsp;<span class="v">NEON DEFENSE</span><br>
+    DEPENDS &nbsp;<span class="v">HANDOFF v1.0</span><br>
+    DATE &nbsp;<span class="v">2026.04.29</span>
+  </div>
+</div>
+
+<div class="doc-nav">
+  <a href="index.html">▸ HANDOFF · DESIGN SPEC</a>
+  <a href="next-steps.html" class="active">▸ NEXT STEPS · IMPLEMENTATION</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- 0. EXECUTIVE SUMMARY -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">00</span>SUMMARY</h2>
+  <div class="h2-title">실행 요약</div>
+  <p class="h2-desc">
+    이 문서는 <strong>Holographic Command 디자인 → 클라이언트 이식</strong>까지의 실행 계획서입니다.
+    3개 스프린트(2주 단위) · 약 17일 · 14개 티켓으로 분할했습니다.
+    Phase 1은 게임 플레이 화면(가장 큰 임팩트), Phase 2는 메인 5페이지 분리, Phase 3는
+    모션·접근성·QA. 각 티켓에는 변경 파일·수용 기준·예상 공수가 명시되어 있어 즉시 작업 시작 가능합니다.
+  </p>
+
+  <div class="metric-grid">
+    <div class="metric">
+      <div class="lbl">SPRINTS</div>
+      <div class="val">3</div>
+      <div class="delta">2WK / SPRINT</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">TICKETS</div>
+      <div class="val">14</div>
+      <div class="delta">P1·6 P2·5 P3·3</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">EST. DAYS</div>
+      <div class="val">17</div>
+      <div class="delta">SOLO DEV</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">FILES TOUCHED</div>
+      <div class="val">23</div>
+      <div class="delta up">+ 4 NEW</div>
+    </div>
+  </div>
+
+  <div class="sprint-grid">
+    <div class="sprint" style="--accent:var(--crimson)">
+      <div class="num">SPRINT 01</div>
+      <div class="title">In-Game HUD</div>
+      <div class="when">WEEK 1–2 · <span class="days">5 DAYS</span></div>
+      <p>
+        토큰 도입 · GameHeader · ControlPanel · Inventory · GameMap 의 시각 리프레시.
+        가장 사용자가 오래 머무는 화면부터.
+      </p>
+      <div class="meta">PRIORITY <span class="pri">P1</span> · TICKETS T01–T06</div>
+    </div>
+    <div class="sprint" style="--accent:var(--amber)">
+      <div class="num">SPRINT 02</div>
+      <div class="title">Main 5-Page Split</div>
+      <div class="when">WEEK 3–4 · <span class="days">7 DAYS</span></div>
+      <p>
+        MainMenu 분해 → Home / Codex / Profile / Meta / Rank 5개 라우트로 분할.
+        HoloShell 공통 컴포넌트 신규.
+      </p>
+      <div class="meta">PRIORITY <span class="pri">P2</span> · TICKETS T07–T11</div>
+    </div>
+    <div class="sprint" style="--accent:var(--gold)">
+      <div class="num">SPRINT 03</div>
+      <div class="title">Polish & Ship</div>
+      <div class="when">WEEK 5 · <span class="days">5 DAYS</span></div>
+      <p>
+        모션 적용 · 접근성 감수 · 디바이스 매트릭스 QA · 릴리즈 빌드.
+        잡힌 잔버그 + 성능 최적화.
+      </p>
+      <div class="meta">PRIORITY <span class="pri">P3</span> · TICKETS T12–T14</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 1. FOUNDATION -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">01</span>FOUNDATION</h2>
+  <div class="h2-title">선결 작업 · Day 0</div>
+  <p class="h2-desc">
+    스프린트 시작 전 반드시 끝나야 하는 5개의 셋업 작업. 모두 합쳐 약 1일.
+    여기서 막히면 모든 후속 티켓이 블록됩니다.
+  </p>
+
+  <h3>1.1 토큰 파일 생성</h3>
+  <p style="font-size:13px;color:var(--dim);margin-bottom:14px">
+    아래 파일을 그대로 <code style="font-family:'JetBrains Mono',monospace;color:var(--amber);background:var(--bg-2);padding:1px 6px;border:1px solid var(--hair)">css/tokens.css</code>에 저장하세요. 모든 컴포넌트는 이 변수만 참조합니다.
+  </p>
+<pre class="code"><span class="com">/* css/tokens.css — Neon Defense · Holo design tokens v1.0 */</span>
+<span class="key">:root</span> {
+  <span class="com">/* surface */</span>
+  <span class="key">--nd-bg</span>:           <span class="val">#08080a</span>;
+  <span class="key">--nd-bg-2</span>:         <span class="val">#0c0c10</span>;
+  <span class="key">--nd-panel</span>:        <span class="val">rgba(255,255,255,0.02)</span>;
+  <span class="key">--nd-hair</span>:         <span class="val">rgba(255,255,255,0.08)</span>;
+  <span class="key">--nd-hair-strong</span>:  <span class="val">rgba(255,255,255,0.16)</span>;
+
+  <span class="com">/* text */</span>
+  <span class="key">--nd-text-pure</span>:    <span class="val">#ffffff</span>;
+  <span class="key">--nd-text</span>:         <span class="val">#e8e8ec</span>;
+  <span class="key">--nd-dim</span>:          <span class="val">#9a9aa6</span>;
+  <span class="key">--nd-dimmer</span>:       <span class="val">#6a6a76</span>;
+
+  <span class="com">/* accent */</span>
+  <span class="key">--nd-crimson</span>:      <span class="val">#ff3d6e</span>;
+  <span class="key">--nd-amber</span>:        <span class="val">#ffa94d</span>;
+  <span class="key">--nd-gold</span>:         <span class="val">#ffb627</span>;
+  <span class="key">--nd-green</span>:        <span class="val">#80ed99</span>;
+  <span class="key">--nd-red-life</span>:     <span class="val">#ff4d6d</span>;
+
+  <span class="com">/* element (game identity — do not change) */</span>
+  <span class="key">--nd-el-fire</span>:      <span class="val">#ff4d6d</span>;
+  <span class="key">--nd-el-water</span>:     <span class="val">#4cc9f0</span>;
+  <span class="key">--nd-el-electric</span>:  <span class="val">#ffd60a</span>;
+  <span class="key">--nd-el-wind</span>:      <span class="val">#80ed99</span>;
+  <span class="key">--nd-el-light</span>:     <span class="val">#fff5b7</span>;
+  <span class="key">--nd-el-dark</span>:      <span class="val">#c77dff</span>;
+
+  <span class="com">/* spacing */</span>
+  <span class="key">--nd-s-1</span>: <span class="val">4px</span>;  <span class="key">--nd-s-2</span>: <span class="val">8px</span>;  <span class="key">--nd-s-3</span>: <span class="val">12px</span>;
+  <span class="key">--nd-s-4</span>: <span class="val">16px</span>; <span class="key">--nd-s-5</span>: <span class="val">20px</span>; <span class="key">--nd-s-6</span>: <span class="val">24px</span>;
+  <span class="key">--nd-s-7</span>: <span class="val">28px</span>; <span class="key">--nd-s-8</span>: <span class="val">32px</span>;
+
+  <span class="com">/* type */</span>
+  <span class="key">--nd-font-sans</span>:    <span class="str">'Inter', 'Pretendard', 'Apple SD Gothic Neo', sans-serif</span>;
+  <span class="key">--nd-font-mono</span>:    <span class="str">'JetBrains Mono', monospace</span>;
+  <span class="key">--nd-tnum</span>:         <span class="str">'tnum'</span>;
+}
+
+<span class="key">html</span>, <span class="key">body</span> {
+  <span class="key">background</span>: <span class="val">var(--nd-bg)</span>;
+  <span class="key">color</span>: <span class="val">var(--nd-text)</span>;
+  <span class="key">font-family</span>: <span class="val">var(--nd-font-sans)</span>;
+}</pre>
+
+  <h3>1.2 폰트 로드</h3>
+<pre class="code"><span class="com">&lt;!-- index.html &lt;head&gt; — preconnect 먼저, FOUT 방지 --&gt;</span>
+&lt;<span class="key">link</span> <span class="val">rel</span>=<span class="str">"preconnect"</span> <span class="val">href</span>=<span class="str">"https://fonts.googleapis.com"</span>&gt;
+&lt;<span class="key">link</span> <span class="val">rel</span>=<span class="str">"preconnect"</span> <span class="val">href</span>=<span class="str">"https://fonts.gstatic.com"</span> <span class="val">crossorigin</span>&gt;
+&lt;<span class="key">link</span> <span class="val">href</span>=<span class="str">"https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"</span> <span class="val">rel</span>=<span class="str">"stylesheet"</span>&gt;</pre>
+
+  <h3>1.3 베이스 컴포넌트 클래스</h3>
+<pre class="code"><span class="com">/* css/components.css — 위 토큰을 사용하는 8개 베이스 클래스 */</span>
+<span class="key">.nd-panel</span> {
+  <span class="key">background</span>: <span class="val">var(--nd-panel)</span>;
+  <span class="key">border</span>: <span class="val">1px solid var(--nd-hair)</span>;
+  <span class="key">border-radius</span>: <span class="val">2px</span>;
+  <span class="key">padding</span>: <span class="val">var(--nd-s-4) var(--nd-s-5)</span>;
+  <span class="key">position</span>: <span class="val">relative</span>;
+}
+<span class="key">.nd-eyebrow</span> {
+  <span class="key">font-family</span>: <span class="val">var(--nd-font-mono)</span>;
+  <span class="key">font-size</span>: <span class="val">10px</span>;
+  <span class="key">color</span>: <span class="val">var(--nd-crimson)</span>;
+  <span class="key">letter-spacing</span>: <span class="val">3px</span>;
+  <span class="key">text-transform</span>: <span class="val">uppercase</span>;
+}
+<span class="key">.nd-data</span> {
+  <span class="key">font-family</span>: <span class="val">var(--nd-font-mono)</span>;
+  <span class="key">font-feature-settings</span>: <span class="str">'"tnum"'</span>;
+  <span class="key">font-weight</span>: <span class="val">700</span>;
+}
+<span class="key">.nd-hair</span> {
+  <span class="key">height</span>: <span class="val">1px</span>;
+  <span class="key">background</span>: <span class="val">var(--nd-hair)</span>;
+  <span class="key">margin</span>: <span class="val">var(--nd-s-5) 0</span>;
+}
+<span class="key">.nd-btn-deploy</span> {
+  <span class="key">background</span>: <span class="val">linear-gradient(90deg, var(--nd-crimson), var(--nd-amber))</span>;
+  <span class="key">color</span>: <span class="val">#000</span>; <span class="key">font-weight</span>: <span class="val">800</span>;
+  <span class="key">padding</span>: <span class="val">8px 18px</span>; <span class="key">letter-spacing</span>: <span class="val">2px</span>;
+  <span class="key">font-family</span>: <span class="val">var(--nd-font-mono)</span>; <span class="key">border</span>: <span class="val">none</span>;
+  <span class="key">cursor</span>: <span class="val">pointer</span>; <span class="key">font-size</span>: <span class="val">11px</span>;
+}
+<span class="key">.nd-btn-ghost</span> {
+  <span class="key">background</span>: <span class="val">transparent</span>;
+  <span class="key">border</span>: <span class="val">1px solid var(--nd-hair-strong)</span>;
+  <span class="key">color</span>: <span class="val">var(--nd-text)</span>;
+  <span class="key">padding</span>: <span class="val">8px 14px</span>;
+  <span class="key">font-family</span>: <span class="val">var(--nd-font-mono)</span>;
+  <span class="key">font-size</span>: <span class="val">11px</span>; <span class="key">letter-spacing</span>: <span class="val">1.5px</span>;
+}
+<span class="key">.nd-reticle</span> { <span class="key">position</span>: <span class="val">relative</span>; }
+<span class="key">.nd-reticle::before</span>,
+<span class="key">.nd-reticle::after</span> {
+  <span class="key">content</span>: <span class="str">''</span>;
+  <span class="key">position</span>: <span class="val">absolute</span>;
+  <span class="key">width</span>: <span class="val">14px</span>; <span class="key">height</span>: <span class="val">14px</span>;
+  <span class="key">border-color</span>: <span class="val">var(--nd-crimson)</span>;
+  <span class="key">pointer-events</span>: <span class="val">none</span>;
+}
+<span class="com">/* TR / TL / BR / BL 4 corners — pseudo + 2 spans 조합 */</span></pre>
+
+  <h3>1.4 기존 시안 토큰 정리</h3>
+  <ul class="checklist">
+    <li><strong>제거 대상</strong> · 시안 일색 cyan <code>#4cc9f0</code> · 보라 <code>#c77dff</code> 의 chrome 사용처
+      <span class="meta">단, 원소 색상으로 쓰이는 자리(water · dark)는 보존</span></li>
+    <li><strong>대체 매핑</strong> · cyan → <code>--nd-crimson</code>, violet → <code>--nd-amber</code></li>
+    <li><strong>그라디언트 패널 fill 제거</strong> · <code>linear-gradient(...)</code> → <code>var(--nd-panel)</code></li>
+  </ul>
+
+  <h3>1.5 빌드 · 개발 환경</h3>
+  <ul class="checklist">
+    <li><code>npx serve .</code> 그대로 사용 — 빌드 도구 도입 X</li>
+    <li>각 컴포넌트 JSX는 Babel-standalone로 브라우저 트랜스파일 — 기존 방식 유지</li>
+    <li>토큰 적용 후 첫 페인트 = 캐시 무효화 위해 <code>?v=2</code> 쿼리 부여 권장</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- 2. FILE-BY-FILE MAP -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">02</span>FILE MAP</h2>
+  <div class="h2-title">파일별 변경 매트릭스</div>
+  <p class="h2-desc">
+    <code>NeonDefense/js/components/</code>의 모든 파일에 대해 변경 범위와 강도를 표시했습니다.
+    <strong>NEW</strong> = 신규, <strong>REBUILD</strong> = 50% 이상 재작성, <strong>TOUCH</strong> = 토큰 치환만.
+  </p>
+
+  <h3>게임 플레이 화면</h3>
+  <div class="file-map">
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">GameHeader.jsx</span></div>
+      <div class="change">5개 vital을 한 줄에 균등 배치 · 좌측 OPERATION 식별 블록 신규 · <span class="del">기존 단순 stat 박스 제거</span></div>
+      <div class="badge rebuild">REBUILD</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">GameMap.jsx</span></div>
+      <div class="change">4코너 레티클 추가 · 좌상단 mono eyebrow · 좌우 데이터 스트림 텍스트. 타일 그리드 로직 그대로.</div>
+      <div class="badge touch">TOUCH</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">ControlPanel.jsx</span></div>
+      <div class="change">우측 레일 3카드 구조: Selected Unit / Active Buffs / Commander Skills. <span class="new">+ Skills 패널 신규</span></div>
+      <div class="badge rebuild">REBUILD</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">Inventory.jsx</span></div>
+      <div class="change">10열 그리드 · 탭 바 (Arsenal / Support / Armory) · ROLL · AUTO-FUSE 액션 우측 정렬</div>
+      <div class="badge rebuild">REBUILD</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">BuffSelectionModal.jsx</span></div>
+      <div class="change">레티클 보더 · 토큰 치환만</div>
+      <div class="badge touch">TOUCH</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">CarryoverModal.jsx</span></div>
+      <div class="change">토큰 치환만</div>
+      <div class="badge touch">TOUCH</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">CheatConsole.jsx</span></div>
+      <div class="change">변경 없음 — 개발자 전용</div>
+      <div class="badge">SKIP</div>
+    </div>
+  </div>
+
+  <h3>메인 메뉴 (분해)</h3>
+  <div class="file-map">
+    <div class="row">
+      <div class="file"><span class="path">js/components/</span><span class="name">MainMenu.jsx</span></div>
+      <div class="change"><span class="del">단일 컴포넌트 해체</span> → 5개 신규 페이지로 분할 + HoloShell 호스팅</div>
+      <div class="badge rebuild">REBUILD</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/main/</span><span class="name">HoloShell.jsx</span></div>
+      <div class="change">공통 쉘. 좌측 nav · 상단 ops bar · 푸터. 모든 페이지가 children으로.</div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/main/</span><span class="name">Home.jsx</span></div>
+      <div class="change">홀로 프로젝션 챔버 + 미션 카드 3장 + DEPLOY 버튼</div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/main/</span><span class="name">Codex.jsx</span></div>
+      <div class="change">원소 필터 · 카드 그리드 · 상세 인스펙터 3컬럼</div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/main/</span><span class="name">Profile.jsx</span></div>
+      <div class="change">오퍼레이터 카드 · 업적 · 최근 전적</div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/main/</span><span class="name">Meta.jsx</span></div>
+      <div class="change">크리스탈 트리 + 우측 노드 인스펙터</div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/components/main/</span><span class="name">Rank.jsx</span></div>
+      <div class="change">모드/기간 필터 + 포디움 + 리스트 + 본인 등수 핀</div>
+      <div class="badge new">NEW</div>
+    </div>
+  </div>
+
+  <h3>토큰 / 스타일 / 라우팅</h3>
+  <div class="file-map">
+    <div class="row">
+      <div class="file"><span class="path">css/</span><span class="name">tokens.css</span></div>
+      <div class="change">토큰 변수 단일 파일. <code>:root</code>에 모든 컬러·스페이싱·타입 변수.</div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">css/</span><span class="name">components.css</span></div>
+      <div class="change">.nd-panel · .nd-eyebrow · .nd-data · .nd-btn-* 등 베이스 클래스</div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">js/</span><span class="name">router.js</span></div>
+      <div class="change">URL hash 기반 단순 라우터. <code>#/main/codex</code> · <code>#/game</code></div>
+      <div class="badge new">NEW</div>
+    </div>
+    <div class="row">
+      <div class="file"><span class="path">/</span><span class="name">index.html</span></div>
+      <div class="change">폰트 preconnect · tokens.css · components.css 링크 추가 · script 순서 정리</div>
+      <div class="badge touch">TOUCH</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 3. SPRINT 1 — IN-GAME -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">03</span>SPRINT 01 · IN-GAME HUD</h2>
+  <div class="h2-title">스프린트 1 · 게임 플레이 화면</div>
+  <p class="h2-desc">
+    가장 사용자가 오래 보는 화면을 먼저. 6개 티켓 · 5일. 하나씩 내려가며 PR 단위로 머지하면 됩니다.
+  </p>
+
+  <!-- T01 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T01</div>
+      <div class="name">토큰 시스템 도입 · Foundation</div>
+      <div class="pill p1">P1</div>
+      <div class="effort">EST <span class="v">0.5d</span></div>
+      <div class="effort">FILES <span class="v">3</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        <code>css/tokens.css</code> · <code>css/components.css</code> · <code>index.html</code> 폰트 로드.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li><code>:root</code>에 모든 토큰 정의 완료</li>
+        <li>Inter · JetBrains Mono 한 번의 새 페이지 로드에서 두 폰트 모두 active (Network 탭에서 woff2 200 OK)</li>
+        <li>다크 배경(#08080a) 적용된 빈 페이지 정상 렌더</li>
+      </ul></div></div>
+      <div class="row"><div class="k">RISK</div><div class="v">없음. 안전한 추가-only 변경.</div></div>
+    </div>
+  </div>
+
+  <!-- T02 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T02</div>
+      <div class="name">GameHeader 재구성 · 5 vital 가로 배치</div>
+      <div class="pill p1">P1</div>
+      <div class="effort">EST <span class="v">1d</span></div>
+      <div class="effort">FILES <span class="v">2</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        <code>js/components/GameHeader.jsx</code> · 좌측 OPERATION 식별 블록 + 5개 vital(WAVE/STAGE/GOLD/LIFE/KILLS)을
+        <code>flex: 1</code>로 가로 균등 분할. 각 vital 위에 mono label, 우측에 tabular-num 값, 아래 3px 게이지 바.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>1100px 폭에서 5 vital 모두 한 줄에 표시, 줄바꿈 없음</li>
+        <li>STAGE/WAVE/GOLD/LIFE/KILLS 값 변경 시 게이지 바도 동기화</li>
+        <li>LIFE가 25% 이하일 때 막대 색이 <code>--nd-red-life</code>로 펄스 (1초 주기)</li>
+      </ul></div></div>
+      <div class="row"><div class="k">DEPS</div><div class="v">T01 완료 후 시작</div></div>
+    </div>
+  </div>
+
+  <!-- T03 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T03</div>
+      <div class="name">GameMap · 레티클 프레임 + 데이터 스트림</div>
+      <div class="pill p1">P1</div>
+      <div class="effort">EST <span class="v">0.5d</span></div>
+      <div class="effort">FILES <span class="v">2</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        <code>GameMap.jsx</code> 외곽 컨테이너에 <code>.nd-reticle</code> 적용 — 4코너 14×14 L-shape.
+        좌상단 <code>▸ TACTICAL MAP · SECTOR-04</code> 우상단 <code>THREAT LVL ▮▮▮▮▯</code> 추가.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>레티클이 정확히 -1px 오프셋으로 보더와 겹쳐 보임</li>
+        <li>맵 클릭 영역에 영향 없음 (<code>pointer-events: none</code> 확인)</li>
+        <li>Stage 변경 시 우상단 THREAT 라벨 자동 갱신</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- T04 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T04</div>
+      <div class="name">ControlPanel · 3카드 우측 레일</div>
+      <div class="pill p1">P1</div>
+      <div class="effort">EST <span class="v">1.5d</span></div>
+      <div class="effort">FILES <span class="v">2</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        300px 폭. 위에서부터 <strong>Selected Unit</strong> · <strong>Active Buffs</strong> · <strong>Commander Skills</strong> 3카드.
+        Skills는 4개 액티브 슬롯(Q/W/E/R) 핫키 + 쿨다운 오버레이.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>타워 미선택 시 Selected Unit 카드는 빈 상태 ("◇ NO UNIT SELECTED")</li>
+        <li>버프 추가 시 chips로 추가 · 5개 초과 시 +N 표시</li>
+        <li>스킬 쿨다운은 1초마다 갱신 · ready 시 보더 펄스</li>
+        <li>Q/W/E/R 키 입력 → 해당 스킬 activate (이미 있는 핸들러 재사용)</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- T05 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T05</div>
+      <div class="name">Inventory · 10열 그리드 + 탭 + 액션</div>
+      <div class="pill p1">P1</div>
+      <div class="effort">EST <span class="v">1d</span></div>
+      <div class="effort">FILES <span class="v">2</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        하단 패널. 탭(Arsenal · Support · Armory) + 10열 셀 그리드 + 우측 ROLL ×1 / ×10 / AUTO-FUSE 버튼.
+        선택된 셀은 보더 크림슨 + "SEL" 라벨.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>각 셀 96×120 · 타워 PNG 64×64 + 이름 + Tier·Element 라벨</li>
+        <li>휠 스크롤 발생 시 부모 컨테이너로 버블링되지 않음 (현 페인포인트 해결)</li>
+        <li>탭 전환 시 underline 180ms slide</li>
+        <li>ROLL ×10 클릭 시 → 기존 gacha 핸들러 호출, 결과 모달 그대로 재사용</li>
+      </ul></div></div>
+      <div class="row"><div class="k">RISK</div><div class="v">스크롤 버블링 회귀 가능성 — Saved/Problem.md 참조. 반드시 e2e로 검증.</div></div>
+    </div>
+  </div>
+
+  <!-- T06 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T06</div>
+      <div class="name">사거리 표시 토글 · 페인포인트 해소</div>
+      <div class="pill p1">P1</div>
+      <div class="effort">EST <span class="v">0.5d</span></div>
+      <div class="effort">FILES <span class="v">2</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        Saved/Problem.md 의 핵심 페인포인트: "모든 타워 범위가 다 보이니까 복잡함".
+        <strong>기본은 사거리 비표시</strong>, 헤더 우측에 토글 버튼 (<code>R</code> 핫키), 또는 타워 클릭 시에만 해당 타워의 사거리 표시.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>맵 첫 진입 시 사거리 원이 보이지 않음</li>
+        <li>토글 ON 시 모든 타워 사거리 동시 표시 · OFF 시 즉시 숨김</li>
+        <li>R 키 핫키 작동</li>
+        <li>타워 클릭 시 해당 타워만 임시 사거리 표시 (선택 해제 시 사라짐)</li>
+      </ul></div></div>
+      <div class="row"><div class="k">METRIC</div><div class="v">베타 테스트에서 "맵이 복잡하다" 피드백 50% 감소를 목표.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 4. SPRINT 2 -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">04</span>SPRINT 02 · MAIN SPLIT</h2>
+  <div class="h2-title">스프린트 2 · 메인 5페이지 분리</div>
+  <p class="h2-desc">
+    MainMenu.jsx 단일 컴포넌트를 해체하고 5개 독립 페이지로 분리. 5개 티켓 · 7일.
+  </p>
+
+  <!-- T07 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T07</div>
+      <div class="name">HoloShell + URL hash 라우터</div>
+      <div class="pill p2">P2</div>
+      <div class="effort">EST <span class="v">1d</span></div>
+      <div class="effort">FILES <span class="v">3</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        <code>js/components/main/HoloShell.jsx</code> 신규 — 좌측 220px nav · 상단 ops bar · 푸터.
+        <code>js/router.js</code> — <code>window.location.hash</code> 변경 감지 + 5개 라우트 매핑.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li><code>#/main/home</code> → Home 컴포넌트 마운트</li>
+        <li>nav 클릭 시 hash 변경 + 페이지 컴포넌트 교체</li>
+        <li>브라우저 뒤로/앞으로 동작 정상</li>
+        <li>ops bar에 골드·크리스탈·알림 카운트 표시</li>
+      </ul></div></div>
+      <div class="row"><div class="k">DEPS</div><div class="v">T01</div></div>
+    </div>
+  </div>
+
+  <!-- T08 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T08</div>
+      <div class="name">Home · 홀로 프로젝션 + 미션 3장</div>
+      <div class="pill p2">P2</div>
+      <div class="effort">EST <span class="v">1.5d</span></div>
+      <div class="effort">FILES <span class="v">2</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        좌측 프로젝션 챔버(추천 타워 1기, 자동 회전 옵션) + 우측 미션 카드 3장(Campaign / Run / Endless-locked) + 하단 DEPLOY.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>DEPLOY 클릭 → 선택된 미션 모드로 게임 화면 진입</li>
+        <li>이전 세션 carryover가 있으면 Continue 옵션 노출</li>
+        <li>미션 카드 hover 시 보더 강조 + 미션 상세 미리보기</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- T09 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T09</div>
+      <div class="name">Codex · 도감 3컬럼</div>
+      <div class="pill p2">P2</div>
+      <div class="effort">EST <span class="v">1.5d</span></div>
+      <div class="effort">FILES <span class="v">2</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        220px 원소 필터 / 1fr 카드 그리드 / 280px 상세 인스펙터.
+        24장 카드(6원소 × 4티어), 미해금 카드는 실루엣.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>원소 클릭 시 그리드 필터링</li>
+        <li>카드 클릭 시 우측 상세에 스탯·관계도 표시</li>
+        <li>미해금 카드는 mono "LOCKED" 라벨</li>
+        <li>"+10" 같은 합성 트리 시각화</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- T10 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T10</div>
+      <div class="name">Profile + Meta</div>
+      <div class="pill p2">P2</div>
+      <div class="effort">EST <span class="v">2d</span></div>
+      <div class="effort">FILES <span class="v">3</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        Profile = 오퍼레이터 카드 + 업적 그리드 + 런 히스토리 테이블.<br>
+        Meta = 크리스탈 트리(가지치기) + 우측 노드 인스펙터.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>업적 24개 그리드 · 미달성은 실루엣</li>
+        <li>최근 10전 테이블 · 클릭 시 상세 모달</li>
+        <li>크리스탈 트리 노드 클릭 → 우측 인스펙터 표시 + Allocate 버튼</li>
+        <li>크리스탈 잔량 부족 시 Allocate 비활성</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <!-- T11 -->
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T11</div>
+      <div class="name">Rank · 리더보드</div>
+      <div class="pill p2">P2</div>
+      <div class="effort">EST <span class="v">1d</span></div>
+      <div class="effort">FILES <span class="v">1</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        모드 / 기간 필터 + 포디움(2위-1위-3위) + Top 100 테이블 + 본인 핀.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>필터 변경 시 즉시 데이터 갱신 (현재는 mock fixture로 시작)</li>
+        <li>본인 등수 행에 보더 강조 + sticky bottom</li>
+        <li>리셋 카운트다운(다음 갱신까지 hh:mm:ss) 1초마다 갱신</li>
+        <li>Endless 모드는 현재 잠금 상태 표시</li>
+      </ul></div></div>
+      <div class="row"><div class="k">RISK</div><div class="v">서버 API 미구현 — fixture로 시작, 추후 fetch 추가.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 5. SPRINT 3 -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">05</span>SPRINT 03 · POLISH</h2>
+  <div class="h2-title">스프린트 3 · 마감 + 출시</div>
+  <p class="h2-desc">
+    모션 · 접근성 · QA. 3개 티켓 · 5일.
+  </p>
+
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T12</div>
+      <div class="name">모션 · 트랜지션 적용</div>
+      <div class="pill p3">P3</div>
+      <div class="effort">EST <span class="v">1.5d</span></div>
+      <div class="effort">FILES <span class="v">multi</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        Handoff 문서 §07의 모션 스펙 적용. 호버/탭/웨이브 시작/골드 변화/타워 배치/적 처치.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>모든 호버 100ms ease-out</li>
+        <li>웨이브 시작 시 헤더 좌→우 크림슨 라인 1회 (400ms)</li>
+        <li>골드 변화 카운트업 250ms · ± 색 펄스</li>
+        <li>적 처치 시 2px 화이트 플래시 80ms 페이드</li>
+        <li>리듀스드 모션 환경(<code>prefers-reduced-motion</code>) 시 모든 모션 비활성</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T13</div>
+      <div class="name">접근성 감수 + 다국어 점검</div>
+      <div class="pill p3">P3</div>
+      <div class="effort">EST <span class="v">1.5d</span></div>
+      <div class="effort">FILES <span class="v">audit</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        WCAG AA · 키보드 내비 · 스크린리더 라벨 · 한국어 letter-spacing 0 정책 점검.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>모든 인터랙티브 요소 Tab 순회 가능</li>
+        <li>핫키(Q/W/E/R/R/Space) 표 작성 + ? 키로 도움말 모달</li>
+        <li>한글 텍스트에 letter-spacing 적용 사례 0건 (axe-core lint)</li>
+        <li>color-contrast 위반 0건</li>
+      </ul></div></div>
+    </div>
+  </div>
+
+  <div class="ticket">
+    <div class="top">
+      <div class="id">T14</div>
+      <div class="name">디바이스 매트릭스 QA + 릴리즈</div>
+      <div class="pill p3">P3</div>
+      <div class="effort">EST <span class="v">2d</span></div>
+      <div class="effort">FILES <span class="v">test</span></div>
+    </div>
+    <div class="body">
+      <div class="row"><div class="k">SCOPE</div><div class="v">
+        1280 / 1366 / 1440 / 1920 데스크톱 + iPad 가로 1024 검증. Chrome / Safari / Firefox.
+      </div></div>
+      <div class="row"><div class="k">DOD</div><div class="v"><ul>
+        <li>각 해상도에서 5페이지 + 게임 화면 스크린샷 캡처 (총 30장)</li>
+        <li>회귀 버그 리스트 작성 + 모두 close</li>
+        <li>릴리즈 빌드 태그 <code>v1.0-holo</code></li>
+        <li>릴리즈 노트 (한글) 작성</li>
+      </ul></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 6. TIMELINE -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">06</span>TIMELINE</h2>
+  <div class="h2-title">간트 차트 (가로축 = 영업일)</div>
+  <div class="timeline">
+    <div class="tl-row">
+      <div class="tl-week">WEEK 1</div>
+      <div class="tl-bars">
+        <div class="tl-bar"><div class="fill" style="--c:var(--crimson);width:10%">T01 · TOKEN SETUP · 0.5D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--crimson);width:20%;margin-left:10%">T02 · GAME HEADER · 1D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--crimson);width:10%;margin-left:30%">T03 · MAP RETICLE · 0.5D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--crimson);width:30%;margin-left:40%">T04 · CONTROL PANEL · 1.5D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--crimson);width:20%;margin-left:70%">T05 · INVENTORY · 1D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--crimson);width:10%;margin-left:90%">T06</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-week">WEEK 2</div>
+      <div class="tl-bars">
+        <div class="tl-bar"><div class="fill" style="--c:var(--amber);width:14%">T07 · SHELL+ROUTER · 1D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--amber);width:21%;margin-left:14%">T08 · HOME · 1.5D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--amber);width:21%;margin-left:35%">T09 · CODEX · 1.5D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--amber);width:29%;margin-left:56%">T10 · PROFILE+META · 2D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--amber);width:14%;margin-left:85%">T11 · RANK</div></div>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-week">WEEK 3</div>
+      <div class="tl-bars">
+        <div class="tl-bar"><div class="fill" style="--c:var(--gold);width:30%">T12 · MOTION · 1.5D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--gold);width:30%;margin-left:30%">T13 · A11Y · 1.5D</div></div>
+        <div class="tl-bar"><div class="fill" style="--c:var(--gold);width:40%;margin-left:60%">T14 · QA + RELEASE · 2D</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 7. RISK REGISTER -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">07</span>RISK REGISTER</h2>
+  <div class="h2-title">리스크 + 완화책</div>
+  <table class="risk-table">
+    <thead>
+      <tr>
+        <th>RISK</th>
+        <th>IMPACT</th>
+        <th>LIKELIHOOD</th>
+        <th>MITIGATION</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="risk">Inventory 휠 스크롤 버블링 회귀</td>
+        <td><span class="pill high">HIGH</span></td>
+        <td><span class="pill med">MED</span></td>
+        <td class="mit">T05 머지 전 e2e 시나리오 작성. <code>onWheel</code>에서 <code>e.stopPropagation()</code> 명시.</td>
+      </tr>
+      <tr>
+        <td class="risk">기존 게임 로직과 UI 분리 미흡</td>
+        <td><span class="pill high">HIGH</span></td>
+        <td><span class="pill med">MED</span></td>
+        <td class="mit">컴포넌트별 PR을 <strong>presentational only</strong>로 제한. 게임 상태(state)는 props로만 받음.</td>
+      </tr>
+      <tr>
+        <td class="risk">Babel-standalone 트랜스파일 시간 증가</td>
+        <td><span class="pill med">MED</span></td>
+        <td><span class="pill med">MED</span></td>
+        <td class="mit">파일이 25개 넘어가면 Vite 도입 검토 (out-of-scope · 별도 RFC).</td>
+      </tr>
+      <tr>
+        <td class="risk">한글 폰트 폴백에서 letter-spacing 깨짐</td>
+        <td><span class="pill med">MED</span></td>
+        <td><span class="pill high">HIGH</span></td>
+        <td class="mit">한글 텍스트는 모두 letter-spacing 0. mono eyebrow는 영문/숫자만 사용 규칙. T13에서 lint.</td>
+      </tr>
+      <tr>
+        <td class="risk">Rank 서버 API 미준비</td>
+        <td><span class="pill med">MED</span></td>
+        <td><span class="pill high">HIGH</span></td>
+        <td class="mit">T11는 fixture로 시작. API 스펙은 백엔드와 별도 동기화. 릴리즈 시 mock 토글 가능.</td>
+      </tr>
+      <tr>
+        <td class="risk">기존 사용자 — 시각 급변에 따른 거부감</td>
+        <td><span class="pill med">MED</span></td>
+        <td><span class="pill low">LOW</span></td>
+        <td class="mit">설정 메뉴에 "클래식 테마" 토글 (기존 컬러 보존). T14에서 검토.</td>
+      </tr>
+      <tr>
+        <td class="risk">디바이스별 폰트 렌더링 차이</td>
+        <td><span class="pill low">LOW</span></td>
+        <td><span class="pill med">MED</span></td>
+        <td class="mit">T14 디바이스 매트릭스에서 확인. 필요 시 -webkit-font-smoothing 적용.</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<!-- 8. DEFINITION OF DONE -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">08</span>DEFINITION OF DONE</h2>
+  <div class="h2-title">완료 기준</div>
+
+  <div class="dod">
+    <div>
+      <h4>각 티켓</h4>
+      <ul>
+        <li>티켓 본문의 DoD 항목 100% 충족</li>
+        <li>토큰만 사용 (하드코딩 컬러 0건 — grep으로 검증)</li>
+        <li>코드 리뷰 1명 이상 승인</li>
+        <li>크롬 / 사파리에서 시각 회귀 없음</li>
+        <li>관련 e2e 테스트 통과 (있는 경우)</li>
+      </ul>
+    </div>
+    <div>
+      <h4>릴리즈 v1.0-holo</h4>
+      <ul>
+        <li>전체 14개 티켓 close</li>
+        <li>리스크 레지스터 전체 mitigated</li>
+        <li>5개 디바이스 × 3 브라우저 = 15개 매트릭스 통과</li>
+        <li>핸드오프 문서 최종 검토 완료</li>
+        <li>릴리즈 노트 한글 작성 + 변경점 30초 영상</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- 9. SUCCESS METRICS -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">09</span>SUCCESS METRICS</h2>
+  <div class="h2-title">성공 지표</div>
+  <p class="h2-desc">
+    리디자인의 효과를 어떻게 측정할 것인가. 출시 후 2주 동안 추적.
+  </p>
+
+  <div class="metric-grid">
+    <div class="metric">
+      <div class="lbl">FPV → DEPLOY</div>
+      <div class="val">&lt;15s</div>
+      <div class="delta up">↑ FROM 28S</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">"맵이 복잡" 피드백</div>
+      <div class="val">-50%</div>
+      <div class="delta up">T06 EFFECT</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">D1 RETENTION</div>
+      <div class="val">+5%</div>
+      <div class="delta up">TARGET</div>
+    </div>
+    <div class="metric">
+      <div class="lbl">CRASH-FREE %</div>
+      <div class="val">99.5%</div>
+      <div class="delta">MAINTAIN</div>
+    </div>
+  </div>
+
+  <ul class="checklist">
+    <li><strong>FPV → DEPLOY</strong> · First page view에서 게임 진입까지의 평균 시간. 기존 28초 → 15초 이하 목표</li>
+    <li><strong>맵 페인포인트 피드백</strong> · 사거리 토글 도입 후 in-game 설문에서 "맵이 복잡하다" 응답 50% 감소</li>
+    <li><strong>Codex 방문률</strong> · 메인 분리 후 Codex 페이지 30% 이상 방문 (기존 단일 메뉴 대비)</li>
+    <li><strong>합성 액션 빈도</strong> · AUTO-FUSE 버튼 도입으로 합성 액션 2배 증가</li>
+    <li><strong>Rank 페이지 체류 시간</strong> · 평균 60초 이상</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- 10. KICK-OFF CHECKLIST -->
+<!-- ============================================================ -->
+<section>
+  <h2><span class="num">10</span>KICK-OFF</h2>
+  <div class="h2-title">시작 전 체크리스트</div>
+  <p class="h2-desc">아래 항목이 모두 ◆이면 T01 시작.</p>
+
+  <ul class="checklist">
+    <li class="done">Handoff v1.0 (디자인 명세) 검토 완료</li>
+    <li>tokens.css · components.css 초안 (이 문서 §1) PR 생성</li>
+    <li>새 브랜치 <code>feat/holo-redesign</code> 생성</li>
+    <li>NeonDefense 저장소에 <code>js/components/main/</code> 디렉터리 생성</li>
+    <li>현 빌드 백업 태그 <code>pre-holo-baseline</code></li>
+    <li>QA 매트릭스(디바이스 5종 × 브라우저 3종) 환경 셋업</li>
+    <li>주간 동기화 미팅 일정 확정 (월 10:00 / 목 16:00)</li>
+    <li>이 문서 + Handoff v1.0 팀 슬랙 #design-system 채널 핀 고정</li>
+  </ul>
+</section>
+
+<footer>
+  <span><span class="ver">NEON DEFENSE</span> · NEXT STEPS</span>
+  <span>v1.0 · 2026.04.29 · 17 DAYS · 14 TICKETS</span>
+</footer>
+
+</body>
+</html>

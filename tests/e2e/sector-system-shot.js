@@ -1,4 +1,4 @@
-// 합의 10 Phase 2: Floor 시스템 시각 검증
+// 합의 10 Phase 2: Sector 시스템 시각 검증
 'use strict';
 const path = require('path');
 const fs = require('fs');
@@ -6,7 +6,7 @@ const { chromium } = require(path.join(__dirname, '..', '..', 'node_modules', 'p
 
 const BROWSER = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const URL = process.env.BASE_URL || 'http://localhost:8765/index.html';
-const OUT = '/tmp/floor-shots';
+const OUT = '/tmp/sector-shots';
 fs.mkdirSync(OUT, { recursive: true });
 
 async function clickFirstMatching(page, predicate) {
@@ -57,14 +57,14 @@ async function closeXModals(page, n = 3) {
   await closeXModals(page, 3);
   await page.screenshot({ path: path.join(OUT, '01-mainmenu-fresh.png') });
 
-  // Floor 표기 확인
-  const floorTextFresh = await page.evaluate(() => {
-    const m = document.body.textContent.match(/F\d+|Floor \d+|🏯[^\s]*/g);
+  // Sector 표기 확인
+  const sectorTextFresh = await page.evaluate(() => {
+    const m = document.body.textContent.match(/S\d+|Sector \d+|🏯[^\s]*/g);
     return m;
   });
-  console.log('메인메뉴 Floor 표기 (fresh):', floorTextFresh);
+  console.log('메인메뉴 Sector 표기 (fresh):', sectorTextFresh);
 
-  // 새 게임 → 헤더 F1 확인
+  // 새 게임 → 헤더 S1 확인
   await clickFirstMatching(page, ['🏰 캠페인']);
   await page.waitForTimeout(300);
   await clickFirstMatching(page, ['새 게임 시작']);
@@ -73,21 +73,21 @@ async function closeXModals(page, n = 3) {
   await page.waitForTimeout(400);
   await page.click('body');
 
-  const headerText = await page.evaluate(() => document.body.textContent.match(/F\d+|🏯F?\d+|🏰\s*\d+\/\d+/g));
+  const headerText = await page.evaluate(() => document.body.textContent.match(/S\d+|🏯S?\d+|🏰\s*\d+\/\d+/g));
   console.log('인게임 헤더:', headerText);
-  await page.screenshot({ path: path.join(OUT, '02-game-header-floor1.png') });
+  await page.screenshot({ path: path.join(OUT, '02-game-header-sector1.png') });
 
-  // metaProgress 강제 변경 → Floor 2 도전 시 헤더 변화
+  // metaProgress 강제 변경 → Sector 2 도전 시 헤더 변화
   await page.evaluate(() => {
     const meta = JSON.parse(localStorage.getItem('neonDefense_runMeta_v1') || '{}');
-    meta.stats = { ...(meta.stats || {}), highestCampaignFloor: 5 };
+    meta.stats = { ...(meta.stats || {}), highestCampaignSector: 5 };
     meta.version = 1;
     meta.crystals = meta.crystals || 0;
     meta.upgrades = meta.upgrades || {};
     localStorage.setItem('neonDefense_runMeta_v1', JSON.stringify(meta));
   });
 
-  // 메인메뉴로 돌아가기 → 새 게임 시작 → F6 (highest+1)
+  // 메인메뉴로 돌아가기 → 새 게임 시작 → S6 (highest+1)
   await clickFirstMatching(page, ['← 메인 메뉴']);
   await page.waitForTimeout(300);
   await closeXModals(page, 2);
@@ -96,8 +96,8 @@ async function closeXModals(page, n = 3) {
   await closeXModals(page, 3);
   await page.screenshot({ path: path.join(OUT, '03-mainmenu-after-clears.png') });
 
-  const floorTextAfter = await page.evaluate(() => document.body.textContent.match(/F\d+|🏯[^\s]*|F\d+\s*\(최고/g));
-  console.log('메인메뉴 Floor 표기 (highest=5):', floorTextAfter);
+  const sectorTextAfter = await page.evaluate(() => document.body.textContent.match(/S\d+|🏯[^\s]*|S\d+\s*\(최고/g));
+  console.log('메인메뉴 Sector 표기 (highest=5):', sectorTextAfter);
 
   await clickFirstMatching(page, ['🏰 캠페인']);
   await page.waitForTimeout(300);
@@ -106,11 +106,11 @@ async function closeXModals(page, n = 3) {
   await clickFirstMatching(page, ['튜토리얼 건너뛰기']);
   await page.waitForTimeout(400);
 
-  const headerAfter = await page.evaluate(() => document.body.textContent.match(/F\d+|🏯F?\d+/g));
-  console.log('인게임 헤더 (F6 도전):', headerAfter);
-  await page.screenshot({ path: path.join(OUT, '04-game-header-floor6.png') });
+  const headerAfter = await page.evaluate(() => document.body.textContent.match(/S\d+|🏯S?\d+/g));
+  console.log('인게임 헤더 (S6 도전):', headerAfter);
+  await page.screenshot({ path: path.join(OUT, '04-game-header-sector6.png') });
 
-  // 적 HP 확인 — Floor 6 = ×1.15^5 = 2.01배 적용되었는지
+  // 적 HP 확인 — Sector 6 = ×1.15^5 = 2.01배 적용되었는지
   await page.click('body');
   await cheat(page, 'lives 99');
   await cheat(page, 'gold 10000');
@@ -126,7 +126,7 @@ async function closeXModals(page, n = 3) {
     const hpBars = bosses.map(b => b.querySelector('.enemy-health-bar')).filter(Boolean);
     return { count: bosses.length };
   });
-  console.log('Floor 6 W10 보스 등장:', bossHp);
+  console.log('Sector 6 W10 보스 등장:', bossHp);
 
   if (bossHp && bossHp.count > 0) {
     await page.evaluate(() => {
@@ -134,13 +134,13 @@ async function closeXModals(page, n = 3) {
       if (b) b.click();
     });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(OUT, '05-floor6-boss-info.png') });
+    await page.screenshot({ path: path.join(OUT, '05-sector6-boss-info.png') });
     const bossInfoText = await page.evaluate(() => {
       const headers = Array.from(document.querySelectorAll('p.text-rose-400')).filter(p => p.textContent.includes('선택 적'));
       const card = headers[0]?.closest('div.bg-gray-900\\/80') || headers[0]?.parentElement?.parentElement;
       return (card?.textContent || '').slice(0, 200);
     });
-    console.log('Floor 6 보스 정보:', bossInfoText);
+    console.log('Sector 6 보스 정보:', bossInfoText);
   }
 
   console.log('에러:', errors.length);

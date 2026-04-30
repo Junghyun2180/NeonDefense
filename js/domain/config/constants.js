@@ -273,7 +273,7 @@ const COMBAT = {
 };
 
 // ===== 스폰 설정 (합의 10: 3 stages × 10 waves = 30W, 15~20분) =====
-// 1 run = 1 floor = 30W. Floor 진척은 메타 (run-mode 외부에서 관리)
+// 1 run = 1 sector = 30W. Sector 진척은 메타 (run-mode 외부에서 관리)
 const SPAWN = {
   enemiesPerWave: (stage, wave) => {
     // 6 + 웨이브당 2 + 스테이지당 4
@@ -287,7 +287,7 @@ const SPAWN = {
     return Math.max(200, base);
   },
   wavesPerStage: 10, // 5 → 10 (합의 10)
-  maxStage: 3,      // 6 → 3 (1 floor = 3 stages)
+  maxStage: 3,      // 6 → 3 (1 sector = 3 stages)
 };
 
 // ===== 모바일 배치 UI 속성 데이터 =====

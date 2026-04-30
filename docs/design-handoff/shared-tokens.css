@@ -1,0 +1,48 @@
+/* Shared design tokens across all 3 concepts */
+:root {
+  /* Element colors (from existing game) */
+  --el-fire: #ff4d6d;
+  --el-water: #4cc9f0;
+  --el-electric: #ffd60a;
+  --el-wind: #80ffdb;
+  --el-void: #c77dff;
+  --el-light: #ffffff;
+
+  /* Status colors */
+  --gold: #ffd93d;
+  --life: #ff4d6d;
+  --wave: #4cc9f0;
+  --stage: #80ed99;
+
+  /* Depth */
+  --bg-0: #05060a;
+  --bg-1: #0a0d16;
+  --bg-2: #111729;
+  --bg-3: #1a2140;
+}
+
+* { box-sizing: border-box; }
+
+@keyframes nd-pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@keyframes nd-scan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+@keyframes nd-walk {
+  0%   { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+@keyframes nd-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes nd-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes nd-flash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.6); }
+}

@@ -65,12 +65,12 @@ const DataResolver = {
     // ===== 계산 헬퍼 =====
 
     // 기본 체력 계산
-    // 합의 10: floor 인자 — Floor N 의 HP 는 base × 1.15^(N-1) (Floor 1 = ×1.0)
-    calcBaseHealth(modeId, stage, wave, floor = 1) {
+    // 합의 10: sector 인자 — Sector N 의 HP 는 base × 1.15^(N-1) (Sector 1 = ×1.0)
+    calcBaseHealth(modeId, stage, wave, sector = 1) {
         const hs = this.getHealthScaling(modeId);
         const stageScale = 1 + (stage - 1) * hs.stageGrowth;
         const waveScale = 1 + (wave - 1) * hs.waveGrowth;
-        let health = Math.floor(hs.base * stageScale * waveScale * calcFloorHpMultiplier(floor));
+        let health = Math.floor(hs.base * stageScale * waveScale * calcSectorHpMultiplier(sector));
 
         // 후반 웨이브 보너스
         if (wave >= hs.lateWaveThreshold) {
@@ -80,9 +80,9 @@ const DataResolver = {
     },
 
     // 보스 체력 계산 (통합)
-    getBossHealth(modeId, stage, wave, floor = 1) {
+    getBossHealth(modeId, stage, wave, sector = 1) {
         const hs = this.getHealthScaling(modeId);
-        const baseHealth = this.calcBaseHealth(modeId, stage, wave, floor);
+        const baseHealth = this.calcBaseHealth(modeId, stage, wave, sector);
         return Math.floor(baseHealth * hs.bossFormula(stage));
     },
 

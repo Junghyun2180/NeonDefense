@@ -15,9 +15,9 @@ const calcDistanceSq = (x1, y1, x2, y2) => {
   return dx * dx + dy * dy;
 };
 
-// Floor 1 = ×1.0, Floor N HP 배율 = 1.15^(N-1)
-const FLOOR_HP_GROWTH = 1.15;
-const calcFloorHpMultiplier = (floor) => Math.pow(FLOOR_HP_GROWTH, Math.max(0, floor - 1));
+// Sector 1 = ×1.0, Sector N HP 배율 = 1.15^(N-1)
+const SECTOR_HP_GROWTH = 1.15;
+const calcSectorHpMultiplier = (sector) => Math.pow(SECTOR_HP_GROWTH, Math.max(0, sector - 1));
 
 // ===== 시간 포맷팅 =====
 

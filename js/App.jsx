@@ -42,22 +42,30 @@ const NeonDefense = () => {
     gameOver: gameState.gameOver,
   });
 
-  // ===== 맵 스케일 (모바일 반응형) =====
+  // ===== 맵 스케일 (반응형) — 그리드 컬럼 너비에 맞춰 자동 축소 =====
   const [mapScale, setMapScale] = useState(1);
-  const mapContainerRef = useRef(null);
-
-  useEffect(() => {
-    const updateScale = () => {
-      if (!mapContainerRef.current) return;
-      const containerWidth = mapContainerRef.current.offsetWidth;
-      const MAP_WIDTH = GRID_WIDTH * TILE_SIZE; // 640
-      const scale = Math.min(1, containerWidth / MAP_WIDTH);
-      setMapScale(scale);
+  const MAP_WIDTH = GRID_WIDTH * TILE_SIZE;  // 16 × 72 = 1152
+  // Use a ref callback so the observer attaches the moment the element mounts
+  // (the game UI is conditional, so ref starts null and becomes set later).
+  const observerRef = useRef(null);
+  const mapContainerRef = useCallback((node) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+      observerRef.current = null;
+    }
+    if (!node) return;
+    const update = () => {
+      const cw = node.offsetWidth || node.clientWidth;
+      if (cw <= 0) return;
+      setMapScale(Math.min(1, cw / MAP_WIDTH));
     };
-    updateScale();
-    const observer = new ResizeObserver(updateScale);
-    if (mapContainerRef.current) observer.observe(mapContainerRef.current);
-    return () => observer.disconnect();
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(node);
+    observerRef.current = ro;
+  }, [MAP_WIDTH]);
+  useEffect(() => () => {
+    if (observerRef.current) observerRef.current.disconnect();
   }, []);
 
   // ===== 드래그 앤 드롭 훅 =====
@@ -355,12 +363,12 @@ const NeonDefense = () => {
       const { crystals, breakdown } = RunMode.calculateCampaignCrystals(result);
       setCampaignCrystalResult({ crystals, breakdown });
 
-      // 합의 10: Floor 클리어 시 highestCampaignFloor 갱신
-      const clearedFloor = gameState.floor || 1;
+      // 합의 10: Sector 클리어 시 highestCampaignSector 갱신
+      const clearedSector = gameState.sector || 1;
 
-      // 메타 진행에 크리스탈 + Floor 진척 추가
+      // 메타 진행에 크리스탈 + Sector 진척 추가
       runModeState.setMetaProgress(prev => {
-        const prevHighest = prev.stats.highestCampaignFloor || 0;
+        const prevHighest = prev.stats.highestCampaignSector || 0;
         const updated = {
           ...prev,
           crystals: prev.crystals + crystals,
@@ -368,7 +376,7 @@ const NeonDefense = () => {
             ...prev.stats,
             campaignClears: (prev.stats.campaignClears || 0) + 1,
             totalCrystalsEarned: (prev.stats.totalCrystalsEarned || 0) + crystals,
-            highestCampaignFloor: Math.max(prevHighest, clearedFloor),
+            highestCampaignSector: Math.max(prevHighest, clearedSector),
           },
         };
         RunSaveSystem.saveMeta(updated);
@@ -686,9 +694,9 @@ const NeonDefense = () => {
     setCampaignCrystalResult(null);
     setNewAchievements([]);
 
-    // 합의 10: 새 게임 시작 시 floor = 다음 도전 floor (highestCampaignFloor + 1)
-    const highest = runModeState.metaProgress?.stats?.highestCampaignFloor || 0;
-    gameState.setFloor(highest + 1);
+    // 합의 10: 새 게임 시작 시 sector = 다음 도전 sector (highestCampaignSector + 1)
+    const highest = runModeState.metaProgress?.stats?.highestCampaignSector || 0;
+    gameState.setSector(highest + 1);
 
     // 밸런스 로거 세션 시작
     if (typeof BalanceLogger !== 'undefined') {
@@ -708,9 +716,9 @@ const NeonDefense = () => {
             gameState.resetGame();
             inventoryState.resetInventory();
             dragState.resetDragState();
-            // 합의 10: 새 게임 = 다음 도전 floor (highestCampaignFloor + 1)
-            const highest = runModeState.metaProgress?.stats?.highestCampaignFloor || 0;
-            gameState.setFloor(highest + 1);
+            // 합의 10: 새 게임 = 다음 도전 sector (highestCampaignSector + 1)
+            const highest = runModeState.metaProgress?.stats?.highestCampaignSector || 0;
+            gameState.setSector(highest + 1);
           }}
           onLoadGame={saveLoadState.handleLoadGame}
           onSelectMode={handleSelectMode}
@@ -745,27 +753,67 @@ const NeonDefense = () => {
         />
       )}
 
-      {/* 게임 화면 (게임 시작 후) */}
+      {/* 게임 화면 (게임 시작 후) — Holographic Command 2-column grid:
+          col 1 = map area (1fr), col 2 = right rail (280px). All rows share
+          the same grid lines so header/map/inventory align cleanly. */}
       {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
-        <div className="p-2 sm:p-4">
-          {/* 상단 정보 바 */}
-          <GameHeader
-            stage={gameState.stage}
-            wave={gameState.wave}
-            floor={gameState.floor}
-            gold={gameState.gold}
-            lives={gameState.lives}
-            pathCount={gameState.pathData.paths.length}
-            isPlaying={gameState.isPlaying}
-            killedCount={gameState.killedCount}
-            permanentBuffs={gameState.permanentBuffs}
-            gameMode={runModeState.runMode}
-            spawnConfig={gameState.activeConfig?.SPAWN}
-            onMainMenu={handleCampaignMainMenu}
-          />
+        <div
+          className="p-2 sm:p-4"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) 360px',
+            columnGap: 10,
+            rowGap: 10,
+            maxWidth: 1480,
+            margin: '0 auto',
+          }}
+        >
+          {/* ROW 1 · col 1 — identity + 5 vitals (header) */}
+          <div style={{ gridColumn: 1 }}>
+            <GameHeader
+              stage={gameState.stage}
+              wave={gameState.wave}
+              sector={gameState.sector}
+              gold={gameState.gold}
+              lives={gameState.lives}
+              pathCount={gameState.pathData.paths.length}
+              isPlaying={gameState.isPlaying}
+              killedCount={gameState.killedCount}
+              permanentBuffs={gameState.permanentBuffs}
+              gameMode={runModeState.runMode}
+              spawnConfig={gameState.activeConfig?.SPAWN}
+              onMainMenu={handleCampaignMainMenu}
+            />
+          </div>
 
-          {/* 맵 + 선택 정보 사이드패널 (맵 가운데 정렬) */}
-          <div ref={mapContainerRef} className="flex justify-center gap-3">
+          {/* ROW 1 · col 2 — Command Bar (speed + DEPLOY + audio + help) */}
+          <div style={{ gridColumn: 2 }}>
+            <CommandBar
+              gameSpeed={gameState.gameSpeed}
+              setGameSpeed={gameState.setGameSpeed}
+              isPlaying={gameState.isPlaying}
+              startWave={gameState.startWave}
+              bgmEnabled={bgmEnabled}
+              sfxEnabled={sfxEnabled}
+              toggleBgm={toggleBgm}
+              toggleSfx={toggleSfx}
+              onShowHelp={() => setShowHelp(true)}
+            />
+          </div>
+
+          {/* ROW 2 · col 1 — map · col 2 — right rail.
+              minWidth: 0 + overflow:hidden lets the grid column drive width;
+              the map's mapScale recalculates from this container's width. */}
+          <div
+            ref={mapContainerRef}
+            style={{
+              gridColumn: 1,
+              display: 'flex',
+              justifyContent: 'center',
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
             {/* 게임 맵 */}
             <GameMap
               mapRef={dragState.mapRef}
@@ -800,67 +848,100 @@ const NeonDefense = () => {
               getElementInfo={getElementInfo}
               selectedEnemyId={selectedEnemyId}
               setSelectedEnemyId={setSelectedEnemyId}
+              stage={gameState.stage}
+              wave={gameState.wave}
+              isPlaying={gameState.isPlaying}
+              spawnConfig={gameState.activeConfig?.SPAWN}
+              autoNextWave={settings.autoNextWave}
+              setAutoNextWave={settings.setAutoNextWave}
             />
 
-            {/* 사이드 패널: 선택된 타워/서포트/적 정보 */}
-            <ControlPanel
-              inventory={inventoryState.inventory}
-              selectedInventory={inventoryState.selectedInventory}
-              getElementInfo={getElementInfo}
-              selectedTowers={inventoryState.selectedTowers}
-              totalSellPrice={inventoryState.totalSellPrice}
-              selectedSupportInventory={inventoryState.selectedSupportInventory}
-              selectedSupportTowers={inventoryState.selectedSupportTowers}
-              totalSupportSellPrice={inventoryState.totalSupportSellPrice}
-              selectedEnemy={gameState.enemies.find(e => e.id === selectedEnemyId) || null}
-              clearSelectedEnemy={() => setSelectedEnemyId(null)}
-            />
           </div>
 
-          {/* 하단: 버튼 행 + 인벤토리 패널 */}
-          <InventoryPanel
-            gold={gameState.gold}
-            isPlaying={gameState.isPlaying}
-            startWave={gameState.startWave}
-            isInventoryFull={inventoryState.isInventoryFull}
-            isSupportInventoryFull={inventoryState.isSupportInventoryFull}
-            drawRandomNeon={inventoryState.drawRandomNeon}
-            drawRandomNeon10={inventoryState.drawRandomNeon10}
-            drawRandomSupport={inventoryState.drawRandomSupport}
-            drawRandomSupport10={inventoryState.drawRandomSupport10}
-            effectiveDrawCost={inventoryState.effectiveDrawCost}
-            autoCombine={settings.autoCombine}
-            setAutoCombine={settings.setAutoCombine}
-            autoSupportCombine={settings.autoSupportCombine}
-            setAutoSupportCombine={settings.setAutoSupportCombine}
-            clearAllT4RolePresets={settings.clearAllT4RolePresets}
-            t4RolePresets={settings.t4RolePresets}
-            autoNextWave={settings.autoNextWave}
-            setAutoNextWave={settings.setAutoNextWave}
-            maxGameSpeed={settings.maxGameSpeed}
-            setMaxGameSpeed={settings.setMaxGameSpeed}
-            inventory={inventoryState.inventory}
-            selectedInventory={inventoryState.selectedInventory}
-            selectedTowerForPlacement={dragState.selectedTowerForPlacement}
-            handleInventoryClick={dragState.handleInventoryClick}
-            getElementInfo={getElementInfo}
-            combineNeons={inventoryState.combineNeons}
-            combineAllNeons={inventoryState.combineAllNeons}
-            combineTowers={inventoryState.combineTowers}
-            sellSelectedTowers={inventoryState.sellSelectedTowers}
-            selectedTowers={inventoryState.selectedTowers}
-            totalSellPrice={inventoryState.totalSellPrice}
-            canCombineTowers={inventoryState.canCombineTowers}
-            supportInventory={inventoryState.supportInventory}
-            selectedSupportInventory={inventoryState.selectedSupportInventory}
-            combineSupports={inventoryState.combineSupports}
-            combineAllSupports={inventoryState.combineAllSupports}
-            combineSupportTowers={inventoryState.combineSupportTowers}
-            sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
-            selectedSupportTowers={inventoryState.selectedSupportTowers}
-            totalSupportSellPrice={inventoryState.totalSupportSellPrice}
-            canCombineSupportTowers={inventoryState.canCombineSupportTowers}
-          />
+          {/* ROW 2 · col 2 — right rail (command + selected + buffs + skills + inventory).
+              position:relative + absolute inner stack lets col 2 stretch to col 1's row track
+              height (map + NEXT WAVE) without contributing to it, so the inventory area
+              can flex-fill the remaining space and scroll. */}
+          <div style={{ gridColumn: 2, position: 'relative', minWidth: 0 }}>
+            <div
+              style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column', gap: 10,
+                overflow: 'hidden',
+              }}
+            >
+              <ControlPanel
+                inventory={inventoryState.inventory}
+                selectedInventory={inventoryState.selectedInventory}
+                getElementInfo={getElementInfo}
+                selectedTowers={inventoryState.selectedTowers}
+                totalSellPrice={inventoryState.totalSellPrice}
+                selectedSupportInventory={inventoryState.selectedSupportInventory}
+                selectedSupportTowers={inventoryState.selectedSupportTowers}
+                totalSupportSellPrice={inventoryState.totalSupportSellPrice}
+                selectedEnemy={gameState.enemies.find(e => e.id === selectedEnemyId) || null}
+                clearSelectedEnemy={() => setSelectedEnemyId(null)}
+                permanentBuffs={gameState.permanentBuffs}
+                isPlaying={gameState.isPlaying}
+                gameSpeed={gameState.gameSpeed}
+                setGameSpeed={gameState.setGameSpeed}
+                maxGameSpeed={settings.maxGameSpeed}
+                startWave={gameState.startWave}
+                combineTowers={inventoryState.combineTowers}
+                canCombineTowers={inventoryState.canCombineTowers}
+                sellSelectedTowers={inventoryState.sellSelectedTowers}
+                combineSupportTowers={inventoryState.combineSupportTowers}
+                canCombineSupportTowers={inventoryState.canCombineSupportTowers}
+                sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
+              />
+              <div
+                style={{
+                  flex: 1, minHeight: 0,
+                  overflowY: 'auto', overflowX: 'hidden',
+                }}
+              >
+                <InventoryPanel
+                  gold={gameState.gold}
+                  isPlaying={gameState.isPlaying}
+                  startWave={gameState.startWave}
+                  isInventoryFull={inventoryState.isInventoryFull}
+                  isSupportInventoryFull={inventoryState.isSupportInventoryFull}
+                  drawRandomNeon={inventoryState.drawRandomNeon}
+                  drawRandomNeon10={inventoryState.drawRandomNeon10}
+                  drawRandomSupport={inventoryState.drawRandomSupport}
+                  drawRandomSupport10={inventoryState.drawRandomSupport10}
+                  effectiveDrawCost={inventoryState.effectiveDrawCost}
+                  autoCombine={settings.autoCombine}
+                  setAutoCombine={settings.setAutoCombine}
+                  autoSupportCombine={settings.autoSupportCombine}
+                  setAutoSupportCombine={settings.setAutoSupportCombine}
+                  clearAllT4RolePresets={settings.clearAllT4RolePresets}
+                  t4RolePresets={settings.t4RolePresets}
+                  inventory={inventoryState.inventory}
+                  selectedInventory={inventoryState.selectedInventory}
+                  selectedTowerForPlacement={dragState.selectedTowerForPlacement}
+                  handleInventoryClick={dragState.handleInventoryClick}
+                  getElementInfo={getElementInfo}
+                  combineNeons={inventoryState.combineNeons}
+                  combineAllNeons={inventoryState.combineAllNeons}
+                  combineTowers={inventoryState.combineTowers}
+                  sellSelectedTowers={inventoryState.sellSelectedTowers}
+                  selectedTowers={inventoryState.selectedTowers}
+                  totalSellPrice={inventoryState.totalSellPrice}
+                  canCombineTowers={inventoryState.canCombineTowers}
+                  supportInventory={inventoryState.supportInventory}
+                  selectedSupportInventory={inventoryState.selectedSupportInventory}
+                  combineSupports={inventoryState.combineSupports}
+                  combineAllSupports={inventoryState.combineAllSupports}
+                  combineSupportTowers={inventoryState.combineSupportTowers}
+                  sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
+                  selectedSupportTowers={inventoryState.selectedSupportTowers}
+                  totalSupportSellPrice={inventoryState.totalSupportSellPrice}
+                  canCombineSupportTowers={inventoryState.canCombineSupportTowers}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* 10연뽑 결과 오버레이 (자동조합 ON에도 원본 표시) */}
           <DrawResultOverlay

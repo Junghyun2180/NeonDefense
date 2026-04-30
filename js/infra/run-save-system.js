@@ -29,8 +29,8 @@ const RunSaveSystem = {
         fastestClear: null,
         highestEndlessStage: 0,
         campaignClears: 0,
-        // 합의 10: Floor 시스템 — 캠페인 클리어한 최고 floor (default 0 = 한 번도 못 깸)
-        highestCampaignFloor: 0,
+        // 합의 10: Sector 시스템 — 캠페인 클리어한 최고 sector (default 0 = 한 번도 못 깸)
+        highestCampaignSector: 0,
       },
     };
   },
@@ -56,6 +56,11 @@ const RunSaveSystem = {
       if (!this.validateMetaData(data)) {
         console.warn('[RunSave] 메타 데이터 유효하지 않음, 기본값 사용');
         return null;
+      }
+      // 호환성: 구버전 highestCampaignFloor → highestCampaignSector
+      if (data.stats && data.stats.highestCampaignFloor !== undefined && data.stats.highestCampaignSector === undefined) {
+        data.stats.highestCampaignSector = data.stats.highestCampaignFloor;
+        delete data.stats.highestCampaignFloor;
       }
       return data;
     } catch (e) {

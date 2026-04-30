@@ -1,7 +1,7 @@
 // GameHeader — Holographic Command top bar
 // Spec: design handoff v1.0 / Page A · Game Play
 //   ◇ OPERATION · NEON DEFENSE   ◈ WAVE  ▣ STAGE  ◆ GOLD  ♥ LIFE  ✕ KILLS
-const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null, onMainMenu = null }) => {
+const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null, onMainMenu = null }) => {
     const { useState } = React;
     const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -24,6 +24,11 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
         return Number.isFinite(v) ? v : fallback;
     };
 
+    const isRunModeSector = isRunMode;  // run/endless/daily don't use Sector system
+    const showSector = !isRunModeSector && sector > 0;
+    const sectorMult = (typeof calcSectorHpMultiplier === 'function')
+        ? calcSectorHpMultiplier(sector) : 1;
+
     const vitals = [
         { key: 'wave',  label: 'WAVE',  icon: isDangerWave ? '🚨' : '◈',
           val: `${wave}/${wavesTotal}`, color: isDangerWave ? 'var(--nd-red-life)' : 'var(--nd-crimson)',
@@ -32,9 +37,16 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
           val: gameMode === 'endless' ? `${stage}/∞` : `${stage}/${maxStageLabel}`,
           color: 'var(--nd-green)',
           pct: gameMode === 'endless' ? 100 : safePct(stage, activeSPAWN.maxStage) },
+        // SECTOR — only shown in campaign (long-run progression beyond a single sector).
+        // HP multiplier (×1.15^N) communicates climbing difficulty.
+        ...(showSector ? [{
+            key: 'sector', label: 'SECTOR', icon: '▲',
+            val: `S${sector}`, color: 'var(--nd-el-dark)',
+            sub: `×${sectorMult.toFixed(2)}`,
+            pct: Math.min(100, sector * 10),
+        }] : []),
         { key: 'gold',  label: 'GOLD',  icon: '◆',
           val: Number(gold || 0).toLocaleString(), color: 'var(--nd-gold)',
-          // gold has no upper bound — show a flat indicator at 100%
           pct: 100 },
         { key: 'life',  label: 'LIFE',  icon: '♥',
           val: `${lives}`, color: 'var(--nd-red-life)',
@@ -46,15 +58,21 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
     ];
 
     return (
-        <div className="max-w-4xl mx-auto mb-2 sm:mb-4" style={{ fontFamily: 'var(--nd-font-sans)' }}>
-            {/* Holographic top bar — single wide panel with reticle corners */}
-            <div className="nd-topbar-panel" style={{ marginBottom: 10 }}>
+        <div style={{
+            fontFamily: 'var(--nd-font-sans)',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+        }}>
+            {/* Holographic top bar — single wide panel with reticle corners.
+                Fills the grid cell so its height matches the CommandBar on the right. */}
+            <div className="nd-topbar-panel" style={{ marginBottom: 0, flex: 1, height: '100%' }}>
                 <span className="nd-reticle__c nd-reticle__c--tl" />
                 <span className="nd-reticle__c nd-reticle__c--tr" />
                 <span className="nd-reticle__c nd-reticle__c--bl" />
                 <span className="nd-reticle__c nd-reticle__c--br" />
 
-                {/* Identity block: back button + OPERATION + sector */}
+                {/* Identity block: back button + OPERATION + stage label */}
                 <div className="nd-identity">
                     {onMainMenu && (
                         <button
@@ -76,11 +94,11 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
                         <span style={{ display: 'inline-block', width: 6, height: 6,
                             background: 'var(--nd-green)', boxShadow: '0 0 6px var(--nd-green)',
                             marginRight: 6, verticalAlign: 'middle' }} />
-                        SECTOR-{String(stage).padStart(2, '0')} · {isPlaying ? 'ACTIVE' : 'STANDBY'}
+                        STAGE-{String(stage).padStart(2, '0')} · {isPlaying ? 'ACTIVE' : 'STANDBY'}
                     </div>
                 </div>
 
-                {/* 5 vital stats — equal-width horizontal gauges */}
+                {/* Vital gauges — auto-fits 5 or 6 (SECTOR is conditional in campaign) */}
                 <div className="nd-vital-grid">
                     {vitals.map(s => (
                         <div key={s.key} className="nd-vital">
@@ -88,7 +106,22 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
                                 <span className="nd-vital__lbl" style={{ color: s.color }}>
                                     <span style={{ marginRight: 4 }}>{s.icon}</span>{s.label}
                                 </span>
-                                <span className="nd-vital__val">{s.val}</span>
+                                <span className="nd-vital__val">
+                                    {s.val}
+                                    {s.sub && (
+                                        <span
+                                            className="nd-mono"
+                                            style={{
+                                                marginLeft: 4, fontSize: 9,
+                                                color: 'var(--nd-dim)', fontWeight: 500,
+                                                letterSpacing: 1,
+                                            }}
+                                            title={`HP 곱연산 ${s.sub}`}
+                                        >
+                                            {s.sub}
+                                        </span>
+                                    )}
+                                </span>
                             </div>
                             <div className="nd-vital__bar">
                                 <div style={{
@@ -102,9 +135,9 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
                 </div>
             </div>
 
-            {/* Secondary chip row — run mode / floor / wave theme / paths.
-                These are contextual, only show when relevant. */}
-            {(isRunMode || (!isRunMode && floor > 0) || themeTag || pathCount > 1) && (
+            {/* Secondary chip row — run mode / wave theme / paths.
+                SECTOR is now promoted to a vital gauge above. */}
+            {(isRunMode || themeTag || pathCount > 1) && (
                 <div className="flex flex-wrap items-center gap-2 mb-2 nd-mono" style={{ fontSize: 10, letterSpacing: 1.5 }}>
                     {isRunMode && (
                         <span style={{
@@ -112,16 +145,6 @@ const GameHeader = ({ stage, wave, floor = 1, gold, lives, pathCount, isPlaying,
                             color: 'var(--nd-amber)', background: 'rgba(255,169,77,0.05)',
                         }}>
                             {gameMode === 'endless' ? '♾ ENDLESS' : gameMode === 'daily' ? '◆ DAILY' : '◎ RUN'}
-                        </span>
-                    )}
-                    {!isRunMode && floor > 0 && (
-                        <span
-                            title={`Floor ${floor} — HP ×${calcFloorHpMultiplier(floor).toFixed(2)}`}
-                            style={{
-                                padding: '4px 10px', border: '1px solid rgba(199,125,255,0.4)',
-                                color: 'var(--nd-el-dark)', background: 'rgba(199,125,255,0.05)',
-                            }}>
-                            ▲ F{floor}
                         </span>
                     )}
                     {themeTag && (

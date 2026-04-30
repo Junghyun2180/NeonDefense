@@ -74,9 +74,9 @@ const EnemySystem = {
 
   // 기본 체력 계산 (DataResolver 기반)
   // modeId: 'campaign' | 'run' | 'bossRush'
-  // floor: 합의 10 — Floor N HP × 1.15^(N-1)
-  calcBaseHealth(stage, wave, modeId, floor = 1) {
-    return DataResolver.calcBaseHealth(modeId, stage, wave, floor);
+  // sector: 합의 10 — Sector N HP × 1.15^(N-1)
+  calcBaseHealth(stage, wave, modeId, sector = 1) {
+    return DataResolver.calcBaseHealth(modeId, stage, wave, sector);
   },
 
   // 초기 이동 방향으로부터 facingAngle/flip 계산 (스폰 시 최초 정렬용)
@@ -92,8 +92,8 @@ const EnemySystem = {
 
   // 적 생성 팩토리 (단일 진실의 원천)
   // modeId: 'campaign' | 'run' | 'bossRush' (선택, 기본값 'campaign')
-  // floor: 합의 10 — 캠페인 floor (기본 1). HP 곱연산
-  create(stage, wave, enemyIndex, totalEnemies, pathTiles, pathId, modeId, floor = 1) {
+  // sector: 합의 10 — 캠페인 sector (기본 1). HP 곱연산
+  create(stage, wave, enemyIndex, totalEnemies, pathTiles, pathId, modeId, sector = 1) {
     let type = this.determineType(enemyIndex, totalEnemies, wave, stage, modeId);
     let config = DataResolver.getEnemyConfig(type);
 
@@ -109,7 +109,7 @@ const EnemySystem = {
         return null;
       }
     }
-    const baseHealth = this.calcBaseHealth(stage, wave, modeId, floor);
+    const baseHealth = this.calcBaseHealth(stage, wave, modeId, sector);
 
     // 체력 계산
     // 합의 10: W5 마지막 적 = 미니보스 (elite 강화). W10 마지막 적 = 스테이지 보스.
@@ -120,7 +120,7 @@ const EnemySystem = {
       type === 'elite';
     let health;
     if (type === 'boss') {
-      health = DataResolver.getBossHealth(modeId, stage, wave, floor);
+      health = DataResolver.getBossHealth(modeId, stage, wave, sector);
     } else if (isMinibossSlot) {
       const hs = DataResolver.getHealthScaling(modeId);
       const mult = hs.minibossHealthMult || 4;
@@ -175,7 +175,7 @@ const EnemySystem = {
       shieldBrokenAt: 0,        // aegis 재생 트리거 시간
       shieldRegenUsed: false,   // aegis 재생 1회만
       isMiniboss: isMinibossSlot, // 합의 10: W5 미니보스 표식 (UI/통계용)
-      floor, // 합의 10: floor 인자 (HP 스케일 디버그용)
+      sector, // 합의 10: sector 인자 (HP 스케일 디버그용)
       pathIndex: 0,
       pathId,
       pathTiles,

@@ -3,6 +3,10 @@
 //   - ControlPanel = right rail "SELECTED UNIT" + selected enemy + selected support
 //   - InventoryPanel = bottom panel: tabs + element-tinted grid + action buttons
 
+// Element filter button colors (FIRE/WATER/ELECTRIC/WIND/VOID/LIGHT).
+// ELEMENT_EFFECTS doesn't carry display color, so map by index here.
+const ELEMENT_HEX = ['#ff4d6d', '#4cc9f0', '#ffd60a', '#80ed99', '#c77dff', '#fff5b7'];
+
 const ENEMY_INFO = {
     normal:     { label: '일반',      icon: '👾', desc: '기본 적' },
     fast:       { label: '빠른 적',   icon: '💨', desc: '이동 속도 높음' },
@@ -35,66 +39,267 @@ const ControlPanel = ({
     totalSupportSellPrice,
     selectedEnemy,
     clearSelectedEnemy,
+    permanentBuffs = {},
+    isPlaying = false,
+    combineTowers = null,
+    canCombineTowers = false,
+    sellSelectedTowers = null,
+    combineSupportTowers = null,
+    canCombineSupportTowers = false,
+    sellSelectedSupportTowers = null,
 }) => {
-    const hasSelection = selectedTowers.length > 0 || selectedSupportTowers.length > 0 || !!selectedEnemy;
+    const activeBuffs = (typeof PermanentBuffManager !== 'undefined')
+        ? PermanentBuffManager.getActiveBuffsList(permanentBuffs)
+        : [];
+    // The rail is the chrome of the play view — always visible while in match,
+    // even when nothing is selected (matches reference layout).
+    const railVisible = true;
 
     return (
         <div
-            className="flex flex-col w-40 shrink-0"
+            className="flex flex-col shrink-0"
             style={{
-                gap: 8,
-                visibility: hasSelection ? 'visible' : 'hidden',
+                width: '100%',
+                gap: 10,
+                visibility: railVisible ? 'visible' : 'hidden',
                 fontFamily: 'var(--nd-font-sans)',
             }}
         >
-            {/* ── SELECTED TOWER ── */}
+            {/* ── SELECTED UNIT · empty state (no selection) ──
+                Always reserves the space so the rail layout doesn't collapse.
+                Replaced by the populated card below when a tower is selected. */}
+            {selectedTowers.length === 0 && selectedSupportTowers.length === 0 && !selectedEnemy && (
+                <div className="nd-panel relative" style={{ padding: '12px 14px' }}>
+                    <HoloReticle />
+                    <div className="nd-eyebrow" style={{ color: 'var(--nd-dim)', letterSpacing: 2 }}>
+                        ◇ SELECTED UNIT
+                    </div>
+                    <div
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 12, marginTop: 12,
+                        }}
+                    >
+                        <div
+                            style={{
+                                width: 56, height: 56,
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px dashed var(--nd-hair)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'var(--nd-dimmer)', fontSize: 22, lineHeight: 1,
+                                flexShrink: 0,
+                            }}
+                        >
+                            ◇
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
+                                className="nd-mono"
+                                style={{
+                                    fontSize: 11, color: 'var(--nd-dim)', fontWeight: 700,
+                                    letterSpacing: 1.5, lineHeight: 1.2,
+                                }}
+                            >
+                                NO UNIT SELECTED
+                            </div>
+                            <div
+                                className="nd-mono"
+                                style={{
+                                    fontSize: 9, color: 'var(--nd-dimmer)', letterSpacing: 1,
+                                    marginTop: 4, lineHeight: 1.4,
+                                }}
+                            >
+                                ◇ 타워를 클릭하면<br/>여기에 정보가 표시됩니다
+                            </div>
+                        </div>
+                    </div>
+                    {/* placeholder stat grid for visual consistency */}
+                    <div
+                        style={{
+                            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1,
+                            marginTop: 10,
+                            background: 'var(--nd-hair)',
+                            border: '1px solid var(--nd-hair)',
+                        }}
+                    >
+                        {['ATK', 'RNG', 'SPD', 'DPS'].map(lbl => (
+                            <div
+                                key={lbl}
+                                style={{ background: 'var(--nd-bg)', padding: '6px 10px', opacity: 0.5 }}
+                            >
+                                <div className="nd-mono" style={{ fontSize: 8, color: 'var(--nd-dimmer)', letterSpacing: 1.5 }}>
+                                    {lbl}
+                                </div>
+                                <div className="nd-mono nd-tnum" style={{ fontSize: 13, color: 'var(--nd-dimmer)', fontWeight: 700, marginTop: 2 }}>
+                                    —
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {/* Disabled FUSE / DECOMM placeholders — always visible */}
+                    <div className="nd-hair" style={{ margin: '10px 0 8px' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                        <button
+                            type="button" disabled
+                            title="타워를 선택하면 활성화"
+                            className="nd-mono"
+                            style={{
+                                padding: '7px 0', fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid var(--nd-hair)',
+                                color: 'var(--nd-dimmer)',
+                                cursor: 'not-allowed', borderRadius: 0,
+                            }}
+                        >
+                            ⚡ FUSE
+                        </button>
+                        <button
+                            type="button" disabled
+                            title="타워를 선택하면 활성화"
+                            className="nd-mono"
+                            style={{
+                                padding: '7px 0', fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+                                background: 'rgba(255,255,255,0.02)',
+                                border: '1px solid var(--nd-hair)',
+                                color: 'var(--nd-dimmer)',
+                                cursor: 'not-allowed', borderRadius: 0,
+                            }}
+                        >
+                            ◢ DECOMM
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* ── SELECTED TOWER · handoff §05: hero card + stat grid + status line ── */}
             {selectedTowers.length > 0 && (() => {
                 const t = selectedTowers[0];
                 const info = getElementInfo(t.element);
                 const url = (typeof TowerSprite !== 'undefined') ? TowerSprite.getUrl(t.element, t.tier) : null;
+                const multi = selectedTowers.length > 1;
+                // Stats — show effective values when buffed/debuffed, fall back to base.
+                const atk = Math.round(t.effectiveDamage ?? t.damage ?? 0);
+                const rng = Math.round(t.effectiveRange ?? t.range ?? 0);
+                // SPD = attacks/sec; tower.speed is cooldown ms.
+                const spdSec = (t.speed && t.speed > 0) ? (1000 / t.speed) : 0;
+                const dps = Math.round(atk * spdSec);
+                const status = t.isDebuffed ? { txt: 'SUPPRESSED', color: 'var(--nd-red-life)' }
+                    : t.isBuffed ? { txt: 'EMPOWERED', color: 'var(--nd-amber)' }
+                    : { txt: 'OPERATIONAL', color: 'var(--nd-green)' };
+                const tierStars = '★'.repeat(t.tier);
                 return (
-                    <div className="nd-panel relative" style={{ padding: '10px 12px' }}>
+                    <div className="nd-panel relative" style={{ padding: '12px 14px' }}>
                         <HoloReticle />
                         <div className="nd-eyebrow" style={{ color: 'var(--nd-crimson)', letterSpacing: 2 }}>
-                            ◆ SELECTED UNIT {selectedTowers.length > 1 && (
+                            ◆ SELECTED UNIT {multi && (
                                 <span className="nd-tnum" style={{ color: 'var(--nd-text)', marginLeft: 4 }}>×{selectedTowers.length}</span>
                             )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
                             <div
                                 style={{
-                                    width: 32, height: 32,
-                                    background: `radial-gradient(circle, ${t.color}55 0%, transparent 70%)`,
+                                    width: 56, height: 56,
+                                    background: `radial-gradient(circle, ${t.color}40 0%, transparent 70%)`,
                                     border: `1px solid ${t.color}66`,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     flexShrink: 0,
                                 }}
                             >
                                 {url
-                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 3px ${t.color})` }} />
-                                    : <span style={{ fontSize: 14 }}>{info.icon}</span>}
+                                    ? <img src={url} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: `drop-shadow(0 0 4px ${t.color})` }} />
+                                    : <span style={{ fontSize: 22 }}>{info.icon}</span>}
                             </div>
                             <div style={{ minWidth: 0, flex: 1 }}>
                                 <div
                                     style={{
-                                        fontSize: 12, color: '#fff', fontWeight: 700,
+                                        fontSize: 14, color: '#fff', fontWeight: 700, lineHeight: 1.1,
                                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                                     }}
                                     title={t.name}
                                 >
                                     {t.name}
                                 </div>
-                                <div className="nd-mono" style={{ fontSize: 9, color: t.color, letterSpacing: 1, marginTop: 2 }}>
-                                    T{t.tier} · {info.name?.toUpperCase?.() || ''}
+                                <div className="nd-mono" style={{ fontSize: 9, color: t.color, letterSpacing: 1, marginTop: 4 }}>
+                                    {(info.name || '').toUpperCase()} · TIER {t.tier} <span style={{ color: 'var(--nd-amber)' }}>{tierStars}</span>
+                                </div>
+                                <div className="nd-mono" style={{ fontSize: 9, letterSpacing: 1, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span style={{ width: 6, height: 6, background: status.color, boxShadow: `0 0 4px ${status.color}` }} />
+                                    <span style={{ color: status.color }}>{status.txt}</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="nd-hair" style={{ margin: '8px 0' }} />
-                        <div
-                            className="nd-mono nd-tnum"
-                            style={{ fontSize: 10, color: 'var(--nd-amber)', letterSpacing: 1 }}
-                        >
-                            ◆ SELL <span style={{ color: '#fff', fontWeight: 700, marginLeft: 4 }}>+{totalSellPrice}G</span>
+
+                        {/* Stat grid · ATK/RNG/SPD/DPS — only for single selection */}
+                        {!multi && (
+                            <div
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '1fr 1fr',
+                                    gap: 1,
+                                    marginTop: 10,
+                                    background: 'var(--nd-hair)',
+                                    border: '1px solid var(--nd-hair)',
+                                }}
+                            >
+                                {[
+                                    { lbl: 'ATK', val: atk, color: 'var(--nd-crimson)' },
+                                    { lbl: 'RNG', val: rng, color: 'var(--nd-el-water)' },
+                                    { lbl: 'SPD', val: spdSec.toFixed(2) + '/s', color: 'var(--nd-amber)' },
+                                    { lbl: 'DPS', val: dps, color: 'var(--nd-gold)' },
+                                ].map(s => (
+                                    <div
+                                        key={s.lbl}
+                                        style={{
+                                            background: 'var(--nd-bg)',
+                                            padding: '6px 10px',
+                                        }}
+                                    >
+                                        <div className="nd-mono" style={{ fontSize: 8, color: s.color, letterSpacing: 1.5 }}>
+                                            {s.lbl}
+                                        </div>
+                                        <div className="nd-mono nd-tnum" style={{ fontSize: 13, color: '#fff', fontWeight: 700, marginTop: 2 }}>
+                                            {s.val}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* FUSE / DECOMM action buttons (handoff §05 — inline on selected card) */}
+                        <div className="nd-hair" style={{ margin: '10px 0 8px' }} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                            <button
+                                type="button"
+                                onClick={() => combineTowers && combineTowers()}
+                                disabled={!canCombineTowers}
+                                title="3개 같은 타워 합성"
+                                className="nd-mono"
+                                style={{
+                                    padding: '7px 0', fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+                                    background: canCombineTowers ? 'rgba(255,169,77,0.15)' : 'rgba(255,255,255,0.02)',
+                                    border: '1px solid ' + (canCombineTowers ? 'var(--nd-amber)' : 'var(--nd-hair)'),
+                                    color: canCombineTowers ? 'var(--nd-amber)' : 'var(--nd-dimmer)',
+                                    cursor: canCombineTowers ? 'pointer' : 'not-allowed',
+                                    borderRadius: 0,
+                                }}
+                            >
+                                ⚡ FUSE
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => sellSelectedTowers && sellSelectedTowers()}
+                                title={`판매 +${totalSellPrice}G`}
+                                className="nd-mono"
+                                style={{
+                                    padding: '7px 0', fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+                                    background: 'rgba(255,77,109,0.10)',
+                                    border: '1px solid rgba(255,77,109,0.50)',
+                                    color: 'var(--nd-red-life)',
+                                    cursor: 'pointer',
+                                    borderRadius: 0,
+                                }}
+                            >
+                                ◢ DECOMM <span className="nd-tnum" style={{ color: '#fff', marginLeft: 3 }}>+{totalSellPrice}G</span>
+                            </button>
                         </div>
                     </div>
                 );
@@ -283,12 +488,216 @@ const ControlPanel = ({
                                 </div>
                             </div>
                         </div>
-                        <div className="nd-hair" style={{ margin: '8px 0' }} />
+                        <div className="nd-hair" style={{ margin: '10px 0 8px' }} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                            <button
+                                type="button"
+                                onClick={() => combineSupportTowers && combineSupportTowers()}
+                                disabled={!canCombineSupportTowers}
+                                title="3개 같은 서포트 합성"
+                                className="nd-mono"
+                                style={{
+                                    padding: '7px 0', fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+                                    background: canCombineSupportTowers ? 'rgba(255,169,77,0.15)' : 'rgba(255,255,255,0.02)',
+                                    border: '1px solid ' + (canCombineSupportTowers ? 'var(--nd-amber)' : 'var(--nd-hair)'),
+                                    color: canCombineSupportTowers ? 'var(--nd-amber)' : 'var(--nd-dimmer)',
+                                    cursor: canCombineSupportTowers ? 'pointer' : 'not-allowed',
+                                    borderRadius: 0,
+                                }}
+                            >
+                                ⚡ FUSE
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => sellSelectedSupportTowers && sellSelectedSupportTowers()}
+                                title={`판매 +${totalSupportSellPrice}G`}
+                                className="nd-mono"
+                                style={{
+                                    padding: '7px 0', fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+                                    background: 'rgba(255,77,109,0.10)',
+                                    border: '1px solid rgba(255,77,109,0.50)',
+                                    color: 'var(--nd-red-life)',
+                                    cursor: 'pointer',
+                                    borderRadius: 0,
+                                }}
+                            >
+                                ◢ DECOMM <span className="nd-tnum" style={{ color: '#fff', marginLeft: 3 }}>+{totalSupportSellPrice}G</span>
+                            </button>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* ── ACTIVE BUFFS · always rendered (empty state when no buffs) ── */}
+            <div className="nd-panel relative" style={{ padding: '10px 12px' }}>
+                <HoloReticle />
+                <div className="nd-eyebrow" style={{
+                    color: activeBuffs.length > 0 ? 'var(--nd-amber)' : 'var(--nd-dim)',
+                    letterSpacing: 2,
+                }}>
+                    {activeBuffs.length > 0 ? '◆' : '◇'} ACTIVE BUFFS
+                    <span className="nd-tnum" style={{
+                        color: activeBuffs.length > 0 ? 'var(--nd-text)' : 'var(--nd-dimmer)',
+                        marginLeft: 6,
+                    }}>
+                        ×{activeBuffs.length}
+                    </span>
+                </div>
+                {activeBuffs.length === 0 ? (
+                    /* Empty-state — three dashed slot placeholders */
+                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 8 }}>
+                        {['', '', ''].map((_, i) => (
+                            <div
+                                key={i}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    padding: '5px 0',
+                                    borderTop: '1px dashed var(--nd-hair)',
+                                    fontSize: 11,
+                                    opacity: 0.5,
+                                }}
+                            >
+                                <span style={{ width: 3, alignSelf: 'stretch', background: 'var(--nd-hair)' }} />
+                                <span style={{ fontSize: 12, color: 'var(--nd-dimmer)' }}>◇</span>
+                                <span
+                                    className="nd-mono"
+                                    style={{
+                                        flex: 1, color: 'var(--nd-dimmer)', fontSize: 10, letterSpacing: 1,
+                                    }}
+                                >
+                                    {i === 0 ? 'STAGE 클리어 시 획득' : '— EMPTY —'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: 8 }}>
+                        {activeBuffs.slice(0, 6).map(buff => (
+                            <div
+                                key={buff.id}
+                                title={`${buff.name}: ${buff.description}`}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    padding: '5px 0',
+                                    borderTop: '1px solid var(--nd-hair)',
+                                    fontSize: 11,
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        width: 3, alignSelf: 'stretch',
+                                        background: buff.color, boxShadow: `0 0 4px ${buff.color}`,
+                                    }}
+                                />
+                                <span style={{ fontSize: 12 }}>{buff.icon}</span>
+                                <span
+                                    style={{
+                                        flex: 1, color: '#fff',
+                                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                    }}
+                                >
+                                    {buff.name}
+                                </span>
+                                <span
+                                    className="nd-mono nd-tnum"
+                                    style={{ fontSize: 10, color: buff.color, letterSpacing: 1, fontWeight: 700 }}
+                                >
+                                    ×{buff.stacks || 1}
+                                </span>
+                            </div>
+                        ))}
+                        {activeBuffs.length > 6 && (
+                            <div
+                                className="nd-mono"
+                                style={{
+                                    padding: '5px 0', borderTop: '1px solid var(--nd-hair)',
+                                    color: 'var(--nd-dim)', fontSize: 9, letterSpacing: 1,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                + {activeBuffs.length - 6} MORE
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* ── COMMANDER SKILLS · 4 reserved slots Q/W/E/R (handoff §05) ──
+                Always rendered so the rail layout stays consistent; the actual
+                cooldown/firing logic is a separate ticket once the
+                commander-ability system lands. */}
+            {(() => {
+                // Reserved slot specs — labels match §05 reference (ORBITAL/FREEZE/OVERLOAD/RALLY).
+                const slots = [
+                    { key: 'Q', label: 'ORBITAL',  glyph: '◉', color: 'var(--nd-crimson)' },
+                    { key: 'W', label: 'FREEZE',   glyph: '❄', color: 'var(--nd-el-water)' },
+                    { key: 'E', label: 'OVERLOAD', glyph: '⚡', color: 'var(--nd-el-electric)' },
+                    { key: 'R', label: 'RALLY',    glyph: '✦', color: 'var(--nd-amber)' },
+                ];
+                return (
+                    <div className="nd-panel relative" style={{ padding: '10px 12px' }}>
+                        <HoloReticle />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div className="nd-eyebrow" style={{ color: 'var(--nd-crimson)', letterSpacing: 2 }}>
+                                ◆ COMMANDER SKILLS
+                            </div>
+                            <div
+                                className="nd-mono"
+                                style={{
+                                    fontSize: 8, color: 'var(--nd-dimmer)', letterSpacing: 1,
+                                    display: 'flex', alignItems: 'center', gap: 4,
+                                }}
+                            >
+                                <span style={{ width: 5, height: 5, background: 'var(--nd-dimmer)' }} />
+                                LOCKED
+                            </div>
+                        </div>
                         <div
-                            className="nd-mono nd-tnum"
-                            style={{ fontSize: 10, color: 'var(--nd-amber)', letterSpacing: 1 }}
+                            style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(4, 1fr)',
+                                gap: 4,
+                                marginTop: 8,
+                            }}
                         >
-                            ◆ SELL <span style={{ color: '#fff', fontWeight: 700, marginLeft: 4 }}>+{totalSupportSellPrice}G</span>
+                            {slots.map(s => (
+                                <div
+                                    key={s.key}
+                                    title={`${s.label} (${s.key}) — 추후 추가 예정`}
+                                    style={{
+                                        aspectRatio: '1', position: 'relative',
+                                        border: '1px solid var(--nd-hair)',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        opacity: 0.55,
+                                    }}
+                                >
+                                    {/* Hotkey badge — top-left */}
+                                    <span
+                                        className="nd-mono"
+                                        style={{
+                                            position: 'absolute', top: 2, left: 3,
+                                            fontSize: 7, color: s.color, letterSpacing: 1,
+                                            fontWeight: 700,
+                                        }}
+                                    >
+                                        [{s.key}]
+                                    </span>
+                                    <span style={{ fontSize: 16, color: s.color, lineHeight: 1 }}>
+                                        {s.glyph}
+                                    </span>
+                                    <span
+                                        className="nd-mono"
+                                        style={{
+                                            fontSize: 7, color: 'var(--nd-dim)',
+                                            letterSpacing: 0.5, marginTop: 2,
+                                        }}
+                                    >
+                                        {s.label}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 );
@@ -336,15 +745,10 @@ const InventoryPanel = ({
     setAutoSupportCombine,
     clearAllT4RolePresets,
     t4RolePresets,
-    autoNextWave,
-    setAutoNextWave,
-    maxGameSpeed,
-    setMaxGameSpeed,
 }) => {
     const [activeTab, setActiveTab] = React.useState('tower');
     const [towerFilter, setTowerFilter] = React.useState(null);
     const [supportFilter, setSupportFilter] = React.useState(null);
-    const [sortMode, setSortMode] = React.useState('tier');
 
     // 스프라이트 로드 완료 감지 → 리렌더 트리거
     const [spritesReady, setSpritesReady] = React.useState(() =>
@@ -363,7 +767,7 @@ const InventoryPanel = ({
     const activeFilter = activeTab === 'tower' ? towerFilter : supportFilter;
     const setActiveFilter = activeTab === 'tower' ? setTowerFilter : setSupportFilter;
 
-    // group counts (for combinable sort)
+    // group counts (used by the in-grid "ready to fuse" indicator)
     const towerGroupCounts = React.useMemo(() => {
         const map = {};
         (inventory || []).forEach(n => {
@@ -386,42 +790,22 @@ const InventoryPanel = ({
         let list = [...(inventory || [])];
         if (towerFilter !== null) list = list.filter(n => (n.colorIndex ?? n.element) === towerFilter);
         return list.sort((a, b) => {
+            if (b.tier !== a.tier) return b.tier - a.tier;
             const ea = a.colorIndex ?? a.element ?? 0;
             const eb = b.colorIndex ?? b.element ?? 0;
-            if (sortMode === 'group') {
-                if (ea !== eb) return ea - eb;
-                return b.tier - a.tier;
-            }
-            if (sortMode === 'combinable') {
-                const ka = a.tier + ':' + ea, kb = b.tier + ':' + eb;
-                const aReady = (towerGroupCounts[ka] || 0) >= 3 ? 1 : 0;
-                const bReady = (towerGroupCounts[kb] || 0) >= 3 ? 1 : 0;
-                if (aReady !== bReady) return bReady - aReady;
-            }
-            if (b.tier !== a.tier) return b.tier - a.tier;
             return ea - eb;
         });
-    }, [inventory, towerFilter, sortMode, towerGroupCounts]);
+    }, [inventory, towerFilter]);
 
     const sortedSupportInventory = React.useMemo(() => {
         let list = [...(supportInventory || [])];
         if (supportFilter !== null) list = list.filter(s => s.supportType === supportFilter);
         return list.sort((a, b) => {
-            const ta = a.supportType ?? 0, tb = b.supportType ?? 0;
-            if (sortMode === 'group') {
-                if (ta !== tb) return ta - tb;
-                return b.tier - a.tier;
-            }
-            if (sortMode === 'combinable') {
-                const ka = a.tier + ':s' + ta, kb = b.tier + ':s' + tb;
-                const aReady = (supportGroupCounts[ka] || 0) >= 3 ? 1 : 0;
-                const bReady = (supportGroupCounts[kb] || 0) >= 3 ? 1 : 0;
-                if (aReady !== bReady) return bReady - aReady;
-            }
             if (b.tier !== a.tier) return b.tier - a.tier;
+            const ta = a.supportType ?? 0, tb = b.supportType ?? 0;
             return ta - tb;
         });
-    }, [supportInventory, supportFilter, sortMode, supportGroupCounts]);
+    }, [supportInventory, supportFilter]);
 
     const drawHandler = activeTab === 'tower' ? drawRandomNeon : drawRandomSupport;
     const drawHandler10 = activeTab === 'tower' ? drawRandomNeon10 : drawRandomSupport10;
@@ -509,94 +893,20 @@ const InventoryPanel = ({
 
     return (
         <div
-            className="max-w-4xl mx-auto"
-            style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8, fontFamily: 'var(--nd-font-sans)' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 8, fontFamily: 'var(--nd-font-sans)' }}
         >
-            {/* ── ACTION BAR ── */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {holoBtn({
-                    label: isPlaying ? '⏳ IN COMBAT' : '▶ DEPLOY',
-                    onClick: startWave, disabled: isPlaying,
-                    primary: true, flex: '0 0 auto', isStart: true,
-                })}
-                {holoBtn({
-                    label: isFull ? '◌ INVENTORY FULL' : '◇ ROLL ×1',
-                    sub: isFull ? null : `${drawCost}G`,
-                    color: activeTab === 'tower' ? 'var(--nd-crimson)' : 'var(--nd-amber)',
-                    onClick: drawHandler, disabled: gold < drawCost || isFull,
-                })}
-                {holoBtn({
-                    label: draw10Count === 10 ? '◇ ROLL ×10' : `◇ ROLL ×${draw10Count}`,
-                    sub: `${draw10Cost}G`,
-                    color: activeTab === 'tower' ? 'var(--nd-el-dark)' : 'var(--nd-amber)',
-                    onClick: drawHandler10, disabled: gold < drawCost || isFull || draw10Count === 0,
-                    title: `최대 10회 연속 — 실제 ${draw10Count}회 (${draw10Cost}G)`,
-                })}
-                <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--nd-hair)' }} />
-                {holoBtn({
-                    label: isMaxTier ? '⚡ MAX TIER' : '⚡ FUSE',
-                    sub: isMaxTier ? null : `${combineCount}/3`,
-                    color: 'var(--nd-gold)',
-                    onClick: handleCombine, disabled: !canCombine,
-                })}
-                {holoBtn({
-                    label: '⚡ FUSE-ALL',
-                    sub: combinableCount > 0 ? `×${combinableCount}` : null,
-                    color: 'var(--nd-amber)',
-                    onClick: handleCombineAll, disabled: combinableCount === 0,
-                })}
-                {holoBtn({
-                    label: '◢ SELL',
-                    sub: canSell ? `+${sellPrice}G` : null,
-                    color: 'var(--nd-red-life)',
-                    onClick: handleSell, disabled: !canSell,
-                })}
-            </div>
-
-            {/* ── AUTOMATION ROW ── */}
-            <div
-                className="nd-mono"
-                style={{
-                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
-                    fontSize: 10, letterSpacing: 1, color: 'var(--nd-dim)',
-                    padding: '0 4px',
-                }}
-            >
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input
-                        type="checkbox"
-                        checked={!!activeAutoCombine}
-                        onChange={(e) => setActiveAutoCombine && setActiveAutoCombine(e.target.checked)}
-                        style={{ accentColor: 'var(--nd-crimson)', width: 12, height: 12 }}
-                    />
-                    AUTO-FUSE ON ROLL
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                    <input
-                        type="checkbox"
-                        checked={!!autoNextWave}
-                        onChange={(e) => setAutoNextWave && setAutoNextWave(e.target.checked)}
-                        style={{ accentColor: 'var(--nd-crimson)', width: 12, height: 12 }}
-                    />
-                    AUTO NEXT WAVE
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }} title="최대 배속 슬라이더">
-                    <span>MAX SPEED</span>
-                    <select
-                        value={maxGameSpeed ?? 5}
-                        onChange={(e) => setMaxGameSpeed && setMaxGameSpeed(Number(e.target.value))}
-                        className="nd-mono nd-tnum"
-                        style={{
-                            background: 'var(--nd-bg-2)', border: '1px solid var(--nd-hair)',
-                            color: '#fff', padding: '2px 6px', fontSize: 10, letterSpacing: 1,
-                        }}
-                    >
-                        <option value={3}>×3</option>
-                        <option value={4}>×4</option>
-                        <option value={5}>×5</option>
-                    </select>
-                </label>
-                {presetCount > 0 && (
+            {/* ── AUTOMATION ROW ── (only shown when there's something contextual)
+                FUSE-ALL removed (AUTO-FUSE on roll covers the same job).
+                AUTO NEXT WAVE relocated to the NEXT WAVE preview panel. */}
+            {presetCount > 0 && (
+                <div
+                    className="nd-mono"
+                    style={{
+                        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
+                        fontSize: 10, letterSpacing: 1, color: 'var(--nd-dim)',
+                        padding: '0 4px',
+                    }}
+                >
                     <button
                         type="button" onClick={clearAllT4RolePresets}
                         title="저장된 T4 역할 프리셋 초기화"
@@ -609,28 +919,42 @@ const InventoryPanel = ({
                     >
                         ◇ RESET T4 PRESET ({presetCount})
                     </button>
-                )}
-            </div>
+                </div>
+            )}
 
-            {/* ── TABS + GRID PANEL ── */}
+            {/* ── TABS + GRID PANEL · handoff §05 inventory layout ──
+                Top row: tabs (left) | ROLL ×1 / ROLL ×10 / AUTO-FUSE (right) */}
             <div className="nd-panel relative" style={{ overflow: 'hidden' }}>
                 <HoloReticle />
 
-                {/* Tab header */}
-                <div className="nd-tabs" style={{ gap: 0, padding: '0 14px' }}>
+                {/* Tab header — single row, all 3 tabs inline */}
+                <div
+                    className="nd-tabs"
+                    style={{
+                        gap: 0,
+                        padding: '0 14px',
+                        display: 'flex',
+                        alignItems: 'stretch',
+                    }}
+                >
                     {[
                         { k: 'tower',   label: 'ARSENAL', count: `${inventory.length}/${ECONOMY.maxInventory}`,        c: 'var(--nd-crimson)' },
                         { k: 'support', label: 'SUPPORT', count: `${supportInventory.length}/${ECONOMY.maxSupportInventory}`, c: 'var(--nd-amber)' },
+                        { k: 'armory',  label: 'ARMORY',  count: 'LOCKED', c: 'var(--nd-dimmer)', locked: true },
                     ].map(t => {
                         const active = activeTab === t.k;
                         return (
                             <button
-                                key={t.k} type="button" onClick={() => setActiveTab(t.k)}
+                                key={t.k} type="button"
+                                onClick={() => !t.locked && setActiveTab(t.k)}
+                                disabled={t.locked}
                                 className={'nd-tab' + (active ? ' nd-tab--active' : '')}
                                 style={{
                                     color: active ? '#fff' : t.c,
                                     borderBottomColor: active ? t.c : 'transparent',
-                                    paddingLeft: 0, paddingRight: 18,
+                                    paddingLeft: 0, paddingRight: 16,
+                                    opacity: t.locked ? 0.5 : 1,
+                                    cursor: t.locked ? 'not-allowed' : 'pointer',
                                 }}
                             >
                                 {t.label}
@@ -646,6 +970,81 @@ const InventoryPanel = ({
                             </button>
                         );
                     })}
+                </div>
+
+                {/* Action row — ROLL ×1 / ROLL ×N / AUTO-FUSE on a single compact line */}
+                <div
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '6px 10px',
+                        borderBottom: '1px solid var(--nd-hair)',
+                    }}
+                >
+                    <button
+                        type="button"
+                        onClick={drawHandler}
+                        disabled={gold < drawCost || isFull}
+                        title={isFull ? '인벤토리 가득' : `${drawCost}G으로 1회 뽑기`}
+                        className="nd-mono"
+                        style={{
+                            flex: 1, minWidth: 0,
+                            padding: '5px 6px', fontSize: 10, letterSpacing: 1, fontWeight: 700,
+                            background: 'rgba(255,61,110,0.10)',
+                            border: '1px solid rgba(255,61,110,0.50)',
+                            color: 'var(--nd-crimson)',
+                            cursor: (gold < drawCost || isFull) ? 'not-allowed' : 'pointer',
+                            opacity: (gold < drawCost || isFull) ? 0.5 : 1,
+                            borderRadius: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        🎲×1 <span className="nd-tnum" style={{ color: '#fff' }}>{drawCost}G</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={drawHandler10}
+                        disabled={gold < drawCost || isFull || draw10Count === 0}
+                        title={`최대 10회 — 실제 ${draw10Count}회 (${draw10Cost}G)`}
+                        className="nd-mono"
+                        style={{
+                            flex: 1, minWidth: 0,
+                            padding: '5px 6px', fontSize: 10, letterSpacing: 1, fontWeight: 700,
+                            background: 'rgba(199,125,255,0.10)',
+                            border: '1px solid rgba(199,125,255,0.50)',
+                            color: 'var(--nd-el-dark)',
+                            cursor: (gold < drawCost || isFull || draw10Count === 0) ? 'not-allowed' : 'pointer',
+                            opacity: (gold < drawCost || isFull || draw10Count === 0) ? 0.5 : 1,
+                            borderRadius: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        🎲×{draw10Count === 10 ? '10' : draw10Count} <span className="nd-tnum" style={{ color: '#fff' }}>{draw10Cost}G</span>
+                    </button>
+                    <label
+                        style={{
+                            flex: 1, minWidth: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                            cursor: 'pointer',
+                            padding: '5px 6px',
+                            background: activeAutoCombine ? 'rgba(255,169,77,0.15)' : 'transparent',
+                            border: '1px solid ' + (activeAutoCombine ? 'rgba(255,169,77,0.55)' : 'var(--nd-hair-strong)'),
+                            color: activeAutoCombine ? 'var(--nd-amber)' : 'var(--nd-dim)',
+                            fontFamily: 'var(--nd-font-mono)',
+                            fontSize: 10, letterSpacing: 1, fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                        }}
+                        title="뽑기 후 자동 합성"
+                    >
+                        <input
+                            type="checkbox"
+                            checked={!!activeAutoCombine}
+                            onChange={(e) => setActiveAutoCombine && setActiveAutoCombine(e.target.checked)}
+                            style={{ accentColor: 'var(--nd-amber)', width: 11, height: 11, margin: 0 }}
+                        />
+                        ⚡FUSE
+                    </label>
                 </div>
 
                 {/* Filter chips + sort toggle */}
@@ -672,6 +1071,7 @@ const InventoryPanel = ({
                     {activeTab === 'tower'
                         ? [0, 1, 2, 3, 4, 5].map(elIdx => {
                             const info = getElementInfo(elIdx);
+                            const color = ELEMENT_HEX[elIdx];
                             const active = towerFilter === elIdx;
                             return (
                                 <button
@@ -680,11 +1080,11 @@ const InventoryPanel = ({
                                     title={info.name + ' 필터'}
                                     style={{
                                         fontSize: 11, padding: '2px 6px',
-                                        border: '1px solid ' + (active ? info.color : 'var(--nd-hair)'),
-                                        background: active ? `${info.color}1f` : 'transparent',
-                                        color: active ? '#fff' : info.color,
+                                        border: '1px solid ' + (active ? color : 'var(--nd-hair)'),
+                                        background: active ? `${color}33` : 'transparent',
+                                        color: active ? '#fff' : color,
                                         cursor: 'pointer',
-                                        boxShadow: active ? `0 0 4px ${info.color}` : 'none',
+                                        boxShadow: active ? `0 0 6px ${color}` : 'none',
                                     }}
                                 >
                                     {info.icon}
@@ -702,10 +1102,10 @@ const InventoryPanel = ({
                                     style={{
                                         fontSize: 11, padding: '2px 6px',
                                         border: '1px solid ' + (active ? info.color : 'var(--nd-hair)'),
-                                        background: active ? `${info.color}1f` : 'transparent',
+                                        background: active ? `${info.color}33` : 'transparent',
                                         color: active ? '#fff' : info.color,
                                         cursor: 'pointer',
-                                        boxShadow: active ? `0 0 4px ${info.color}` : 'none',
+                                        boxShadow: active ? `0 0 6px ${info.color}` : 'none',
                                     }}
                                 >
                                     {info.icon}
@@ -713,27 +1113,19 @@ const InventoryPanel = ({
                             );
                         })}
 
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span className="nd-mono" style={{ fontSize: 9, color: 'var(--nd-dimmer)', letterSpacing: 1.5 }}>
-                            SORT
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const next = sortMode === 'tier' ? 'group' : sortMode === 'group' ? 'combinable' : 'tier';
-                                setSortMode(next);
-                            }}
-                            title="정렬 모드 전환"
-                            className="nd-mono"
-                            style={{
-                                fontSize: 9, letterSpacing: 1, padding: '2px 8px',
-                                background: 'rgba(255,255,255,0.04)',
-                                border: '1px solid var(--nd-hair)', color: 'var(--nd-text)',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            {sortMode === 'tier' ? '◆ TIER ↓' : sortMode === 'group' ? '◇ GROUP' : '⚡ FUSABLE'}
-                        </button>
+                    {/* Sort indicator — always TIER ↓ */}
+                    <div
+                        className="nd-mono"
+                        style={{
+                            marginLeft: 'auto',
+                            fontSize: 9, letterSpacing: 1, padding: '2px 6px',
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid var(--nd-hair-strong)',
+                            color: '#fff',
+                        }}
+                        title="티어 내림차순 정렬"
+                    >
+                        TIER ↓
                     </div>
                 </div>
 
@@ -743,7 +1135,7 @@ const InventoryPanel = ({
                         <div
                             style={{
                                 display: 'grid',
-                                gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`,
+                                gridTemplateColumns: 'repeat(5, 1fr)',
                                 gap: 4,
                             }}
                         >
@@ -836,7 +1228,7 @@ const InventoryPanel = ({
                         <div
                             style={{
                                 display: 'grid',
-                                gridTemplateColumns: `repeat(auto-fill, minmax(${TILE_SIZE}px, 1fr))`,
+                                gridTemplateColumns: 'repeat(5, 1fr)',
                                 gap: 4,
                             }}
                         >

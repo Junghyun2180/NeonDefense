@@ -162,8 +162,9 @@
  * ===================================================================== */
 .nd-vital-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 18px;
+  /* auto-fit so 5 or 6 vitals (with optional FLOOR) flow without breaking */
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 14px;
   flex: 1;
 }
 .nd-vital__head {

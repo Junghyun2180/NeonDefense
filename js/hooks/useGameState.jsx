@@ -20,8 +20,8 @@ const useGameState = (configOverride = null) => {
     const [lives, setLives] = useState(cfg.ECONOMY.startLives);
     const [stage, setStage] = useState(1);
     const [wave, setWave] = useState(1);
-    // 합의 10: 캠페인 floor (1 run = 1 floor). 기본 1, 외부에서 setFloor 로 변경
-    const [floor, setFloor] = useState(1);
+    // 합의 10: 캠페인 sector (1 run = 1 sector). 기본 1, 외부에서 setSector 로 변경
+    const [sector, setSector] = useState(1);
     const [isPlaying, setIsPlaying] = useState(false);
     const [gameOver, setGameOver] = useState(false);
     const [towers, setTowers] = useState([]);
@@ -121,7 +121,7 @@ const useGameState = (configOverride = null) => {
             // 보스 스폰 (1마리)
             const paths = pathDataRef.current.paths;
             const selectedPath = paths[0];
-            const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id, cfg.modeAbility, floor);
+            const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id, cfg.modeAbility, sector);
             if (bossEnemy) {
                 bossEnemy.type = 'boss';
                 bossEnemy.isLooping = true;
@@ -151,7 +151,7 @@ const useGameState = (configOverride = null) => {
         gameOver,
         stage,
         wave,
-        floor,
+        sector,
         gold,
         lives,
         spawnConfig: cfg.SPAWN,
@@ -281,7 +281,7 @@ const useGameState = (configOverride = null) => {
                         setIsBossPhase(true);
                         const paths = pathDataRef.current.paths;
                         const selectedPath = paths[0];
-                        const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id, activeCfg.modeAbility, floor);
+                        const bossEnemy = EnemySystem.create(stage, wave + 1, 0, 1, selectedPath.tiles, selectedPath.id, activeCfg.modeAbility, sector);
                         if (bossEnemy) {
                             bossEnemy.type = 'boss';
                             bossEnemy.isLooping = true;
@@ -637,7 +637,7 @@ const useGameState = (configOverride = null) => {
         lives, setLives,
         stage, setStage,
         wave, setWave,
-        floor, setFloor,
+        sector, setSector,
         isPlaying,
         gameOver,
         towers, setTowers,
