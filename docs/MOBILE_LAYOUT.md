@@ -1,7 +1,7 @@
 # PC/Mobile UI 분리 가이드
 
 > 인-게임 레이아웃을 데스크톱과 모바일 가로(landscape)에서 **별도 컴포넌트 + 별도 인라인 토큰 + 클래스 스코프 한정 CSS** 로 분리한 구조.
-> 작성일: 2026-05-01 / 관련 커밋: [bec0b51](../../../commit/bec0b51), [5984d8a](../../../commit/5984d8a), [f146cf0](../../../commit/f146cf0), [fdb17b2](../../../commit/fdb17b2), [6e80a33](../../../commit/6e80a33)
+> 작성일: 2026-05-01 / 관련 커밋: [bec0b51](../../../commit/bec0b51), [5984d8a](../../../commit/5984d8a), [f146cf0](../../../commit/f146cf0), [fdb17b2](../../../commit/fdb17b2), [6e80a33](../../../commit/6e80a33), [c17e798](../../../commit/c17e798)
 
 ---
 
@@ -27,7 +27,8 @@
 | 좌표 변환 | [js/hooks/useDragAndDrop.jsx](../js/hooks/useDragAndDrop.jsx) | `handleClickPlacementMouseMove` — 비율 기반 |
 | 마운트 분기 | [js/App.jsx](../js/App.jsx) | `isMobileLandscape ? ... : ...` 단일 삼항 |
 | `compact` prop 컴포넌트 | [CommandBar.jsx](../js/components/CommandBar.jsx), [WaveInfoBar.jsx](../js/components/WaveInfoBar.jsx) | 인라인 스타일을 compact 모드로 전환 |
-| `narrow` prop 컴포넌트 | [WaveInfoBar.jsx](../js/components/WaveInfoBar.jsx) | 좁은 세로 패널용 (좌측 letterbox 자리) — flex column, 줄바꿈, 세로 stack |
+| `narrow` prop 컴포넌트 | [WaveInfoBar.jsx](../js/components/WaveInfoBar.jsx) | 좁은 세로 패널용 (좌측 letterbox 자리) — flex column, 줄바꿈, 적 chip 2-col grid |
+| `showUnit/showBuffs/showSkills` 분기 | [ControlPanel.jsx](../js/components/ControlPanel.jsx) | 모바일에서 섹션을 좌/우로 분리 마운트 (default = all true: 데스크톱 호환) |
 | 데스크톱 그리드 fallback | App.jsx 내부 (mapContainerRef + map 슬롯 포함 div) | `isMobileLandscape === false` 일 때 |
 
 ---
@@ -36,18 +37,23 @@
 
 ```
 nd-mobile-grid
-  gridTemplateColumns: minmax(0, 1fr) | 240px
+  gridTemplateColumns: minmax(0, 1fr) | 200px
   gridTemplateRows:    auto | minmax(0, 1fr)
   padding: 4, gap: 6, height: 100vh
 
   ┌─ ROW1 col1 header(GameHeader) ─────────┬─ col2 commandBar(compact) ─┐
   │                                         │                            │
-  │ ROW2 col1 sub-grid:                    │  col2 right rail           │
-  │   [waveSide 150px | mapCell 1fr]       │   ControlPanel             │
-  │   waveSide: WaveInfoBar narrow vertical │   + InventoryPanel         │
+  │ ROW2 col1 sub-grid:                    │  col2 right rail (action)  │
+  │   [leftSide 180px | mapCell 1fr]       │   ControlPanel             │
+  │   leftSide stack (info):               │     · SELECTED UNIT only   │
+  │     ├ WaveInfoBar (narrow)             │   + InventoryPanel         │
+  │     ├ ActiveBuffs (left-aux)           │                            │
+  │     └ CommanderSkills (left-aux)       │                            │
   │   mapCell: uniform scale, flex center  │                            │
   └─────────────────────────────────────────┴────────────────────────────┘
 ```
+
+좌측 = 정보 영역 (waves + buffs + skills) / 우측 = 액션 영역 (selection + inventory) / 가운데 = 맵.
 
 ### 맵 uniform scale 원리
 1. `App.jsx` `mapContainerRef` 가 mapCell 의 cw 측정 → `mapScale = min(1, cw / MAP_WIDTH)` (isotropic).
@@ -56,18 +62,18 @@ nd-mobile-grid
 4. `stretchX = cw/naturalW`, `stretchY = ch/naturalH` 계산 후 `uniformScale = Math.min(...)` 채택.
 5. wrapper 에 `transform: scale(uniform)` + flex 센터링 → 종횡비 보존, 남는 영역은 양쪽 (혹은 위/아래) 균등 분배.
 
-### WaveInfoBar 위치 — 좌측 letterbox 활용
-- col 1 row 2 sub-grid 의 좌측 컬럼 (150px 고정) 에 `narrow=true` 모드로 마운트.
-- narrow 모드 변환:
-  - flex-direction: row → **column**
-  - 스테이지·웨이브 라벨: 1줄 → **2줄** (STAGE 01 / WAVE 01)
-  - 적 chip 섹션: 가로 wrap → **세로 stack**, borderLeft → borderTop
-  - AUTO 토글: marginLeft auto → 하단 stretch, borderTop separator
-- 우측 레일 (col 2) 에는 더 이상 들어가지 않음 — 깔끔한 control+inventory 영역.
+### 좌측 leftSide 패널 — 정보 모음
+180px 고정 폭 flex column 으로 3개 패널 stack:
+- **WaveInfoBar (narrow)** — `narrow=true` prop. flex-direction: column, stage·wave 2줄 라벨, 적 chip 은 **2-column grid** (세로 overflow 방지), AUTO 토글은 하단 stretch.
+- **ActiveBuffs** — `<ControlPanel showUnit={false} showBuffs showSkills={false} />`
+- **CommanderSkills** — 같은 `<ControlPanel ...>` 인스턴스의 SKILLS 섹션.
 
-### 새 컴포넌트가 narrow letterbox 에서도 쓰인다면
-- `narrow` prop 패턴을 따라 flex-direction + chip stack + label 줄바꿈을 동시에 처리.
-- 폭 150px 가정 — 글자 잘림 없도록 letter-spacing/font-size 토큰 별도 분기.
+좌측 패널 마운트는 `slots.waveInfo` + `slots.leftAuxPanel` 두 슬롯으로 주입 (App.jsx 가 두 ControlPanel 인스턴스 분리 생성).
+
+### 우측 레일 — 액션 모음
+- 폭 200px (이전 240px 에서 축소; deploy 버튼/SELECTED UNIT 자동 축소).
+- ControlPanel: `showBuffs={false} showSkills={false}` (SELECTED UNIT 만).
+- InventoryPanel: 기존 그대로.
 
 ---
 
@@ -171,11 +177,11 @@ const gridX = Math.floor(xLogical / TILE_SIZE);
 |---|---:|
 | nd-mobile-grid 전체 | 540px |
 | 헤더 (row 1) | 60px |
-| col 1 row 2 sub-grid 전체 | 916 × 466 |
-| WaveInfoBar (narrow vertical) | 150 × 466 |
-| 맵 cell (sub-grid 우측) | 762 × 466 |
-| 맵 visible (uniform scale 0.815) | 621 × 466 |
-| 우측 레일 (col 2 row 2) | 240 × 466 |
+| col 1 row 2 sub-grid 전체 | 956 × 466 |
+| leftSide (Wave + Buffs + Skills) | 180 × 466 |
+| 맵 cell (sub-grid 우측) | 772 × 466 |
+| 맵 visible (uniform scale 0.805) | 621 × 466 |
+| 우측 레일 (col 2 row 2) | 200 × 466 |
 
 회귀 감지 룰
 - row 1 height >80px → **CommandBar deploy 의 compact 모드 진입 실패** 의심. App.jsx 의 `compact={isMobileLandscape}` 점검.
