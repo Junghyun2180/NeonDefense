@@ -2239,3 +2239,128 @@
    js/components/mobile/MobileGameLayout.jsx 컴포넌트로 대체되어 제거됨.
    인-게임 모바일 가로 레이아웃은 useMobileLayout 훅 + 슬롯 패턴 분기로 처리. */
 
+/* --- Tower selection card (CarryoverModal) ---------------------------- */
+.nd-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
+}
+
+.nd-pick {
+  position: relative;
+  width: 100%;
+  min-height: 92px;
+  border: 1px solid var(--nd-pick-color, var(--nd-hair-strong));
+  background:
+    linear-gradient(180deg, transparent 60%, var(--nd-pick-soft, rgba(255,255,255,0.04)) 100%),
+    rgba(12, 12, 16, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  font-family: var(--nd-font-mono);
+  color: #fff;
+  padding: 6px 4px 8px;
+  transition: border-color 0.12s, background 0.12s, transform 0.12s;
+}
+.nd-pick:hover:not(:disabled):not(.nd-pick--disabled) {
+  border-color: #fff;
+  transform: translateY(-1px);
+}
+.nd-pick--selected {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px var(--nd-pick-color, #fff) inset;
+}
+.nd-pick--disabled,
+.nd-pick:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+}
+
+.nd-pick__tier {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  font-family: var(--nd-font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--nd-bg);
+  background: var(--nd-pick-color, var(--nd-amber));
+  padding: 2px 5px;
+  line-height: 1;
+}
+
+.nd-pick__icon {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--nd-pick-color, #fff);
+}
+
+.nd-pick__role {
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--nd-dim);
+}
+
+.nd-pick__check {
+  position: absolute;
+  bottom: 3px;
+  right: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--nd-pick-color, #fff);
+  letter-spacing: 1px;
+}
+
+.nd-pick-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--nd-font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--nd-dim);
+  border: 1px solid var(--nd-hair);
+  padding: 3px 8px;
+}
+.nd-pick-counter strong { color: #fff; font-weight: 800; }
+.nd-pick-counter--full { color: var(--nd-green); border-color: rgba(128, 237, 153, 0.40); }
+.nd-pick-counter--full strong { color: var(--nd-green); }
+
+.nd-theme-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.nd-theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--nd-theme-color, var(--nd-hair-strong));
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--nd-theme-color, var(--nd-text));
+  font-family: var(--nd-font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.nd-theme-chip__range {
+  color: var(--nd-dim);
+  font-size: 9px;
+}
+.nd-theme-chip__name { color: #fff; font-weight: 800; }
+.nd-theme-chip--weak { opacity: 0.7; }
+
+.nd-empty {
+  font-family: var(--nd-font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--nd-dimmer);
+  text-align: center;
+  padding: 16px 0;
+  border: 1px dashed var(--nd-hair);
+}
