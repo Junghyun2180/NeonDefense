@@ -808,6 +808,7 @@ const NeonDefense = () => {
             toggleSfx={toggleSfx}
             onShowHelp={() => setShowHelp(true)}
             onShowOptions={() => setShowOptions(true)}
+            compact={isMobileLandscape}
           />
         );
 

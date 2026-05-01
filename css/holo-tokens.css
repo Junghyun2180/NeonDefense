@@ -2372,20 +2372,25 @@
  * ===================================================================== */
 .nd-mobile-grid .nd-topbar-panel {
   min-height: 0;
-  padding: 4px 8px;
+  padding: 2px 6px;
+  gap: 4px;
+}
+.nd-mobile-grid .nd-vital-grid {
   gap: 6px;
+  row-gap: 0;
 }
-.nd-mobile-grid .nd-vital-grid { gap: 8px; }
-.nd-mobile-grid .nd-vital__lbl { font-size: 8px; letter-spacing: 1.5px; }
-.nd-mobile-grid .nd-vital__val { font-size: 10px; }
-.nd-mobile-grid .nd-vital__bar { height: 2px; }
+.nd-mobile-grid .nd-vital { gap: 1px; }
+.nd-mobile-grid .nd-vital__lbl { font-size: 7px; letter-spacing: 1px; line-height: 1; }
+.nd-mobile-grid .nd-vital__val { font-size: 9px; line-height: 1.15; }
+.nd-mobile-grid .nd-vital__bar { height: 1px; margin-top: 1px; }
 .nd-mobile-grid .nd-identity {
-  padding-right: 8px;
+  padding-right: 6px;
   min-width: 0;
+  gap: 1px;
 }
-.nd-mobile-grid .nd-identity__title { font-size: 11px; }
+.nd-mobile-grid .nd-identity__title { font-size: 10px; line-height: 1.15; }
 .nd-mobile-grid .nd-identity__op,
-.nd-mobile-grid .nd-identity__sector { font-size: 8px; letter-spacing: 1.5px; }
+.nd-mobile-grid .nd-identity__sector { font-size: 7px; letter-spacing: 1px; line-height: 1; }
 
 /* CommandBar 버튼 압축 (속도 ×1/×2/×3, 출격, BGM/SFX) */
 .nd-mobile-grid .nd-btn-deploy,

@@ -18,21 +18,35 @@ const CommandBar = ({
     toggleSfx = null,
     onShowHelp = null,
     onShowOptions = null,
+    compact = false,
 }) => {
-    // Two-row internal layout so panel content fills the grid cell height
-    // (cell stretches to match the header on the left, ~118px).
-    const rowStyle = { display: 'flex', alignItems: 'center', gap: 8, width: '100%' };
+    // 모바일 가로(compact) 일 때 인라인 토큰을 줄여 row 1 height 압축.
+    const z = {
+        panelPadding: compact ? '4px 8px' : '10px 14px',
+        panelGap:     compact ? 4 : 8,
+        rowGap:       compact ? 5 : 8,
+        labelSize:    compact ? 7 : 9,
+        speedFont:    compact ? 9 : 11,
+        speedPad:     compact ? '2px 5px' : '4px 8px',
+        speedMinW:    compact ? 22 : 30,
+        iconPadHV:    compact ? '2px 5px' : '4px 7px',
+        iconFont:     compact ? 9 : 12,
+        deployPad:    compact ? '5px 8px' : '14px',
+        deployFont:   compact ? 10 : 14,
+        deploySpace:  compact ? 1.5 : 3,
+    };
+    const rowStyle = { display: 'flex', alignItems: 'center', gap: z.rowGap, width: '100%' };
 
     return (
         <div
             className="nd-topbar-panel"
             style={{
                 fontFamily: 'var(--nd-font-sans)',
-                padding: '10px 14px',
+                padding: z.panelPadding,
                 flexDirection: 'column',
                 alignItems: 'stretch',
                 justifyContent: 'space-between',
-                gap: 8,
+                gap: z.panelGap,
                 height: '100%',
             }}
         >
@@ -46,7 +60,7 @@ const CommandBar = ({
                 <span
                     className="nd-mono"
                     style={{
-                        fontSize: 9, color: 'var(--nd-crimson)', letterSpacing: 2.5,
+                        fontSize: z.labelSize, color: 'var(--nd-crimson)', letterSpacing: 2.5,
                         fontWeight: 700,
                     }}
                 >
@@ -60,7 +74,7 @@ const CommandBar = ({
                                 onClick={() => setGameSpeed(s)}
                                 className={'nd-speed-btn' + (gameSpeed === s ? ' nd-speed-btn--active' : '')}
                                 title={`${s}배속`}
-                                style={{ fontSize: 11, padding: '4px 8px', minWidth: 30 }}
+                                style={{ fontSize: z.speedFont, padding: z.speedPad, minWidth: z.speedMinW }}
                             >×{s}</button>
                         ))}
                     </div>
@@ -77,7 +91,7 @@ const CommandBar = ({
                             background: bgmEnabled ? 'rgba(199,125,255,0.15)' : 'transparent',
                             border: '1px solid ' + (bgmEnabled ? 'rgba(199,125,255,0.45)' : 'var(--nd-hair)'),
                             color: bgmEnabled ? 'var(--nd-el-dark)' : 'var(--nd-dim)',
-                            padding: '4px 7px', fontSize: 12, cursor: 'pointer', letterSpacing: 1,
+                            padding: z.iconPadHV, fontSize: z.iconFont, cursor: 'pointer', letterSpacing: 1,
                             lineHeight: 1,
                         }}
                     >♪</button>
@@ -92,7 +106,7 @@ const CommandBar = ({
                             background: sfxEnabled ? 'rgba(199,125,255,0.15)' : 'transparent',
                             border: '1px solid ' + (sfxEnabled ? 'rgba(199,125,255,0.45)' : 'var(--nd-hair)'),
                             color: sfxEnabled ? 'var(--nd-el-dark)' : 'var(--nd-dim)',
-                            padding: '4px 7px', fontSize: 12, cursor: 'pointer', letterSpacing: 1,
+                            padding: z.iconPadHV, fontSize: z.iconFont, cursor: 'pointer', letterSpacing: 1,
                             lineHeight: 1,
                         }}
                     >♬</button>
@@ -107,7 +121,7 @@ const CommandBar = ({
                             background: 'transparent',
                             border: '1px solid var(--nd-hair-strong)',
                             color: 'var(--nd-text)',
-                            padding: '4px 9px', fontSize: 12, cursor: 'pointer',
+                            padding: z.iconPadHV, fontSize: z.iconFont, cursor: 'pointer',
                             letterSpacing: 1, fontWeight: 700, lineHeight: 1,
                         }}
                     >?</button>
@@ -122,7 +136,7 @@ const CommandBar = ({
                             background: 'transparent',
                             border: '1px solid var(--nd-hair-strong)',
                             color: 'var(--nd-text)',
-                            padding: '4px 8px', fontSize: 12, cursor: 'pointer',
+                            padding: z.iconPadHV, fontSize: z.iconFont, cursor: 'pointer',
                             letterSpacing: 1, fontWeight: 700, lineHeight: 1,
                         }}
                     >⚙</button>
@@ -137,9 +151,9 @@ const CommandBar = ({
                     className="nd-btn-deploy"
                     style={{
                         width: '100%',
-                        padding: '14px',
-                        fontSize: 14,
-                        letterSpacing: 3,
+                        padding: z.deployPad,
+                        fontSize: z.deployFont,
+                        letterSpacing: z.deploySpace,
                         fontWeight: 800,
                     }}
                 >
