@@ -260,8 +260,11 @@ const GameMap = ({
                                 const isSelectedTile = placementMode && placementMode.gridX === x && placementMode.gridY === y;
                                 const hasSupport = supportTowers.some(t => t.gridX === x && t.gridY === y);
                                 const canPlace = !isPath && !hasTower && !hasSupport;
+                                // 클릭 배치 모드(selectedTowerForPlacement) 활성 시 설치 가능한 모든 타일에
+                                // crimson dashed pulse 하이라이트(.nd-tile-placeable) 적용 — affordance 복구.
+                                const isPlacementActive = !!selectedTowerForPlacement;
                                 let extraClass = '';
-                                // 빨간 점선 프리뷰 비활성화 — 호버 brightness 만으로 충분 (UX 정리)
+                                if (isPlacementActive && canPlace) extraClass = 'nd-tile-placeable';
                                 if (isDropPreview) extraClass = dropPreview.valid ? 'nd-tile-drop-valid' : 'nd-tile-drop-invalid';
                                 if (isSelectedTile) extraClass = 'nd-tile-selected';
 
