@@ -870,6 +870,8 @@ const NeonDefense = () => {
           />
         );
 
+        // 모바일 가로 모드: 우측 레일에는 SELECTED UNIT 만, 좌측 letterbox 패널에는 BUFFS+SKILLS 배치
+        // 데스크톱 모드: 모든 섹션을 우측 레일에 함께 (default true 동작)
         const controlPanelSlot = (
           <ControlPanel
             inventory={inventoryState.inventory}
@@ -894,8 +896,31 @@ const NeonDefense = () => {
             combineSupportTowers={inventoryState.combineSupportTowers}
             canCombineSupportTowers={inventoryState.canCombineSupportTowers}
             sellSelectedSupportTowers={inventoryState.sellSelectedSupportTowers}
+            showBuffs={!isMobileLandscape}
+            showSkills={!isMobileLandscape}
           />
         );
+
+        // 모바일 가로 전용 — 좌측 letterbox 에 BUFFS + SKILLS 만 렌더 (SELECTED UNIT 은 우측 레일에)
+        const leftAuxPanelSlot = isMobileLandscape ? (
+          <ControlPanel
+            inventory={inventoryState.inventory}
+            selectedInventory={inventoryState.selectedInventory}
+            getElementInfo={getElementInfo}
+            selectedTowers={inventoryState.selectedTowers}
+            totalSellPrice={inventoryState.totalSellPrice}
+            selectedSupportInventory={inventoryState.selectedSupportInventory}
+            selectedSupportTowers={inventoryState.selectedSupportTowers}
+            totalSupportSellPrice={inventoryState.totalSupportSellPrice}
+            selectedEnemy={null}
+            clearSelectedEnemy={() => {}}
+            permanentBuffs={gameState.permanentBuffs}
+            isPlaying={gameState.isPlaying}
+            showUnit={false}
+            showBuffs
+            showSkills
+          />
+        ) : null;
 
         const inventoryPanelSlot = (
           <InventoryPanel
@@ -947,6 +972,7 @@ const NeonDefense = () => {
               commandBar: commandBarSlot,
               map: mapSlot,
               waveInfo: waveInfoSlot,
+              leftAuxPanel: leftAuxPanelSlot,
               controlPanel: controlPanelSlot,
               inventoryPanel: inventoryPanelSlot,
             }}

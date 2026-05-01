@@ -47,6 +47,10 @@ const ControlPanel = ({
     combineSupportTowers = null,
     canCombineSupportTowers = false,
     sellSelectedSupportTowers = null,
+    // 모바일 가로에서 섹션을 분리 마운트하기 위한 분기 prop (default = all true: 데스크톱 유지)
+    showUnit = true,
+    showBuffs = true,
+    showSkills = true,
 }) => {
     const activeBuffs = (typeof PermanentBuffManager !== 'undefined')
         ? PermanentBuffManager.getActiveBuffsList(permanentBuffs)
@@ -65,6 +69,7 @@ const ControlPanel = ({
                 fontFamily: 'var(--nd-font-sans)',
             }}
         >
+            {showUnit && (<>
             {/* ── SELECTED UNIT · empty state (no selection) ──
                 Always reserves the space so the rail layout doesn't collapse.
                 Replaced by the populated card below when a tower is selected. */}
@@ -527,8 +532,10 @@ const ControlPanel = ({
                     </div>
                 );
             })()}
+            </>)}
 
-            {/* ── ACTIVE BUFFS · always rendered (empty state when no buffs) ── */}
+            {showBuffs && (
+            /* ── ACTIVE BUFFS · always rendered (empty state when no buffs) ── */
             <div className="nd-panel relative" style={{ padding: '10px 12px' }}>
                 <HoloReticle />
                 <div className="nd-eyebrow" style={{
@@ -621,12 +628,13 @@ const ControlPanel = ({
                     </div>
                 )}
             </div>
+            )}
 
-            {/* ── COMMANDER SKILLS · 4 reserved slots Q/W/E/R (handoff §05) ──
-                Always rendered so the rail layout stays consistent; the actual
-                cooldown/firing logic is a separate ticket once the
-                commander-ability system lands. */}
-            {(() => {
+            {showSkills && (() => {
+                /* ── COMMANDER SKILLS · 4 reserved slots Q/W/E/R (handoff §05) ──
+                   Always rendered so the rail layout stays consistent; the actual
+                   cooldown/firing logic is a separate ticket once the
+                   commander-ability system lands. */
                 // Reserved slot specs — labels match §05 reference (ORBITAL/FREEZE/OVERLOAD/RALLY).
                 const slots = [
                     { key: 'Q', label: 'ORBITAL',  glyph: '◉', color: 'var(--nd-crimson)' },

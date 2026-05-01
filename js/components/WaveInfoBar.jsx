@@ -171,17 +171,20 @@ const WaveInfoBar = ({
                     )}
                 </div>
             </div>
-            {/* 중앙(narrow=중단): 몬스터 구성 */}
+            {/* 중앙(narrow=중단): 몬스터 구성 — narrow 일 땐 2-column grid 로 wrap */}
             {enemyBreakdown.length > 0 && (
-                <div style={{
-                    display: 'flex',
-                    flexDirection: narrow ? 'column' : 'row',
-                    flexWrap: narrow ? 'nowrap' : 'wrap',
-                    gap: z.groupGap, alignItems: narrow ? 'stretch' : 'center',
-                    paddingLeft: narrow ? 0 : z.groupPadL,
-                    paddingTop: narrow ? z.groupPadL : 0,
-                    borderLeft: narrow ? 'none' : '1px solid var(--nd-hair)',
-                    borderTop: narrow ? '1px solid var(--nd-hair)' : 'none',
+                <div style={narrow ? {
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                    gap: z.groupGap, alignItems: 'stretch',
+                    paddingTop: z.groupPadL,
+                    borderTop: '1px solid var(--nd-hair)',
+                    minWidth: 0,
+                } : {
+                    display: 'flex', flexDirection: 'row', flexWrap: 'wrap',
+                    gap: z.groupGap, alignItems: 'center',
+                    paddingLeft: z.groupPadL,
+                    borderLeft: '1px solid var(--nd-hair)',
                     flexShrink: 1, minWidth: 0,
                 }}>
                     {enemyBreakdown.map(({ type, count }) => {

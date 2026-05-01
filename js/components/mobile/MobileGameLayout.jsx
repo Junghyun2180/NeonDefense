@@ -5,12 +5,15 @@
 // 레이아웃:
 //   ┌─ ROW1 col1 header ─────────────────┬─ col2 commandBar ─┐
 //   │                                     │                    │
-//   │ ROW2 col1 [waveSide | map]         │  col2 right rail   │
-//   │   waveSide: 150px narrow vertical  │   controlPanel     │
-//   │   map: uniform scale, flex center  │   + inventoryPanel │
+//   │ ROW2 col1 [leftSide | mapCell]     │  col2 right rail   │
+//   │   leftSide: 180px stack            │   controlPanel     │
+//   │     ├ WaveInfoBar (narrow)         │     (SELECTED UNIT)│
+//   │     ├ ActiveBuffs (left-aux)       │   + inventoryPanel │
+//   │     └ CommanderSkills (left-aux)   │                    │
+//   │   map: uniform scale, flex center  │                    │
 //   └─────────────────────────────────────┴────────────────────┘
-//   col1 = minmax(0, 1fr) | col2 = 240px
-//   col1 inner = [auto waveSide | minmax(0, 1fr) map]
+//   col1 = minmax(0, 1fr) | col2 = 200px
+//   col1 inner = [180px leftSide | minmax(0, 1fr) mapCell]
 //
 // 맵 uniform scale 원리:
 //   - App.jsx mapContainerRef 가 cw 측정 → mapScale = min(1, cw / MAP_WIDTH).
@@ -72,7 +75,7 @@ const MobileGameLayout = ({
             data-testid="mobile-layout"
             style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) 240px',
+                gridTemplateColumns: 'minmax(0, 1fr) 200px',
                 gridTemplateRows: 'auto minmax(0, 1fr)',
                 columnGap: 6,
                 rowGap: 6,
@@ -86,20 +89,25 @@ const MobileGameLayout = ({
             <div style={{ gridColumn: 1, gridRow: 1 }}>{slots.header}</div>
             <div style={{ gridColumn: 2, gridRow: 1 }}>{slots.commandBar}</div>
 
-            {/* ROW 2 col 1 — [waveSide | map] sub-grid */}
+            {/* ROW 2 col 1 — [leftSide | map] sub-grid */}
             <div style={{
                 gridColumn: 1,
                 gridRow: 2,
                 display: 'grid',
-                gridTemplateColumns: '150px minmax(0, 1fr)',
+                gridTemplateColumns: '180px minmax(0, 1fr)',
                 columnGap: 4,
                 minWidth: 0,
                 minHeight: 0,
             }}>
-                {/* WaveInfoBar (narrow vertical) — 좌측 letterbox 자리 활용 */}
-                {slots.waveInfo && (
-                    <div style={{ minWidth: 0, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+                {/* leftSide stack — WaveInfoBar (narrow) + ActiveBuffs/CommanderSkills */}
+                {(slots.waveInfo || slots.leftAuxPanel) && (
+                    <div style={{
+                        minWidth: 0, minHeight: 0,
+                        overflowY: 'auto', overflowX: 'hidden',
+                        display: 'flex', flexDirection: 'column', gap: 6,
+                    }}>
                         {slots.waveInfo}
+                        {slots.leftAuxPanel}
                     </div>
                 )}
 
