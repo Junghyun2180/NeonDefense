@@ -3,7 +3,12 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="screen-orientation" content="landscape">
+  <meta name="x5-orientation" content="landscape">
   <title>⚡ NEON DEFENSE ⚡</title>
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>">
@@ -20,6 +25,16 @@
 
 <body>
   <div id="root"></div>
+
+  <!-- 모바일 portrait 회전 안내 (CSS-only, 가로 모드일 때만 게임 진입) -->
+  <div class="nd-rotate-prompt" aria-live="polite">
+    <div class="nd-rotate-prompt__icon" aria-hidden="true">
+      <span class="nd-rotate-prompt__phone" />
+    </div>
+    <div class="nd-rotate-prompt__eyebrow">◇ DEVICE ROTATION REQUIRED</div>
+    <strong class="nd-rotate-prompt__title">화면을 가로로 회전해주세요</strong>
+    <span class="nd-rotate-prompt__sub">Please rotate your device to landscape</span>
+  </div>
 
   <!-- ===== DDD 도메인 기반 모듈 로드 (순서 중요) ===== -->
 
