@@ -29,6 +29,8 @@ const GameMap = ({
     toggleTowerSelect,
     toggleSupportTowerSelect,
     handleTileClick,
+    handleTileHover,
+    handleMapPointerLeave,
     getElementInfo,
     selectedEnemyId,
     setSelectedEnemyId,
@@ -202,7 +204,11 @@ const GameMap = ({
             )}
 
             {/* Holo map frame: dark + reticle corners + hairline grid baseline */}
-            <div className="relative mx-auto overflow-hidden" style={{ width: GRID_WIDTH * TILE_SIZE * mapScale, height: GRID_HEIGHT * TILE_SIZE * mapScale }}>
+            <div
+                className="relative mx-auto overflow-hidden"
+                style={{ width: GRID_WIDTH * TILE_SIZE * mapScale, height: GRID_HEIGHT * TILE_SIZE * mapScale }}
+                onPointerLeave={handleMapPointerLeave}
+            >
                 <div ref={mapRef} className="relative" style={{ width: GRID_WIDTH * TILE_SIZE, height: GRID_HEIGHT * TILE_SIZE, transform: `scale(${mapScale})`, transformOrigin: 'top left' }}>
                     <div
                         className="nd-game-map-frame nd-game-map-grid absolute inset-0"
@@ -278,7 +284,13 @@ const GameMap = ({
                                 const endPaths = endPoint && pathData.paths.filter(p => p.endPoint.id === endPoint.id);
 
                                 return (
-                                    <div key={x + '-' + y} className={'absolute ' + tileClass + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')} style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }} onClick={() => handleTileClick(x, y)}>
+                                    <div
+                                        key={x + '-' + y}
+                                        className={'absolute ' + tileClass + ' ' + extraClass + (canPlace && !isSelectedTile ? ' cursor-pointer hover:brightness-125' : '')}
+                                        style={{ left: x * TILE_SIZE, top: y * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, ...pathStyle }}
+                                        onClick={() => handleTileClick(x, y)}
+                                        onPointerEnter={handleTileHover ? () => handleTileHover(x, y) : undefined}
+                                    >
                                         {startPoint && startPath && (() => {
                                             // SPAWN — 그린 보더 사각 + ▶ (방향은 첫 두 타일 차로 판정)
                                             const tiles = startPath.tiles;

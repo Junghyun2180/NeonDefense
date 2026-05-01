@@ -102,30 +102,24 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
         setDropPreview(null);
     }, [clearAllSelections]);
 
-    // 클릭 배치 모드 마우스 이동 핸들러
-    // 좌표 변환: 비율(rect 안의 위치 / rect 크기) × MAP 논리 크기 → grid index.
-    // 비율 기반으로 계산하면 mapScale 이 isotropic 일 때나 모바일 가로 stretch (anisotropic
-    // transform) 일 때 모두 정확. desktop 에서도 동등 (rect.width = MAP_WIDTH × mapScale).
-    const handleClickPlacementMouseMove = useCallback((e) => {
-        if (!selectedTowerForPlacement || !mapRef.current) return;
-
-        const rect = mapRef.current.getBoundingClientRect();
-        if (rect.width <= 0 || rect.height <= 0) return;
-        const xLogical = ((e.clientX - rect.left) / rect.width)  * GRID_WIDTH  * TILE_SIZE;
-        const yLogical = ((e.clientY - rect.top)  / rect.height) * GRID_HEIGHT * TILE_SIZE;
-        const gridX = Math.floor(xLogical / TILE_SIZE), gridY = Math.floor(yLogical / TILE_SIZE);
-
-        if (gridX >= 0 && gridX < GRID_WIDTH && gridY >= 0 && gridY < GRID_HEIGHT) {
-            const isPath = pathData.paths.some(p => p.tiles.some(t => t.x === gridX && t.y === gridY));
-            const hasTower = towers.some(t => t.gridX === gridX && t.gridY === gridY);
-            const hasSupportTower = supportTowers.some(t => t.gridX === gridX && t.gridY === gridY);
-            setDropPreview({ gridX, gridY, valid: !isPath && !hasTower && !hasSupportTower });
-        } else {
-            setDropPreview(null);
-        }
+    // 타일 hover (mouse/pointer enter) 핸들러 — 배치 모드일 때만 dropPreview 갱신.
+    // 좌표 산술 대신 타일 div 의 onPointerEnter 에서 직접 (gridX, gridY) 를 받기 때문에
+    // mapScale / uniformScale / 부모 transform 등 어떤 변형이 있어도 정확함.
+    const handleTileHover = useCallback((gridX, gridY) => {
+        if (!selectedTowerForPlacement) return;
+        const isPath = pathData.paths.some(p => p.tiles.some(t => t.x === gridX && t.y === gridY));
+        const hasTower = towers.some(t => t.gridX === gridX && t.gridY === gridY);
+        const hasSupportTower = supportTowers.some(t => t.gridX === gridX && t.gridY === gridY);
+        setDropPreview({ gridX, gridY, valid: !isPath && !hasTower && !hasSupportTower });
     }, [selectedTowerForPlacement, pathData, towers, supportTowers]);
 
-    // 배치 모드 외부 클릭 핸들러
+    // 맵 영역 밖으로 나갈 때 dropPreview 정리
+    const handleMapPointerLeave = useCallback(() => {
+        if (!selectedTowerForPlacement) return;
+        setDropPreview(null);
+    }, [selectedTowerForPlacement]);
+
+    // 배치 모드 외부 클릭 핸들러 — 맵 rect 밖 클릭이면 배치 취소
     const handleClickOutside = useCallback((e) => {
         if (!selectedTowerForPlacement || !mapRef.current) return;
 
@@ -139,14 +133,12 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
         }
     }, [selectedTowerForPlacement]);
 
-    // 클릭 배치 모드 마우스 이동 이벤트
+    // 외부 클릭 리스너만 등록 (mousemove 좌표 산술은 per-tile hover 로 대체됨)
     useEffect(() => {
         if (!selectedTowerForPlacement) {
             setDropPreview(null);
             return;
         }
-        window.addEventListener('mousemove', handleClickPlacementMouseMove);
-
         // 외부 클릭 핸들러는 다음 프레임에 등록 (인벤토리 클릭 이벤트가 먼저 처리되도록)
         const timeoutId = setTimeout(() => {
             window.addEventListener('click', handleClickOutside);
@@ -154,10 +146,9 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
 
         return () => {
             clearTimeout(timeoutId);
-            window.removeEventListener('mousemove', handleClickPlacementMouseMove);
             window.removeEventListener('click', handleClickOutside);
         };
-    }, [selectedTowerForPlacement, handleClickPlacementMouseMove, handleClickOutside]);
+    }, [selectedTowerForPlacement, handleClickOutside]);
 
     // ESC 키로 배치 모드 취소
     useEffect(() => {
@@ -196,6 +187,8 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
         // 핸들러
         handleInventoryClick,
         handleTileClick,
+        handleTileHover,
+        handleMapPointerLeave,
         handleElementSelect,
         handleTierSelect,
         // Ref
