@@ -1,25 +1,69 @@
 // MobileGameLayout — 모바일 가로 전용 인-게임 레이아웃
-// useMobileLayout().isMobileLandscape 가 true 일 때 App.jsx에서 데스크톱 그리드 대신 마운트.
-// 슬롯 패턴 — App.jsx에서 element 인스턴스를 prop으로 주입받아 배치만 모바일용으로 다르게.
-// 같은 element 인스턴스를 desktop/mobile이 공유 → React가 reconciliation 으로 상태 보존.
+// useMobileLayout().isMobileLandscape 가 true 일 때 App.jsx 에서 데스크톱 그리드 대신 마운트.
+// 슬롯 패턴 — App.jsx 에서 element 인스턴스를 prop 으로 주입받아 배치만 모바일용으로 다르게.
 //
-// 레이아웃 (≈800x360 가정):
+// 레이아웃:
 //   ┌─ ROW1 header(auto) ────────────────────────┬─ commandBar(auto) ─┐
 //   │                                             │                    │
-//   │ ROW2 map (mapScale auto-fit) [mapRef]       │  controlPanel +    │
-//   │                                             │  inventoryPanel    │
-//   │                                             │  (세로 스크롤)     │
-//   ├─ ROW3 waveInfo (compact, full-width span) ──┴────────────────────┤
-//   └──────────────────────────────────────────────────────────────────┘
+//   │ ROW2 map (anisotropic stretch — 12칸 보임   │  controlPanel      │
+//   │       + column 영역 가득 채움)              │  + inventoryPanel  │
+//   │                                             │  (세로 스크롤,     │
+//   ├─ ROW3 waveInfo (col 1, 맵 width 따라감) ───┤   row 2~3 span)    │
+//   └─────────────────────────────────────────────┴────────────────────┘
 //   col1 = minmax(0, 1fr) | col2 = 240px
-//   ROW3 (waveInfo) 는 양 컬럼을 합쳐 한 줄로 — 모바일 가로에서 가장 정보-밀도 높음.
 //
-// CSS 클래스 .nd-mobile-grid / .nd-mobile-rail 은 css/holo-tokens.css §13에서 정의 (PR2 정리 대상 아님).
-// 모든 사이즈/패딩은 인라인 스타일 또는 .nd-mobile-* 클래스에 정의 — !important 사용 금지.
+// 맵 stretch 원리:
+//   - App.jsx mapContainerRef 가 cw 측정 → mapScale = min(1, cw / MAP_WIDTH) (isotropic).
+//   - GameMap 은 mapScale 적용해 MAP_W × mapScale × MAP_H × mapScale 자연 크기로 렌더.
+//   - MobileGameLayout 이 추가 transform: scale(sx, sy) 로 column 가득 채움 (가로/세로 별도).
+//   - useDragAndDrop 은 비율 기반 좌표 (rect.width 사용) 라 anisotropic 정확.
 const MobileGameLayout = ({
     slots,             // { header, commandBar, map, waveInfo, controlPanel, inventoryPanel }
-    mapContainerRef,   // App.jsx의 useCallback ref (ResizeObserver attach)
+    mapContainerRef,   // App.jsx 의 useCallback ref (ResizeObserver attach, mapScale 갱신)
+    mapScale = 1,      // App.jsx 의 isotropic mapScale (자연 크기 계산용)
 }) => {
+    const { useState, useCallback, useEffect, useRef } = React;
+    const MAP_W_LOGIC = (typeof GRID_WIDTH !== 'undefined' && typeof TILE_SIZE !== 'undefined')
+        ? GRID_WIDTH * TILE_SIZE : 1152;
+    const MAP_H_LOGIC = (typeof GRID_HEIGHT !== 'undefined' && typeof TILE_SIZE !== 'undefined')
+        ? GRID_HEIGHT * TILE_SIZE : 864;
+    const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+    const innerObserverRef = useRef(null);
+
+    // App.jsx mapContainerRef 와 자체 ResizeObserver 를 동시에 attach (containerSize 측정용)
+    const combinedMapContainerRef = useCallback((node) => {
+        if (typeof mapContainerRef === 'function') mapContainerRef(node);
+        else if (mapContainerRef && typeof mapContainerRef === 'object') mapContainerRef.current = node;
+
+        if (innerObserverRef.current) {
+            innerObserverRef.current.disconnect();
+            innerObserverRef.current = null;
+        }
+        if (!node) {
+            setContainerSize({ w: 0, h: 0 });
+            return;
+        }
+        const update = () => {
+            const cw = node.offsetWidth || node.clientWidth;
+            const ch = node.offsetHeight || node.clientHeight;
+            if (cw > 0 && ch > 0) setContainerSize({ w: cw, h: ch });
+        };
+        update();
+        const ro = new ResizeObserver(update);
+        ro.observe(node);
+        innerObserverRef.current = ro;
+    }, [mapContainerRef]);
+
+    useEffect(() => () => {
+        if (innerObserverRef.current) innerObserverRef.current.disconnect();
+    }, []);
+
+    // GameMap 자연 크기 = MAP_LOGIC × mapScale. column 가득 채우려면 추가 stretch 비율 필요.
+    const naturalW = MAP_W_LOGIC * mapScale;
+    const naturalH = MAP_H_LOGIC * mapScale;
+    const stretchX = (containerSize.w > 0 && naturalW > 0) ? containerSize.w / naturalW : 1;
+    const stretchY = (containerSize.h > 0 && naturalH > 0) ? containerSize.h / naturalH : 1;
+
     return (
         <div
             className="nd-mobile-grid"
@@ -27,7 +71,6 @@ const MobileGameLayout = ({
             style={{
                 display: 'grid',
                 gridTemplateColumns: 'minmax(0, 1fr) 240px',
-                // ROW1 = top bars (auto), ROW2 = main (1fr 가용), ROW3 = wave info (auto, ~30~40px).
                 gridTemplateRows: 'auto minmax(0, 1fr) auto',
                 columnGap: 6,
                 rowGap: 6,
@@ -38,39 +81,39 @@ const MobileGameLayout = ({
                 boxSizing: 'border-box',
             }}
         >
-            {/* ROW 1 col 1 — Header */}
-            <div style={{ gridColumn: 1, gridRow: 1 }}>
-                {slots.header}
-            </div>
+            <div style={{ gridColumn: 1, gridRow: 1 }}>{slots.header}</div>
+            <div style={{ gridColumn: 2, gridRow: 1 }}>{slots.commandBar}</div>
 
-            {/* ROW 1 col 2 — Command Bar */}
-            <div style={{ gridColumn: 2, gridRow: 1 }}>
-                {slots.commandBar}
-            </div>
-
-            {/* ROW 2 col 1 — Map.
-                mapContainerRef 가 attach 되어 ResizeObserver 가 mapScale 갱신 (height-aware).
-                overflow:hidden 으로 mapScale 미적용 한 프레임에서도 형제 row3 보호. */}
+            {/* ROW 2 col 1 — Map (anisotropic stretch wrapper) */}
             <div
-                ref={mapContainerRef}
+                ref={combinedMapContainerRef}
                 style={{
                     gridColumn: 1,
                     gridRow: 2,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
+                    position: 'relative',
                     minWidth: 0,
                     minHeight: 0,
                     overflow: 'hidden',
                 }}
             >
-                {slots.map}
+                {/* GameMap 자연 크기로 렌더, transform 으로 column 가득 채움 */}
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        transformOrigin: 'top left',
+                        transform: `scale(${stretchX}, ${stretchY})`,
+                    }}
+                >
+                    {slots.map}
+                </div>
             </div>
 
-            {/* ROW 2 col 2 — Right rail (control + inventory, 통째 세로 스크롤) */}
+            {/* col 2 row 2~3 — Right rail */}
             <div style={{
                 gridColumn: 2,
-                gridRow: 2,
+                gridRow: '2 / 4',
                 position: 'relative',
                 minWidth: 0,
                 minHeight: 0,
@@ -92,9 +135,9 @@ const MobileGameLayout = ({
                 </div>
             </div>
 
-            {/* ROW 3 — WaveInfoBar (compact), 양 컬럼 가로 전체 차지 */}
+            {/* ROW 3 col 1 — WaveInfoBar (compact, 맵 width 따라감) */}
             {slots.waveInfo && (
-                <div style={{ gridColumn: '1 / -1', gridRow: 3, minWidth: 0 }}>
+                <div style={{ gridColumn: 1, gridRow: 3, minWidth: 0 }}>
                     {slots.waveInfo}
                 </div>
             )}

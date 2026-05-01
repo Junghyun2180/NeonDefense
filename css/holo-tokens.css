@@ -2364,3 +2364,38 @@
   padding: 16px 0;
   border: 1px dashed var(--nd-hair);
 }
+
+/* =====================================================================
+ * §13 IN-GAME · Mobile Grid scoped overrides
+ * .nd-mobile-grid 안에서만 적용되는 콘텐츠 사이즈 압축. 모든 룰이 클래스
+ * 스코프 한정이라 데스크톱 그리드 (.p-2.sm:p-4) 에 영향 없음. !important 사용 안 함.
+ * ===================================================================== */
+.nd-mobile-grid .nd-topbar-panel {
+  min-height: 0;
+  padding: 4px 8px;
+  gap: 6px;
+}
+.nd-mobile-grid .nd-vital-grid { gap: 8px; }
+.nd-mobile-grid .nd-vital__lbl { font-size: 8px; letter-spacing: 1.5px; }
+.nd-mobile-grid .nd-vital__val { font-size: 10px; }
+.nd-mobile-grid .nd-vital__bar { height: 2px; }
+.nd-mobile-grid .nd-identity {
+  padding-right: 8px;
+  min-width: 0;
+}
+.nd-mobile-grid .nd-identity__title { font-size: 11px; }
+.nd-mobile-grid .nd-identity__op,
+.nd-mobile-grid .nd-identity__sector { font-size: 8px; letter-spacing: 1.5px; }
+
+/* CommandBar 버튼 압축 (속도 ×1/×2/×3, 출격, BGM/SFX) */
+.nd-mobile-grid .nd-btn-deploy,
+.nd-mobile-grid .nd-btn-amber,
+.nd-mobile-grid .nd-btn-ghost {
+  font-size: 9px;
+  padding: 5px 8px;
+  letter-spacing: 1px;
+}
+.nd-mobile-grid .nd-speed-btn {
+  padding: 4px 6px;
+  font-size: 9px;
+}

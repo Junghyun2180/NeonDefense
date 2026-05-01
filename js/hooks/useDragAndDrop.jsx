@@ -103,13 +103,17 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
     }, [clearAllSelections]);
 
     // 클릭 배치 모드 마우스 이동 핸들러
+    // 좌표 변환: 비율(rect 안의 위치 / rect 크기) × MAP 논리 크기 → grid index.
+    // 비율 기반으로 계산하면 mapScale 이 isotropic 일 때나 모바일 가로 stretch (anisotropic
+    // transform) 일 때 모두 정확. desktop 에서도 동등 (rect.width = MAP_WIDTH × mapScale).
     const handleClickPlacementMouseMove = useCallback((e) => {
         if (!selectedTowerForPlacement || !mapRef.current) return;
 
         const rect = mapRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / mapScale;
-        const y = (e.clientY - rect.top) / mapScale;
-        const gridX = Math.floor(x / TILE_SIZE), gridY = Math.floor(y / TILE_SIZE);
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const xLogical = ((e.clientX - rect.left) / rect.width)  * GRID_WIDTH  * TILE_SIZE;
+        const yLogical = ((e.clientY - rect.top)  / rect.height) * GRID_HEIGHT * TILE_SIZE;
+        const gridX = Math.floor(xLogical / TILE_SIZE), gridY = Math.floor(yLogical / TILE_SIZE);
 
         if (gridX >= 0 && gridX < GRID_WIDTH && gridY >= 0 && gridY < GRID_HEIGHT) {
             const isPath = pathData.paths.some(p => p.tiles.some(t => t.x === gridX && t.y === gridY));
@@ -119,7 +123,7 @@ const useDragAndDrop = (gameState, inventoryState, mapScale = 1) => {
         } else {
             setDropPreview(null);
         }
-    }, [selectedTowerForPlacement, pathData, towers, supportTowers, mapScale]);
+    }, [selectedTowerForPlacement, pathData, towers, supportTowers]);
 
     // 배치 모드 외부 클릭 핸들러
     const handleClickOutside = useCallback((e) => {
