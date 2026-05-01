@@ -753,6 +753,10 @@ const InventoryPanel = ({
     setAutoSupportCombine,
     clearAllT4RolePresets,
     t4RolePresets,
+    bulkSellInventoryTowers,
+    bulkSellInventorySupports,
+    previewBulkSellTowerRefund,
+    previewBulkSellSupportRefund,
 }) => {
     const [activeTab, setActiveTab] = React.useState('tower');
     const [towerFilter, setTowerFilter] = React.useState(null);
@@ -1121,11 +1125,51 @@ const InventoryPanel = ({
                             );
                         })}
 
+                    {/* Bulk sell — 한 클릭당 "현재 최저 티어" 하나만 일괄 판매.
+                        다시 클릭하면 그 다음 티어로 진행. 한 티어만 남으면 비활성. */}
+                    {(() => {
+                        const preview = activeTab === 'tower'
+                            ? (previewBulkSellTowerRefund ? previewBulkSellTowerRefund(towerFilter) : { count: 0, refund: 0, tier: null })
+                            : (previewBulkSellSupportRefund ? previewBulkSellSupportRefund(supportFilter) : { count: 0, refund: 0, tier: null });
+                        const has = preview.count > 0;
+                        const onClick = () => {
+                            if (!has) return;
+                            if (activeTab === 'tower') bulkSellInventoryTowers && bulkSellInventoryTowers(towerFilter);
+                            else bulkSellInventorySupports && bulkSellInventorySupports(supportFilter);
+                        };
+                        const tierLabel = preview.tier !== null
+                            ? (activeTab === 'tower' ? `T${preview.tier}` : `S${preview.tier}`)
+                            : '—';
+                        return (
+                            <button
+                                type="button"
+                                onClick={onClick}
+                                disabled={!has}
+                                title={has
+                                    ? `${tierLabel} ${preview.count}개 일괄 판매 (+${preview.refund}G) · 다시 누르면 다음 티어`
+                                    : '판매할 하위 티어가 없습니다'}
+                                className="nd-mono"
+                                style={{
+                                    marginLeft: 'auto',
+                                    fontSize: 9, letterSpacing: 1, padding: '2px 8px',
+                                    background: has ? 'rgba(255,77,109,0.12)' : 'transparent',
+                                    border: '1px solid ' + (has ? 'rgba(255,77,109,0.55)' : 'var(--nd-hair)'),
+                                    color: has ? 'var(--nd-red-life)' : 'var(--nd-dimmer)',
+                                    cursor: has ? 'pointer' : 'not-allowed',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                ◢ {tierLabel} ×{preview.count} <span className="nd-tnum" style={{ marginLeft: 3, color: has ? '#fff' : 'var(--nd-dimmer)' }}>+{preview.refund}G</span>
+                            </button>
+                        );
+                    })()}
+
                     {/* Sort indicator — always TIER ↓ */}
                     <div
                         className="nd-mono"
                         style={{
-                            marginLeft: 'auto',
+                            marginLeft: 4,
                             fontSize: 9, letterSpacing: 1, padding: '2px 6px',
                             background: 'rgba(255,255,255,0.06)',
                             border: '1px solid var(--nd-hair-strong)',

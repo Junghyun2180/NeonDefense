@@ -962,6 +962,10 @@ const NeonDefense = () => {
             selectedSupportTowers={inventoryState.selectedSupportTowers}
             totalSupportSellPrice={inventoryState.totalSupportSellPrice}
             canCombineSupportTowers={inventoryState.canCombineSupportTowers}
+            bulkSellInventoryTowers={inventoryState.bulkSellInventoryTowers}
+            bulkSellInventorySupports={inventoryState.bulkSellInventorySupports}
+            previewBulkSellTowerRefund={inventoryState.previewBulkSellTowerRefund}
+            previewBulkSellSupportRefund={inventoryState.previewBulkSellSupportRefund}
           />
         );
 
@@ -1044,6 +1048,21 @@ const NeonDefense = () => {
             stage={gameState.stage}
             wave={gameState.wave}
             isRunMode={!!runModeState.runMode}
+          />
+
+          {/* 합성 가능 시 floating action 버튼 (스크롤 없이 즉시 합성) */}
+          <FloatingFuseButton
+            selectedInventory={inventoryState.selectedInventory}
+            selectedTowers={inventoryState.selectedTowers}
+            selectedSupportInventory={inventoryState.selectedSupportInventory}
+            selectedSupportTowers={inventoryState.selectedSupportTowers}
+            canCombineTowers={inventoryState.canCombineTowers}
+            canCombineSupportTowers={inventoryState.canCombineSupportTowers}
+            combineNeons={inventoryState.combineNeons}
+            combineSupports={inventoryState.combineSupports}
+            combineTowers={inventoryState.combineTowers}
+            combineSupportTowers={inventoryState.combineSupportTowers}
+            getElementInfo={getElementInfo}
           />
 
           {/* 모바일 배치 UI */}
