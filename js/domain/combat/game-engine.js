@@ -53,7 +53,7 @@ const GameEngine = {
 
   // ===== 메인 게임 틱 (오케스트레이터) =====
   gameTick(state, now) {
-    const { enemies, towers, supportTowers, projectiles, gameSpeed, permanentBuffs = {} } = state;
+    const { enemies, towers, supportTowers, projectiles, gameSpeed, permanentBuffs = {}, metaUpgrades = {} } = state;
     const newEffects = [];
     const soundEvents = [];
     const events = []; // RunLog용: hit/kill/leak 이벤트 (게임 로직에는 영향 없음)
@@ -186,8 +186,8 @@ const GameEngine = {
       }
     }
 
-    // 2단계: 타워 공격 → 투사체 생성 (서포트 버프 + 영구 버프 적용)
-    const attackContext = { enemies: movedEnemies, supportTowers, now, gameSpeed, permanentBuffs };
+    // 2단계: 타워 공격 → 투사체 생성 (서포트 버프 + 영구 버프 + 메타 업그레이드 적용)
+    const attackContext = { enemies: movedEnemies, supportTowers, now, gameSpeed, permanentBuffs, metaUpgrades };
     const newProjectiles = [];
     const updatedTowers = towers.map(tower => {
       const result = TowerSystem.processAttack(tower, attackContext);

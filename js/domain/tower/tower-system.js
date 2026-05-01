@@ -204,10 +204,10 @@ const TowerSystem = {
     };
   },
 
-  // 타워 공격 처리 (디버프 + 서포트 버프 + 영구 버프 계산 포함)
-  // context = { enemies, supportTowers, now, gameSpeed, permanentBuffs }
+  // 타워 공격 처리 (디버프 + 서포트 버프 + 영구 버프 + 메타 업그레이드 계산 포함)
+  // context = { enemies, supportTowers, now, gameSpeed, permanentBuffs, metaUpgrades }
   processAttack(tower, context) {
-    const { enemies, supportTowers = [], now, gameSpeed, permanentBuffs = {} } = context;
+    const { enemies, supportTowers = [], now, gameSpeed, permanentBuffs = {}, metaUpgrades = {} } = context;
 
     const { speedDebuff, damageDebuff } = this.calcDebuffs(tower, enemies);
     const { attackBuff, speedBuff, rangeBuff } = this.calcSupportBuffs(tower, supportTowers);
@@ -220,8 +220,13 @@ const TowerSystem = {
     const permRangeMult = BuffHelper.getRangeMultiplier(permanentBuffs);
     const critInfo = BuffHelper.getCritInfo(permanentBuffs);
 
-    // 쿨다운 체크 (서포트 공속 버프 + 영구 공속 버프 적용)
-    const effectiveSpeed = tower.speed / speedDebuff / (1 + speedBuff) / permSpeedMult;
+    // 메타 업그레이드 (글로벌, 모든 모드 공통)
+    const metaBuffs = (typeof RunMode !== 'undefined')
+      ? RunMode.getMetaBuffs(metaUpgrades)
+      : { damageMultiplier: 1, attackSpeedMultiplier: 1, goldMultiplier: 1 };
+
+    // 쿨다운 체크 (서포트 공속 버프 + 영구 공속 버프 + 메타 공속 적용)
+    const effectiveSpeed = tower.speed / speedDebuff / (1 + speedBuff) / permSpeedMult / metaBuffs.attackSpeedMultiplier;
     if (now - tower.lastShot < effectiveSpeed / gameSpeed) {
       return { tower: { ...tower, isDebuffed, isBuffed }, projectile: null };
     }
@@ -236,8 +241,8 @@ const TowerSystem = {
       return { tower: { ...tower, isDebuffed, isBuffed }, projectile: null };
     }
 
-    // 데미지 계산 (디버프 * 서포트 공격력 버프 * 영구 데미지 버프)
-    let effectiveDamage = Math.floor(tower.damage * damageDebuff * (1 + attackBuff) * permDamageMult);
+    // 데미지 계산 (디버프 * 서포트 공격력 버프 * 영구 데미지 버프 * 메타 데미지)
+    let effectiveDamage = Math.floor(tower.damage * damageDebuff * (1 + attackBuff) * permDamageMult * metaBuffs.damageMultiplier);
 
     // 크리티컬 처리
     const isCrit = critInfo.chance > 0 && Math.random() < critInfo.chance;

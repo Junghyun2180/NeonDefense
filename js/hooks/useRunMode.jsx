@@ -24,8 +24,7 @@ const useRunMode = () => {
 
   // ===== 캠페인 설정 (메타 업그레이드 적용) =====
   const campaignConfig = useMemo(() => {
-    if (!metaProgress?.upgrades) return null;
-    return RunMode.buildCampaignConfig(metaProgress.upgrades);
+    return RunMode.buildCampaignConfig(metaProgress?.upgrades || {});
   }, [metaProgress]);
 
   // ===== 런 설정 (메타 업그레이드 적용) =====

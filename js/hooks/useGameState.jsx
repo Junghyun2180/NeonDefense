@@ -11,6 +11,7 @@ const useGameState = (configOverride = null) => {
         CARRYOVER: configOverride?.CARRYOVER || CARRYOVER,
         modeAbility: configOverride?.modeAbility || null,
         mapType: configOverride?.mapType || 'standard',
+        metaUpgrades: configOverride?.metaUpgrades || {},
     }), [configOverride]);
     const cfgRef = useRef(cfg);
     useEffect(() => { cfgRef.current = cfg; }, [cfg]);
@@ -41,6 +42,10 @@ const useGameState = (configOverride = null) => {
     const [showBuffSelection, setShowBuffSelection] = useState(false);
     const [buffChoices, setBuffChoices] = useState([]);
     const permanentBuffsRef = useRef({});
+
+    // 메타 업그레이드 (글로벌, 모든 모드 공통) — cfg 변경 시 갱신
+    const metaUpgradesRef = useRef(cfg.metaUpgrades);
+    useEffect(() => { metaUpgradesRef.current = cfg.metaUpgrades; }, [cfg.metaUpgrades]);
 
     // 캐리오버 시스템
     const [showCarryoverSelection, setShowCarryoverSelection] = useState(false);
@@ -163,6 +168,7 @@ const useGameState = (configOverride = null) => {
         pathDataRef,
         gameSpeedRef,
         permanentBuffsRef,
+        metaUpgradesRef,
         gameStatsRef,
         setEnemies,
         setTowers,

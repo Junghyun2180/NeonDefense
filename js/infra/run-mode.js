@@ -24,6 +24,7 @@ const RunMode = {
       },
       modeAbility: 'run',
       mapType: 'square',
+      metaUpgrades,
     };
   },
 
@@ -32,9 +33,6 @@ const RunMode = {
     const startGoldBonus = META_UPGRADES.startingGold.effect(metaUpgrades.startingGold || 0);
     const startLivesBonus = META_UPGRADES.startingLives.effect(metaUpgrades.startingLives || 0);
     const discountBonus = META_UPGRADES.drawDiscount.effect(metaUpgrades.drawDiscount || 0);
-
-    // 적용할 메타 효과가 없으면 null 반환 → useGameState가 기본값 사용
-    if (!startGoldBonus && !startLivesBonus && !discountBonus) return null;
 
     return {
       SPAWN: { ...SPAWN },
@@ -47,6 +45,7 @@ const RunMode = {
       HEALTH_SCALING: { ...HEALTH_SCALING },
       modeAbility: null,
       mapType: 'standard',
+      metaUpgrades,
     };
   },
 
@@ -72,6 +71,7 @@ const RunMode = {
       },
       modeAbility: 'rush',
       mapType: 'square',
+      metaUpgrades,
     };
   },
 
@@ -89,6 +89,7 @@ const RunMode = {
       CARRYOVER: { ...BOSS_RUSH_CARRYOVER },
       modeAbility: 'bossRush',
       mapType: 'square',
+      metaUpgrades,
     };
   },
 
