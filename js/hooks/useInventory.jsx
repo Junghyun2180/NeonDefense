@@ -524,6 +524,103 @@ const useInventory = (gameState, settings = {}) => {
         setSelectedSupportTowers([]);
     }, [selectedSupportTowers, setSupportTowers, setGold]);
 
+    // ===== 일괄 판매 (하위 티어 인벤토리 정리) =====
+    // elementFilter=null → 모든 속성, 숫자 → 해당 속성만
+    // 각 (속성 그룹)의 최대 티어를 보존하고 그 미만을 모두 판매.
+    const bulkSellInventoryTowers = useCallback((elementFilter = null) => {
+        setInventory(prev => {
+            const inScope = elementFilter === null
+                ? prev
+                : prev.filter(n => (n.colorIndex ?? n.element) === elementFilter);
+            if (inScope.length === 0) return prev;
+            // 속성별 최대 티어 산출 (필터 없을 땐 속성별로, 있을 땐 단일 그룹)
+            const maxByElement = {};
+            inScope.forEach(n => {
+                const el = n.colorIndex ?? n.element ?? 0;
+                if (maxByElement[el] === undefined || n.tier > maxByElement[el]) {
+                    maxByElement[el] = n.tier;
+                }
+            });
+            const toSell = inScope.filter(n => {
+                const el = n.colorIndex ?? n.element ?? 0;
+                return n.tier < (maxByElement[el] ?? 0);
+            });
+            if (toSell.length === 0) return prev;
+            const refund = toSell.reduce((sum, n) => sum + getTowerSellPrice(n.tier), 0);
+            setGold(g => g + refund);
+            const sellIds = new Set(toSell.map(n => n.id));
+            return prev.filter(n => !sellIds.has(n.id));
+        });
+        setSelectedInventory([]);
+    }, [setGold]);
+
+    const bulkSellInventorySupports = useCallback((supportTypeFilter = null) => {
+        setSupportInventory(prev => {
+            const inScope = supportTypeFilter === null
+                ? prev
+                : prev.filter(s => s.supportType === supportTypeFilter);
+            if (inScope.length === 0) return prev;
+            const maxByType = {};
+            inScope.forEach(s => {
+                const ty = s.supportType ?? 0;
+                if (maxByType[ty] === undefined || s.tier > maxByType[ty]) {
+                    maxByType[ty] = s.tier;
+                }
+            });
+            const toSell = inScope.filter(s => {
+                const ty = s.supportType ?? 0;
+                return s.tier < (maxByType[ty] ?? 0);
+            });
+            if (toSell.length === 0) return prev;
+            const refund = toSell.reduce((sum, s) => sum + TowerSystem.getSupportSellPrice(s.tier), 0);
+            setGold(g => g + refund);
+            const sellIds = new Set(toSell.map(s => s.id));
+            return prev.filter(s => !sellIds.has(s.id));
+        });
+        setSelectedSupportInventory([]);
+    }, [setGold]);
+
+    // 일괄 판매 환급액 미리보기 (UI 툴팁/배지용)
+    const previewBulkSellTowerRefund = useCallback((elementFilter = null) => {
+        const inScope = elementFilter === null
+            ? inventory
+            : inventory.filter(n => (n.colorIndex ?? n.element) === elementFilter);
+        if (inScope.length === 0) return { count: 0, refund: 0 };
+        const maxByElement = {};
+        inScope.forEach(n => {
+            const el = n.colorIndex ?? n.element ?? 0;
+            if (maxByElement[el] === undefined || n.tier > maxByElement[el]) {
+                maxByElement[el] = n.tier;
+            }
+        });
+        const toSell = inScope.filter(n => {
+            const el = n.colorIndex ?? n.element ?? 0;
+            return n.tier < (maxByElement[el] ?? 0);
+        });
+        const refund = toSell.reduce((sum, n) => sum + getTowerSellPrice(n.tier), 0);
+        return { count: toSell.length, refund };
+    }, [inventory]);
+
+    const previewBulkSellSupportRefund = useCallback((supportTypeFilter = null) => {
+        const inScope = supportTypeFilter === null
+            ? supportInventory
+            : supportInventory.filter(s => s.supportType === supportTypeFilter);
+        if (inScope.length === 0) return { count: 0, refund: 0 };
+        const maxByType = {};
+        inScope.forEach(s => {
+            const ty = s.supportType ?? 0;
+            if (maxByType[ty] === undefined || s.tier > maxByType[ty]) {
+                maxByType[ty] = s.tier;
+            }
+        });
+        const toSell = inScope.filter(s => {
+            const ty = s.supportType ?? 0;
+            return s.tier < (maxByType[ty] ?? 0);
+        });
+        const refund = toSell.reduce((sum, s) => sum + TowerSystem.getSupportSellPrice(s.tier), 0);
+        return { count: toSell.length, refund };
+    }, [supportInventory]);
+
     // ===== 계산된 값 =====
     const totalSellPrice = useMemo(() =>
         selectedTowers.reduce((sum, t) => sum + getTowerSellPrice(t.tier), 0),
@@ -619,6 +716,11 @@ const useInventory = (gameState, settings = {}) => {
         combineAllSupports,
         combineSupportTowers,
         sellSelectedSupportTowers,
+        // 일괄 판매
+        bulkSellInventoryTowers,
+        bulkSellInventorySupports,
+        previewBulkSellTowerRefund,
+        previewBulkSellSupportRefund,
         // 계산된 값
         totalSellPrice,
         canCombineTowers,
