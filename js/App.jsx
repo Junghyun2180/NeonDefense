@@ -48,14 +48,14 @@ const NeonDefense = () => {
     gameOver: gameState.gameOver,
   });
 
-  // ===== 맵 스케일 (반응형) — 그리드 컬럼 너비/높이에 맞춰 자동 축소 =====
+  // ===== 맵 스케일 (반응형) — 그리드 컬럼 너비에 맞춰 자동 축소 =====
   const [mapScale, setMapScale] = useState(1);
   const MAP_WIDTH = GRID_WIDTH * TILE_SIZE;   // 16 × 72 = 1152
-  const MAP_HEIGHT = GRID_HEIGHT * TILE_SIZE; // 12 × 72 = 864
   // Use a ref callback so the observer attaches the moment the element mounts
   // (the game UI is conditional, so ref starts null and becomes set later).
-  // Mobile landscape 처럼 컨테이너 height 가 제한된 환경에서는 height-fit 도 고려해
-  // 맵이 row 영역을 넘쳐 WaveInfoBar 등 형제 요소를 가리지 않도록 함.
+  // 모바일 가로에서도 width-fit 만 사용 — 맵이 column 너비를 가득 채우도록.
+  // 맵 height 가 row 영역을 넘쳐도 WaveInfoBar/Header 는 별도 grid row 에 배치되어
+  // 안전 (MobileGameLayout grid row 1/2/3, mapContainer 는 overflow:hidden).
   const observerRef = useRef(null);
   const mapContainerRef = useCallback((node) => {
     if (observerRef.current) {
@@ -65,18 +65,14 @@ const NeonDefense = () => {
     if (!node) return;
     const update = () => {
       const cw = node.offsetWidth || node.clientWidth;
-      const ch = node.offsetHeight || node.clientHeight;
       if (cw <= 0) return;
-      const wScale = cw / MAP_WIDTH;
-      // height 가 0 이거나 측정 불가하면 width-only fit 으로 폴백 (desktop 그대로)
-      const hScale = ch > 0 ? ch / MAP_HEIGHT : Infinity;
-      setMapScale(Math.min(1, wScale, hScale));
+      setMapScale(Math.min(1, cw / MAP_WIDTH));
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(node);
     observerRef.current = ro;
-  }, [MAP_WIDTH, MAP_HEIGHT]);
+  }, [MAP_WIDTH]);
   useEffect(() => () => {
     if (observerRef.current) observerRef.current.disconnect();
   }, []);
