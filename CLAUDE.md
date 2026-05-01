@@ -283,6 +283,21 @@ const vulnMult = StatusEffectManager.getVulnerabilityMultiplier(target, now);
 | 저장/불러오기 | `hooks/useSaveLoad.jsx` | ✅ 완료 |
 | 런모드 | `hooks/useRunMode.jsx` | ✅ 완료 |
 
+## PC/Mobile UI 분리
+
+데스크톱과 모바일 가로(landscape)는 **별도 컴포넌트 + 별도 인라인 토큰 + 클래스 스코프 한정 CSS** 로 분리. 상세 가이드 → [docs/MOBILE_LAYOUT.md](docs/MOBILE_LAYOUT.md)
+
+### 핵심 불변량 (반드시 지킬 것)
+1. **단일 마운트**: `App.jsx` 에서 `isMobileLandscape ? <MobileGameLayout/> : <DesktopGrid/>` (동시 마운트 금지 — `mapContainerRef` ResizeObserver 경쟁 방지)
+2. **`!important` 금지**: 인라인 스타일은 §13 CSS 로 못 덮음 → 컴포넌트에 `compact` prop 추가하여 인라인 토큰 자체를 분기
+3. **비율 기반 좌표**: `useDragAndDrop` 등 좌표 계산은 `rect.width/height` 비율 사용 (mapScale 나눗셈 금지 — anisotropic stretch 에서 깨짐)
+4. **CSS 스코프**: 모바일 룰은 `holo-tokens.css §13` 안에 `.nd-mobile-grid X { ... }` 형태로만 작성
+
+### 새 인-게임 UI 추가할 때
+- 인라인 스타일 있는 컴포넌트 → `compact` prop + `z` 토큰 객체 (예: `CommandBar.jsx`, `WaveInfoBar.jsx`)
+- 클래스 기반 컴포넌트 → `§13` 에 `.nd-mobile-grid` 스코프 룰 추가 (예: `GameHeader` 의 `nd-vital__lbl`, `nd-identity` 등)
+- 모바일 전용 컴포넌트는 `js/components/mobile/` 하위에 배치
+
 ## Skill 참조
 
 | 스킬 | 용도 |
