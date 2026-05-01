@@ -131,6 +131,10 @@ const AbilitySystem = {
         damage: Math.floor(damage),
         armorPierce: opts.armorPierce || 0,
         shieldDamageMult: opts.shieldDamageMult || 1,
+        towerId: opts.towerId ?? null,
+        element: opts.element ?? null,
+        tier: opts.tier ?? null,
+        role: opts.role ?? null,
       });
       damageMap.set(id, list);
     };
@@ -148,7 +152,13 @@ const AbilitySystem = {
       }
 
       const result = this.resolveHit(hit, currentEnemies, permanentBuffs);
-      const dmgOpts = result.damageOptions || {};
+      const dmgOpts = {
+        ...(result.damageOptions || {}),
+        towerId: hit.towerId,
+        element: hit.element,
+        tier: hit.tier,
+        role: hit.role,
+      };
 
       finalDamage = Math.floor(finalDamage * result.damageModifier);
       finalDamage += result.additionalDamage;

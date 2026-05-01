@@ -329,6 +329,19 @@ const NeonDefense = () => {
         permanentBuffs: gameState.permanentBuffs,
       });
     }
+    if (gameState.gameCleared && typeof RunLog !== 'undefined' && RunLog.active) {
+      RunLog.endSession('clear', {
+        towers: gameState.towers,
+        supportTowers: gameState.supportTowers,
+        gold: gameState.gold,
+        lives: gameState.lives,
+        stage: gameState.stage,
+        wave: gameState.wave,
+        sector: gameState.sector,
+        gameStats: gameState.gameStats,
+        permanentBuffs: gameState.permanentBuffs,
+      });
+    }
   }, [gameState.gameCleared]);
 
   // ===== 밸런스 로거 - 게임오버 시 로그 기록 =====
@@ -342,6 +355,19 @@ const NeonDefense = () => {
         lives: gameState.lives,
         stage: gameState.stage,
         wave: gameState.wave,
+        gameStats: gameState.gameStats,
+        permanentBuffs: gameState.permanentBuffs,
+      });
+    }
+    if (gameState.gameOver && typeof RunLog !== 'undefined' && RunLog.active) {
+      RunLog.endSession('gameover', {
+        towers: gameState.towers,
+        supportTowers: gameState.supportTowers,
+        gold: gameState.gold,
+        lives: gameState.lives,
+        stage: gameState.stage,
+        wave: gameState.wave,
+        sector: gameState.sector,
         gameStats: gameState.gameStats,
         permanentBuffs: gameState.permanentBuffs,
       });
@@ -721,6 +747,15 @@ const NeonDefense = () => {
     // 밸런스 로거 세션 시작
     if (typeof BalanceLogger !== 'undefined') {
       BalanceLogger.startSession();
+    }
+    if (typeof RunLog !== 'undefined') {
+      const highestSector = runModeState.metaProgress?.stats?.highestCampaignSector || 0;
+      RunLog.startSession({
+        modeAbility: 'campaign',
+        stage: 1,
+        sector: highestSector + 1,
+        trigger: 'reset',
+      });
     }
   };
 

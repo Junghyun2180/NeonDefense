@@ -60,6 +60,9 @@ const useSaveLoad = (gameState) => {
     if (typeof BalanceLogger !== 'undefined') {
       BalanceLogger.startSession();
     }
+    if (typeof RunLog !== 'undefined') {
+      RunLog.startSession({ modeAbility: 'campaign', trigger: 'newGame' });
+    }
 
     console.log('[SaveLoad] 새 게임 시작');
   }, []);
@@ -90,6 +93,14 @@ const useSaveLoad = (gameState) => {
     if (typeof BalanceLogger !== 'undefined') {
       BalanceLogger.startSession();
       BalanceLogger.updateProgress(saveData.stage, saveData.wave);
+    }
+    if (typeof RunLog !== 'undefined') {
+      RunLog.startSession({
+        modeAbility: 'campaign',
+        stage: saveData.stage,
+        sector: saveData.sector || 1,
+        trigger: 'loadGame',
+      });
     }
 
     console.log('[SaveLoad] 게임 불러오기 완료:', saveData.stage, saveData.wave);

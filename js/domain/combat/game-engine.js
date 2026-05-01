@@ -56,6 +56,7 @@ const GameEngine = {
     const { enemies, towers, supportTowers, projectiles, gameSpeed, permanentBuffs = {} } = state;
     const newEffects = [];
     const soundEvents = [];
+    const events = []; // RunLog용: hit/kill/leak 이벤트 (게임 로직에는 영향 없음)
     let totalLivesLost = 0;
     let totalGoldEarned = 0;
     let totalKilled = 0;
@@ -72,6 +73,7 @@ const GameEngine = {
       const moveResult = EnemySystem.move(enemy, gameSpeed, now);
       if (!moveResult.enemy) {
         totalLivesLost += moveResult.livesLost;
+        events.push({ type: 'leak', enemy, livesLost: moveResult.livesLost });
         return null;
       }
 
@@ -95,6 +97,7 @@ const GameEngine = {
           totalGoldEarned += enemy.goldReward || 4;
           newEffects.push({ id: Date.now() + Math.random(), x: enemy.x, y: enemy.y, type: 'explosion', color: '#FF6B6B' });
           if (typeof CollectionSystem !== 'undefined') CollectionSystem.recordEnemyKill(enemy.type);
+          events.push({ type: 'kill', enemy, cause: 'burn', byTowerId: null });
           return null;
         }
         return r.enemy;
@@ -247,13 +250,28 @@ const GameEngine = {
           let working = enemy;
           let killed = false;
           let anyShieldBroken = false;
+          let lastEntry = null;
           for (const entry of entries) {
             const dmg = Math.floor(entry.damage * vulnMult);
+            const beforeHp = working.health;
             const r = EnemySystem.applyDamage(working, dmg, {
               armorPierce: entry.armorPierce,
               shieldDamageMult: entry.shieldDamageMult,
             });
+            const dealt = Math.max(0, beforeHp - (r.enemy ? r.enemy.health : 0));
+            // RunLog hit 이벤트 (실제 입은 데미지 + tower 정보)
+            events.push({
+              type: 'hit',
+              enemyId: enemy.id,
+              towerId: entry.towerId,
+              element: entry.element,
+              tier: entry.tier,
+              role: entry.role,
+              damage: dealt,
+              isCrit: false, // 개별 hit 단위 isCrit는 hit 객체에 있음 (현재는 entry로 전달 안됨)
+            });
             working = r.enemy;
+            lastEntry = entry;
             if (r.shieldBrokenNow) anyShieldBroken = true;
             if (r.killed) { killed = true; break; }
           }
@@ -271,6 +289,10 @@ const GameEngine = {
               type: 'explosion', color: EnemySystem.getExplosionColor(enemy),
             });
             soundEvents.push({ method: 'playKill', args: [enemy.type === 'boss'] });
+            events.push({
+              type: 'kill', enemy, cause: 'projectile',
+              byTowerId: lastEntry ? lastEntry.towerId : null,
+            });
 
             if (EnemySystem.isSplitter(enemy)) {
               const splitChildren = EnemySystem.createSplitEnemies(enemy);
@@ -303,6 +325,7 @@ const GameEngine = {
       livesLost: totalLivesLost,
       killedCount: totalKilled,
       soundEvents,
+      events, // RunLog용 (hit/kill/leak)
     };
   },
 };

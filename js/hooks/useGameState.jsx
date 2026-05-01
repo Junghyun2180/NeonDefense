@@ -386,6 +386,15 @@ const useGameState = (configOverride = null) => {
                         permanentBuffs,
                     });
                 }
+                if (typeof RunLog !== 'undefined') {
+                    RunLog.endSession('clear', {
+                        towers, supportTowers,
+                        gold, lives, stage, sector,
+                        wave: activeCfg.SPAWN.wavesPerStage,
+                        gameStats: gameStatsRef.current,
+                        permanentBuffs,
+                    });
+                }
                 return;
             }
 
