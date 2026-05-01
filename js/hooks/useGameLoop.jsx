@@ -70,6 +70,9 @@ const useGameLoop = (config) => {
                     newEnemy.loopCount = 0;
                 }
                 newEnemy.spawnWave = wave; // 웨이브 태그 (조기 클리어 감지용)
+                if (typeof RunLog !== 'undefined') {
+                    RunLog.onEnemySpawn(newEnemy, { stage, wave, sector });
+                }
                 setEnemies(prev => [...prev, newEnemy]);
             }
             localSpawnedCount++;
@@ -89,6 +92,11 @@ const useGameLoop = (config) => {
                 gameSpeed: speed,
                 permanentBuffs: permanentBuffsRef.current,
             }, now);
+
+            // RunLog: hit/kill/leak 이벤트 전달
+            if (typeof RunLog !== 'undefined' && result.events && result.events.length > 0) {
+                RunLog.consumeEvents(result.events);
+            }
 
             // ===== 순환 경로 처리: 끝에 도달한 적을 다시 처음으로 =====
             if (isLooping) {
@@ -168,6 +176,15 @@ const useGameLoop = (config) => {
                         permanentBuffs: permanentBuffsRef.current,
                     });
                 }
+                if (typeof RunLog !== 'undefined') {
+                    RunLog.endSession('gameover_overflow', {
+                        towers: towersRef.current,
+                        supportTowers: supportTowersRef.current,
+                        gold, lives, stage, wave, sector,
+                        gameStats: gameStatsRef.current,
+                        permanentBuffs: permanentBuffsRef.current,
+                    });
+                }
                 return; // 게임오버 후 더이상 처리 안함
             }
 
@@ -189,6 +206,15 @@ const useGameLoop = (config) => {
                                 lives: 0,
                                 stage: stage,
                                 wave: wave,
+                                gameStats: gameStatsRef.current,
+                                permanentBuffs: permanentBuffsRef.current,
+                            });
+                        }
+                        if (typeof RunLog !== 'undefined') {
+                            RunLog.endSession('gameover', {
+                                towers: towersRef.current,
+                                supportTowers: supportTowersRef.current,
+                                gold, lives: 0, stage, wave, sector,
                                 gameStats: gameStatsRef.current,
                                 permanentBuffs: permanentBuffsRef.current,
                             });

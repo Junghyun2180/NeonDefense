@@ -130,6 +130,60 @@ const useCheatConsole = (gameState, inventoryState, runModeState = null) => {
                 runModeState.endRun(true, gameState.gameStats, gameState.lives);
                 return '▶ 런 즉시 클리어!';
 
+            case 'runlog':
+            case 'rl': {
+                if (typeof RunLog === 'undefined') return '❌ RunLog 미로드';
+                const sub = arg2 || (parts[1] || 'status');
+                if (sub === 'status' || sub === 's') {
+                    const cur = RunLog.current;
+                    if (!cur) return '▶ RunLog: 세션 없음 (' + (RunLog.getSummaries().length) + '개 요약 저장됨)';
+                    return `▶ RunLog: active=${RunLog.active} enemies=${cur.enemies.size} hits=${cur.totalHits} dropped=${cur.droppedEnemyCount}/${cur.droppedHitCount}`;
+                }
+                if (sub === 'summary' || sub === 'sum') {
+                    const sums = RunLog.getSummaries();
+                    if (sums.length === 0) return '▶ 저장된 요약 없음';
+                    const last = sums[sums.length - 1];
+                    RunLog.printSummary(last);
+                    return '▶ 마지막 요약 출력 (콘솔 확인)';
+                }
+                if (sub === 'now') {
+                    if (!RunLog.current) return '❌ 활성 세션 없음';
+                    const snap = RunLog._buildFinalSnapshot({
+                        towers: gameState.towers,
+                        supportTowers: gameState.supportTowers,
+                        gold: gameState.gold,
+                        lives: gameState.lives,
+                        stage: gameState.stage,
+                        wave: gameState.wave,
+                        sector: gameState.sector,
+                        gameStats: gameState.gameStats,
+                        permanentBuffs: gameState.permanentBuffs,
+                    });
+                    RunLog.current.endTime = Date.now();
+                    RunLog.current.finalSnapshot = snap;
+                    const sum = RunLog.summarize();
+                    RunLog.printSummary(sum);
+                    return '▶ 현재 세션 요약 (저장 안함, 콘솔 확인)';
+                }
+                if (sub === 'report' || sub === 'r') {
+                    RunLog.generateReport();
+                    return '▶ 리포트 생성 (콘솔 확인)';
+                }
+                if (sub === 'export' || sub === 'e') {
+                    RunLog.exportSummariesAsJson();
+                    return '▶ 요약 JSON 다운로드';
+                }
+                if (sub === 'full') {
+                    RunLog.exportLastFullRun();
+                    return '▶ 풀 로그 JSON 다운로드';
+                }
+                if (sub === 'clear' || sub === 'c') {
+                    RunLog.clearAll();
+                    return '▶ RunLog 전체 삭제';
+                }
+                return '▶ runlog [status|summary|now|report|export|full|clear]';
+            }
+
             case 'help':
                 return [
                     '── 명령어 목록 ──',
@@ -146,6 +200,8 @@ const useCheatConsole = (gameState, inventoryState, runModeState = null) => {
                     'support [tier]  서포트 획득 (기본 S3)',
                     'crystal [n]     크리스탈 추가 (기본 100)',
                     'runwin          런 즉시 클리어',
+                    'runlog (rl) [sub]  RunLog 조작',
+                    '  status / now / summary / report / export / full / clear',
                     '↑/↓ 방향키     이전/다음 명령어',
                     'help            명령어 목록',
                     '* 스테이지 클리어 시 버프 선택',

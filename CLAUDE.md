@@ -298,6 +298,60 @@ const vulnMult = StatusEffectManager.getVulnerabilityMultiplier(target, now);
 - 클래스 기반 컴포넌트 → `§13` 에 `.nd-mobile-grid` 스코프 룰 추가 (예: `GameHeader` 의 `nd-vital__lbl`, `nd-identity` 등)
 - 모바일 전용 컴포넌트는 `js/components/mobile/` 하위에 배치
 
+## RunLog (밸런스 검토 데이터)
+
+`js/infra/run-log.js` — 게임 한 판마다 상세 데이터를 수집하는 시스템. **밸런스 검토 시 필수.**
+
+### 수집 데이터
+| 카테고리 | 항목 |
+|----------|------|
+| **적 생애** | 타입, stage/wave/sector, 경로 ID, 경로 길이, 최종 pathIndex, advanceRatio (0~1), 결과(killed/leaked/alive), 사망 원인(projectile/burn), 마지막 가격 towerId |
+| **적 스탯** | maxHealth, armor, shieldMax, baseSpeed, abilityType, isMiniboss, isDangerWave, bossPattern |
+| **명중 정보** | 적별 hits 배열 (towerId, element, tier, role, damage, isCrit, time), totalDamageTaken, hitCount, damageByElement / damageByTier / damageByTower 분포 |
+| **타워 스냅샷** | id, tier, element/supportType, role, cell좌표, sector |
+| **누수 핫스팟** | stage/wave/path 별 누수 횟수 + 타입 분포 |
+| **세션 메타** | 결과(clear/gameover/gameover_overflow), 플레이 시간, 모드, 시작 sector |
+
+### 저장 / 한도
+- 요약본 `neonDefense_runLogSummaries_v1` (최대 30개)
+- 마지막 풀 로그 `neonDefense_runLogLast_v1`
+- 메모리 한도: enemy 5000, hit 50000 (초과 시 `droppedHits`/`droppedEnemies`로 카운트)
+
+### 콘솔 명령어 (` 키)
+| 명령어 | 효과 |
+|--------|------|
+| `runlog status` (`rl s`) | 현재 세션 상태 |
+| `runlog now` | 현재 세션 임시 요약 (저장 안함) |
+| `runlog summary` | 마지막 저장 요약 출력 |
+| `runlog report` | 최근 N게임 리포트 |
+| `runlog export` | 요약 JSON 다운로드 |
+| `runlog full` | 풀 로그 JSON 다운로드 (큼) |
+| `runlog clear` | 모든 RunLog 삭제 |
+
+### 브라우저 콘솔 API
+```javascript
+RunLog.getSummaries()        // 모든 요약 배열
+RunLog.summarize()           // 현재 세션 요약 (활성 시)
+RunLog.exportFull()          // 현재 세션 풀 데이터
+RunLog.generateReport(10)    // 최근 N게임 리포트
+```
+
+### 밸런스 검토 워크플로우 (필수)
+
+유저가 **"밸런스 검토"**, **"밸런스 조정"**, **"수치 조정"**, **"난이도 조정"**, **"OO이 너무 강해/약해"** 등을 요청할 때:
+
+1. **먼저 RunLog 데이터를 확보**
+   - 유저에게 `runlog export` 또는 `runlog full` 로 다운로드된 JSON, 또는 `runlog report` 콘솔 출력을 요청
+   - 데이터를 받기 전에는 수치 조정에 들어가지 말 것
+2. **데이터 기반 진단**
+   - `enemySummary.avgAdvanceRatio` / `killRate` / `avgHits` → 적 타입별 위협도
+   - `towerSummary.damage / hits / kills` → 타워별 기여도, 사장된 타워
+   - `leakHotspots` → 어느 stage/wave/path에서 새는지
+   - `damageByTier` / `damageByElement` → 메타 편향
+3. **그 다음 밸런스 조정**
+   - 추측으로 수치를 만지지 말고, 조정 사유에 RunLog 수치를 인용
+   - 예: "splitter avgAdvanceRatio 0.78 → HP 15% 하향"
+
 ## Skill 참조
 
 | 스킬 | 용도 |
