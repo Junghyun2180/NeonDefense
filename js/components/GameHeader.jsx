@@ -24,10 +24,11 @@ const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying
         return Number.isFinite(v) ? v : fallback;
     };
 
-    const isRunModeSector = isRunMode;  // run/endless/daily don't use Sector system
-    const showSector = !isRunModeSector && sector > 0;
-    const sectorMult = (typeof calcSectorHpMultiplier === 'function')
-        ? calcSectorHpMultiplier(sector) : 1;
+    // SECTOR 는 좌측 identity 에 표기 (vital gauge 에서는 제거됨 — 정보 중복 방지).
+    // 모드별 identity 라벨: 캠페인 = SECTOR-XX, run/endless/daily = STAGE-XX.
+    const identityLabel = isRunMode
+        ? `STAGE-${String(stage).padStart(2, '0')}`
+        : `SECTOR-${String(sector).padStart(2, '0')}`;
 
     const vitals = [
         { key: 'wave',  label: 'WAVE',  icon: isDangerWave ? '🚨' : '◈',
@@ -37,14 +38,6 @@ const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying
           val: gameMode === 'endless' ? `${stage}/∞` : `${stage}/${maxStageLabel}`,
           color: 'var(--nd-green)',
           pct: gameMode === 'endless' ? 100 : safePct(stage, activeSPAWN.maxStage) },
-        // SECTOR — only shown in campaign (long-run progression beyond a single sector).
-        // HP multiplier (×1.15^N) communicates climbing difficulty.
-        ...(showSector ? [{
-            key: 'sector', label: 'SECTOR', icon: '▲',
-            val: `S${sector}`, color: 'var(--nd-el-dark)',
-            sub: `×${sectorMult.toFixed(2)}`,
-            pct: Math.min(100, sector * 10),
-        }] : []),
         { key: 'gold',  label: 'GOLD',  icon: '◆',
           val: Number(gold || 0).toLocaleString(), color: 'var(--nd-gold)',
           pct: 100 },
@@ -72,7 +65,7 @@ const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying
                 <span className="nd-reticle__c nd-reticle__c--bl" />
                 <span className="nd-reticle__c nd-reticle__c--br" />
 
-                {/* Identity block: back button + OPERATION + stage label */}
+                {/* Identity block: back button + OPERATION + sector/stage label */}
                 <div className="nd-identity">
                     {onMainMenu && (
                         <button
@@ -94,11 +87,11 @@ const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying
                         <span style={{ display: 'inline-block', width: 6, height: 6,
                             background: 'var(--nd-green)', boxShadow: '0 0 6px var(--nd-green)',
                             marginRight: 6, verticalAlign: 'middle' }} />
-                        STAGE-{String(stage).padStart(2, '0')} · {isPlaying ? 'ACTIVE' : 'STANDBY'}
+                        {identityLabel} · {isPlaying ? 'ACTIVE' : 'STANDBY'}
                     </div>
                 </div>
 
-                {/* Vital gauges — auto-fits 5 or 6 (SECTOR is conditional in campaign) */}
+                {/* Vital gauges — wave/stage/gold/life/kills (SECTOR 는 좌측 identity 로 이동) */}
                 <div className="nd-vital-grid">
                     {vitals.map(s => (
                         <div key={s.key} className="nd-vital">
@@ -135,8 +128,7 @@ const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying
                 </div>
             </div>
 
-            {/* Secondary chip row — run mode / wave theme / paths.
-                SECTOR is now promoted to a vital gauge above. */}
+            {/* Secondary chip row — run mode / wave theme / paths */}
             {(isRunMode || themeTag || pathCount > 1) && (
                 <div className="flex flex-wrap items-center gap-2 mb-2 nd-mono" style={{ fontSize: 10, letterSpacing: 1.5 }}>
                     {isRunMode && (
