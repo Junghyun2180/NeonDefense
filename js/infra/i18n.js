@@ -149,6 +149,18 @@ const I18n = (() => {
     ['Options', '옵션'],
     ['OPTIONS', '옵션'],
     ['Open Options', '옵션 열기'],
+    ['CLAIM', '받기'],
+    ['GODLIKE', '갓라이크'],
+    ['UNSTOPPABLE', '언스토퍼블'],
+    ['RAMPAGE', '램페이지'],
+    ['COMBO!', '콤보!'],
+    ['ROLL', '뽑기'],
+    ['AUTO-FUSE', '자동 합성'],
+    ['FUSE-ALL', '전체 합성'],
+    ['DEPLOYMENT REGISTRY', '출격 레지스트리'],
+    ['MAIN', '메인'],
+    ['INVENTORY', '인벤토리'],
+    ['SUPPORTS', '서포트'],
     ['SELECTED UNIT', '선택 유닛'],
     ['NO UNIT SELECTED', '선택된 유닛 없음'],
     ['ATK', '공격'],
@@ -401,7 +413,7 @@ const I18n = (() => {
   };
 
   const translateDecorated = (core, language) => {
-    const match = core.match(/^([◇◆◈✕▲◷◎★▸▶⚔♥∞☼✦●▣]+)\s+(.+)$/);
+    const match = core.match(/^([◇◆◈✕×▲◷◎★▸▶⚔♥∞☼✦●▣♾◢⏳🚨📅⚡🎮♾️🏆🎰🎖️♪♬⚙]+)\s+(.+)$/);
     if (!match) return null;
     const translated = directTranslate(match[2], language) || translatePattern(match[2], language);
     return translated ? `${match[1]} ${translated}` : null;
