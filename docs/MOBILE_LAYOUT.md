@@ -1,7 +1,7 @@
 # PC/Mobile UI 분리 가이드
 
 > 인-게임 레이아웃을 데스크톱과 모바일 가로(landscape)에서 **별도 컴포넌트 + 별도 인라인 토큰 + 클래스 스코프 한정 CSS** 로 분리한 구조.
-> 작성일: 2026-05-01 / 관련 커밋: [bec0b51](../../../commit/bec0b51), [5984d8a](../../../commit/5984d8a), [f146cf0](../../../commit/f146cf0), [fdb17b2](../../../commit/fdb17b2)
+> 작성일: 2026-05-01 / 관련 커밋: [bec0b51](../../../commit/bec0b51), [5984d8a](../../../commit/5984d8a), [f146cf0](../../../commit/f146cf0), [fdb17b2](../../../commit/fdb17b2), [6e80a33](../../../commit/6e80a33)
 
 ---
 
@@ -22,11 +22,12 @@
 | 역할 | 경로 | 비고 |
 |---|---|---|
 | 모바일 감지 | [js/hooks/useMobileLayout.jsx](../js/hooks/useMobileLayout.jsx) | `isMobileLandscape` boolean 반환 |
-| 모바일 전용 레이아웃 | [js/components/mobile/MobileGameLayout.jsx](../js/components/mobile/MobileGameLayout.jsx) | 슬롯 패턴 + anisotropic stretch wrapper |
+| 모바일 전용 레이아웃 | [js/components/mobile/MobileGameLayout.jsx](../js/components/mobile/MobileGameLayout.jsx) | 슬롯 패턴 + col 1 sub-grid (waveSide \| mapCell) + uniform scale |
 | 모바일 CSS | [css/holo-tokens.css §13](../css/holo-tokens.css) | `.nd-mobile-grid` 스코프 한정 |
 | 좌표 변환 | [js/hooks/useDragAndDrop.jsx](../js/hooks/useDragAndDrop.jsx) | `handleClickPlacementMouseMove` — 비율 기반 |
 | 마운트 분기 | [js/App.jsx](../js/App.jsx) | `isMobileLandscape ? ... : ...` 단일 삼항 |
 | `compact` prop 컴포넌트 | [CommandBar.jsx](../js/components/CommandBar.jsx), [WaveInfoBar.jsx](../js/components/WaveInfoBar.jsx) | 인라인 스타일을 compact 모드로 전환 |
+| `narrow` prop 컴포넌트 | [WaveInfoBar.jsx](../js/components/WaveInfoBar.jsx) | 좁은 세로 패널용 (좌측 letterbox 자리) — flex column, 줄바꿈, 세로 stack |
 | 데스크톱 그리드 fallback | App.jsx 내부 (mapContainerRef + map 슬롯 포함 div) | `isMobileLandscape === false` 일 때 |
 
 ---
@@ -39,26 +40,34 @@ nd-mobile-grid
   gridTemplateRows:    auto | minmax(0, 1fr)
   padding: 4, gap: 6, height: 100vh
 
-  ┌─ ROW1 col1 header(GameHeader) ──┬─ col2 commandBar(compact) ─┐
-  │                                  │                            │
-  │ ROW2 col1 map (uniform centered) │  col2 right rail           │
-  │  └ flex center                   │   WaveInfoBar (compact)    │
-  │     transform: scale(uniform)    │   + ControlPanel           │
-  │                                  │   + InventoryPanel         │
-  └──────────────────────────────────┴────────────────────────────┘
+  ┌─ ROW1 col1 header(GameHeader) ─────────┬─ col2 commandBar(compact) ─┐
+  │                                         │                            │
+  │ ROW2 col1 sub-grid:                    │  col2 right rail           │
+  │   [waveSide 150px | mapCell 1fr]       │   ControlPanel             │
+  │   waveSide: WaveInfoBar narrow vertical │   + InventoryPanel         │
+  │   mapCell: uniform scale, flex center  │                            │
+  └─────────────────────────────────────────┴────────────────────────────┘
 ```
 
 ### 맵 uniform scale 원리
-1. `App.jsx` `mapContainerRef` 가 cw 측정 → `mapScale = min(1, cw / MAP_WIDTH)` (isotropic).
+1. `App.jsx` `mapContainerRef` 가 mapCell 의 cw 측정 → `mapScale = min(1, cw / MAP_WIDTH)` (isotropic).
 2. `GameMap` 은 mapScale 적용해 `MAP_W × mapScale × MAP_H × mapScale` 자연 크기로 렌더.
-3. `MobileGameLayout` 내부에서 자체 `ResizeObserver` 로 컨테이너 cw/ch 측정.
+3. `MobileGameLayout` 내부에서 자체 `ResizeObserver` 로 mapCell cw/ch 측정.
 4. `stretchX = cw/naturalW`, `stretchY = ch/naturalH` 계산 후 `uniformScale = Math.min(...)` 채택.
 5. wrapper 에 `transform: scale(uniform)` + flex 센터링 → 종횡비 보존, 남는 영역은 양쪽 (혹은 위/아래) 균등 분배.
 
-### WaveInfoBar 위치
-- 우측 레일 (col 2) 최상단 — `controlPanel`/`inventoryPanel` 위에 stack.
-- horizontal 레이아웃이지만 240px 폭에 자연스럽게 wrap (compact 토큰 적용).
-- col 1 row 3 (이전 위치) 은 제거됨 — 맵이 row 2 전체를 사용.
+### WaveInfoBar 위치 — 좌측 letterbox 활용
+- col 1 row 2 sub-grid 의 좌측 컬럼 (150px 고정) 에 `narrow=true` 모드로 마운트.
+- narrow 모드 변환:
+  - flex-direction: row → **column**
+  - 스테이지·웨이브 라벨: 1줄 → **2줄** (STAGE 01 / WAVE 01)
+  - 적 chip 섹션: 가로 wrap → **세로 stack**, borderLeft → borderTop
+  - AUTO 토글: marginLeft auto → 하단 stretch, borderTop separator
+- 우측 레일 (col 2) 에는 더 이상 들어가지 않음 — 깔끔한 control+inventory 영역.
+
+### 새 컴포넌트가 narrow letterbox 에서도 쓰인다면
+- `narrow` prop 패턴을 따라 flex-direction + chip stack + label 줄바꿈을 동시에 처리.
+- 폭 150px 가정 — 글자 잘림 없도록 letter-spacing/font-size 토큰 별도 분기.
 
 ---
 
@@ -162,10 +171,11 @@ const gridX = Math.floor(xLogical / TILE_SIZE);
 |---|---:|
 | nd-mobile-grid 전체 | 540px |
 | 헤더 (row 1) | 60px |
-| 맵 cell (col 1 row 2) | 916 × 466 |
-| 맵 visible (uniform scale 0.678) | 621 × 466 |
+| col 1 row 2 sub-grid 전체 | 916 × 466 |
+| WaveInfoBar (narrow vertical) | 150 × 466 |
+| 맵 cell (sub-grid 우측) | 762 × 466 |
+| 맵 visible (uniform scale 0.815) | 621 × 466 |
 | 우측 레일 (col 2 row 2) | 240 × 466 |
-| WaveInfoBar in 레일 | 240 × 56 |
 
 회귀 감지 룰
 - row 1 height >80px → **CommandBar deploy 의 compact 모드 진입 실패** 의심. App.jsx 의 `compact={isMobileLandscape}` 점검.
