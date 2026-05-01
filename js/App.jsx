@@ -956,7 +956,7 @@ const NeonDefense = () => {
           />
         ) : (
           <div
-            className="p-2 sm:p-4 nd-game-grid"
+            className="p-2 sm:p-4"
             style={{
               display: 'grid',
               gridTemplateColumns: 'minmax(0, 1fr) 360px',
@@ -980,9 +980,8 @@ const NeonDefense = () => {
             >
               {mapSlot}
             </div>
-            <div className="nd-game-rail" style={{ gridColumn: 2, position: 'relative', minWidth: 0 }}>
+            <div style={{ gridColumn: 2, position: 'relative', minWidth: 0 }}>
               <div
-                className="nd-game-rail__stack"
                 style={{
                   position: 'absolute', inset: 0,
                   display: 'flex', flexDirection: 'column', gap: 10,
