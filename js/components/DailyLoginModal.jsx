@@ -1,5 +1,4 @@
-// Neon Defense - 일일 출석 보상 모달
-// 7일 그리드 표시, 오늘 보상 강조, 클릭 시 수령
+// Neon Defense - 일일 출석 보상 모달 (Holographic Command 디자인 적용)
 const DailyLoginModal = ({ isOpen, onClose, onClaim }) => {
   const { useState, useEffect } = React;
   const [status, setStatus] = useState(null);
@@ -16,6 +15,7 @@ const DailyLoginModal = ({ isOpen, onClose, onClaim }) => {
   const currentDay = status?.state?.currentDay || 0;
   const nextDay = status?.nextDay;
   const canClaim = status?.canClaim;
+  const streak = status?.state?.streak || 0;
 
   const handleClaim = () => {
     const res = DailyLogin.claim({
@@ -28,71 +28,104 @@ const DailyLoginModal = ({ isOpen, onClose, onClaim }) => {
     }
   };
 
+  const banner = canClaim
+    ? (status?.streakBroken
+      ? { tone: 'amber', title: '◇ STREAK BROKEN', sub: 'DAY 1부터 다시 시작합니다.' }
+      : { tone: 'amber', title: `◆ DAY ${nextDay} READY`, sub: '오늘 보상을 수령할 수 있습니다.' })
+    : { tone: 'dim', title: '◇ ALREADY CLAIMED', sub: '내일 다시 방문해 주세요.' };
+
   return (
-    <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4" style={{ zIndex: 9998 }} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-gray-900 rounded-2xl border-2 border-amber-500/50 max-w-2xl w-full overflow-hidden" style={{ boxShadow: '0 0 40px rgba(245,158,11,0.3)' }}>
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, rgba(245,158,11,0.3) 0%, transparent 100%)' }}>
-          <h2 className="text-2xl font-black text-amber-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            📅 일일 출석 보상
-          </h2>
-          <button onClick={onClose} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm text-gray-300">✕</button>
+    <div
+      className="nd-overlay"
+      style={{ zIndex: 9998 }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="nd-overlay__grid" aria-hidden="true" />
+
+      <div className="nd-modal nd-modal--md" role="dialog" aria-label="Daily login reward">
+        <span className="nd-reticle__c nd-reticle__c--tl" />
+        <span className="nd-reticle__c nd-reticle__c--tr" />
+        <span className="nd-reticle__c nd-reticle__c--bl" />
+        <span className="nd-reticle__c nd-reticle__c--br" />
+
+        <div className="nd-modal__top">
+          <div className="nd-modal__title">
+            <span className="nd-modal__title-eyebrow" style={{ color: 'var(--nd-amber)' }}>
+              ◆ DAILY DISPATCH
+            </span>
+            <span className="nd-modal__title-text">출석 보상</span>
+          </div>
+          <button type="button" className="nd-modal__close" onClick={onClose} aria-label="close">×</button>
         </div>
 
-        <div className="p-4 space-y-3">
-          <div className="text-xs text-gray-400">
-            {canClaim
-              ? (status?.streakBroken
-                ? '⚠️ 연속 출석이 끊어졌습니다. Day 1부터 다시 시작!'
-                : `✨ Day ${nextDay} 보상 수령 가능!`)
-              : '오늘은 이미 수령했습니다. 내일 다시 오세요!'}
+        <div className="nd-modal__body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="nd-banner">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span className="nd-banner__title">{banner.title}</span>
+              <span className="nd-banner__sub">{banner.sub}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+          <div className="nd-daily-grid">
             {rewards.map((r, idx) => {
               const day = idx + 1;
               const isClaimed = day <= currentDay && !canClaim;
               const isNext = canClaim && day === nextDay;
-              const isFuture = !isClaimed && !isNext;
+              const cellClass =
+                'nd-daily-cell' +
+                (isNext ? ' nd-daily-cell--next' : '') +
+                (isClaimed ? ' nd-daily-cell--claimed' : '');
               return (
-                <div key={day}
-                  className={'rounded-lg p-2 text-center border-2 transition-all ' +
-                    (isNext ? 'border-amber-400 bg-amber-500/20' :
-                     isClaimed ? 'border-green-500/50 bg-green-900/20 opacity-70' :
-                     'border-gray-700 bg-gray-800/50')}
-                  style={isNext ? { boxShadow: '0 0 20px rgba(245,158,11,0.5)' } : {}}
-                >
-                  <div className="text-xs text-gray-400 mb-1">Day {day}</div>
-                  <div className="text-2xl mb-1">{r.icon}</div>
-                  <div className={'text-[10px] font-bold leading-tight ' + (isNext ? 'text-amber-300' : isClaimed ? 'text-green-300' : 'text-gray-400')}>
-                    {r.label}
-                  </div>
-                  {isClaimed && <div className="text-xs text-green-400 mt-1">✓</div>}
-                  {isNext && <div className="text-xs text-amber-400 mt-1 animate-pulse">TODAY</div>}
+                <div key={day} className={cellClass}>
+                  <div className="nd-daily-cell__day">DAY {day}</div>
+                  <div className="nd-daily-cell__icon">{r.icon}</div>
+                  <div className="nd-daily-cell__label">{r.label}</div>
+                  {isClaimed && <div className="nd-daily-cell__tag">✓ DONE</div>}
+                  {isNext && <div className="nd-daily-cell__tag">▸ TODAY</div>}
                 </div>
               );
             })}
           </div>
 
           {justClaimed && (
-            <div className="p-3 bg-gradient-to-r from-amber-900/40 to-yellow-900/40 border border-amber-500/50 rounded-lg text-center">
-              <div className="text-sm text-amber-300 font-bold">🎉 Day {justClaimed.day} 보상 수령 완료!</div>
-              <div className="text-xs text-gray-300 mt-1">{justClaimed.reward.label}</div>
+            <div
+              className="nd-section"
+              style={{
+                borderColor: 'rgba(255, 169, 77, 0.35)',
+                background: 'rgba(255, 169, 77, 0.06)',
+              }}
+            >
+              <div className="nd-section__head">
+                <span className="nd-eyebrow nd-eyebrow--amber">
+                  ◆ DAY {justClaimed.day} CLAIMED
+                </span>
+              </div>
+              <div
+                className="nd-mono"
+                style={{ color: 'var(--nd-text)', fontSize: 12, letterSpacing: 0.5 }}
+              >
+                {justClaimed.reward.label}
+              </div>
             </div>
           )}
+        </div>
 
-          <div className="flex justify-between items-center pt-2 border-t border-gray-700/50">
-            <div className="text-xs text-gray-400">
-              🔥 연속 출석: <span className="text-orange-300 font-bold">{status?.state?.streak || 0}일</span>
-            </div>
-            {canClaim ? (
-              <button onClick={handleClaim}
-                className="px-6 py-2 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 rounded-lg font-bold text-white transition-all">
-                보상 받기
-              </button>
-            ) : (
-              <button onClick={onClose} className="px-6 py-2 bg-gray-700 rounded-lg text-gray-300">확인</button>
-            )}
+        <div className="nd-modal__foot">
+          <div className="nd-daily-streak">
+            <span>STREAK</span>
+            <strong>{streak}</strong>
+            <span>DAYS</span>
           </div>
+
+          {canClaim ? (
+            <button type="button" onClick={handleClaim} className="nd-btn-deploy">
+              ▸ CLAIM
+            </button>
+          ) : (
+            <button type="button" onClick={onClose} className="nd-btn-ghost">
+              CLOSE
+            </button>
+          )}
         </div>
       </div>
     </div>

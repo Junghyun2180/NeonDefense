@@ -17,6 +17,7 @@ const CommandBar = ({
     toggleBgm = null,
     toggleSfx = null,
     onShowHelp = null,
+    onShowOptions = null,
 }) => {
     // Two-row internal layout so panel content fills the grid cell height
     // (cell stretches to match the header on the left, ~118px).
@@ -70,6 +71,7 @@ const CommandBar = ({
                     <button
                         onClick={toggleBgm}
                         title="BGM 토글"
+                        aria-label="BGM 토글"
                         className="nd-mono"
                         style={{
                             background: bgmEnabled ? 'rgba(199,125,255,0.15)' : 'transparent',
@@ -84,6 +86,7 @@ const CommandBar = ({
                     <button
                         onClick={toggleSfx}
                         title="효과음 토글"
+                        aria-label="효과음 토글"
                         className="nd-mono"
                         style={{
                             background: sfxEnabled ? 'rgba(199,125,255,0.15)' : 'transparent',
@@ -99,6 +102,7 @@ const CommandBar = ({
                         onClick={onShowHelp}
                         className="nd-mono"
                         title="도움말"
+                        aria-label="도움말"
                         style={{
                             background: 'transparent',
                             border: '1px solid var(--nd-hair-strong)',
@@ -107,6 +111,21 @@ const CommandBar = ({
                             letterSpacing: 1, fontWeight: 700, lineHeight: 1,
                         }}
                     >?</button>
+                )}
+                {onShowOptions && (
+                    <button
+                        onClick={onShowOptions}
+                        className="nd-mono"
+                        title={typeof I18n !== 'undefined' ? I18n.t('options.open') : '옵션 열기'}
+                        aria-label={typeof I18n !== 'undefined' ? I18n.t('options.open') : '옵션 열기'}
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid var(--nd-hair-strong)',
+                            color: 'var(--nd-text)',
+                            padding: '4px 8px', fontSize: 12, cursor: 'pointer',
+                            letterSpacing: 1, fontWeight: 700, lineHeight: 1,
+                        }}
+                    >⚙</button>
                 )}
             </div>
 

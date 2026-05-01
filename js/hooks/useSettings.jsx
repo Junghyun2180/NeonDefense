@@ -2,6 +2,7 @@
 // autoCombine: 뽑기 후 자동 조합 (T1→T2→T3)
 // autoSupportCombine: 서포트 뽑기 후 자동 조합 (S1→S2→S3)
 // t4RolePresets: 속성별 T4 역할 자동선택 맵 { [element]: 'A'|'B'|'C' }
+// language: UI 표시 언어 ('ko'|'en')
 const useSettings = () => {
     const { useState, useCallback } = React;
     const STORAGE_KEY = 'neonDefense_settings_v1';
@@ -25,6 +26,9 @@ const useSettings = () => {
     const [maxGameSpeed, setMaxGameSpeedState] = useState(initial.maxGameSpeed ?? 5);
     const [tutorialSeen, setTutorialSeenState] = useState(initial.tutorialSeen ?? false);
     const [tutorialDone, setTutorialDoneState] = useState(initial.tutorialDone ?? false);
+    const [language, setLanguageState] = useState(
+        initial.language || (typeof I18n !== 'undefined' ? I18n.getLanguage() : 'ko')
+    );
 
     const persist = useCallback((next) => {
         try {
@@ -88,7 +92,15 @@ const useSettings = () => {
         persist({ tutorialDone: val });
     }, [persist]);
 
+    const setLanguage = useCallback((val) => {
+        const next = val === 'en' ? 'en' : 'ko';
+        setLanguageState(next);
+        if (typeof I18n !== 'undefined') I18n.setLanguage(next);
+        persist({ language: next });
+    }, [persist]);
+
     return {
+        language, setLanguage,
         autoCombine, setAutoCombine,
         autoSupportCombine, setAutoSupportCombine,
         t4RolePresets, setT4RolePreset, clearT4RolePreset, clearAllT4RolePresets,

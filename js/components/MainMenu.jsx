@@ -16,6 +16,7 @@ const MainMenu = ({
   neonCrystals,
   onPurchaseUpgrade,
   onDailyLoginReward,
+  onShowOptions,
 }) => {
   const { useState, useEffect } = React;
 
@@ -92,6 +93,7 @@ const MainMenu = ({
           achievements={achievementProgress}
           codexPercent={codexCompletion?.percent || 0}
           dailyDot={dailyStatus.canClaim}
+          onShowOptions={onShowOptions}
         >
           {renderPage()}
         </HoloShell>

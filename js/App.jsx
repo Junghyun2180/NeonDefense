@@ -17,6 +17,12 @@ const NeonDefense = () => {
   // ===== 사용자 설정 훅 (속도감 개선 — 자동조합, T4 역할 프리셋) =====
   const settings = useSettings();
 
+  useEffect(() => {
+    if (typeof I18n !== 'undefined') {
+      I18n.setLanguage(settings.language);
+    }
+  }, [settings.language]);
+
   // ===== 인벤토리 훅 =====
   const inventoryState = useInventory(gameState, settings);
 
@@ -76,6 +82,7 @@ const NeonDefense = () => {
 
   // 도움말 모달 상태
   const [showHelp, setShowHelp] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
 
   // 첫 접속 시 도움말 자동 표시 (튜토리얼 대체)
   useEffect(() => {
@@ -744,6 +751,7 @@ const NeonDefense = () => {
               CollectionSystem.addFreeDrawTicket(tickets);
             }
           }}
+          onShowOptions={() => setShowOptions(true)}
         />
       )}
 
@@ -753,10 +761,10 @@ const NeonDefense = () => {
           metaProgress={runModeState.metaProgress}
           neonCrystals={runModeState.neonCrystals}
           onStartRun={handleStartRun}
-          onPurchaseUpgrade={runModeState.purchaseUpgrade}
           onBack={handleRunMenuBack}
           activeRunInfo={runModeState.getActiveRunInfo()}
           onLoadRun={handleLoadRun}
+          onShowOptions={() => setShowOptions(true)}
         />
       )}
 
@@ -805,6 +813,7 @@ const NeonDefense = () => {
               toggleBgm={toggleBgm}
               toggleSfx={toggleSfx}
               onShowHelp={() => setShowHelp(true)}
+              onShowOptions={() => setShowOptions(true)}
             />
           </div>
 
@@ -1084,6 +1093,21 @@ const NeonDefense = () => {
         showHelp={showHelp}
         setShowHelp={setShowHelp}
         getElementInfo={getElementInfo}
+      />
+
+      <OptionsModal
+        isOpen={showOptions}
+        onClose={() => setShowOptions(false)}
+        language={settings.language}
+        setLanguage={settings.setLanguage}
+        autoCombine={settings.autoCombine}
+        setAutoCombine={settings.setAutoCombine}
+        autoSupportCombine={settings.autoSupportCombine}
+        setAutoSupportCombine={settings.setAutoSupportCombine}
+        autoNextWave={settings.autoNextWave}
+        setAutoNextWave={settings.setAutoNextWave}
+        maxGameSpeed={settings.maxGameSpeed}
+        setMaxGameSpeed={settings.setMaxGameSpeed}
       />
 
       {/* 튜토리얼 오버레이 (첫 게임 진입 시) */}

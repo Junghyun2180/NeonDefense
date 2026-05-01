@@ -9,6 +9,7 @@ const HoloShell = ({
   achievements = { unlocked: 0, total: 0 },
   codexPercent = 0,
   dailyDot = false,
+  onShowOptions = null,
   children,
 }) => {
   const navItems = [
@@ -69,6 +70,19 @@ const HoloShell = ({
             <span className="nd-shell__live-dot" />
             <span>{commanderId}</span>
           </div>
+
+          {onShowOptions && (
+            <button
+              type="button"
+              onClick={onShowOptions}
+              className="nd-shell__opts nd-mono"
+              aria-label={typeof I18n !== 'undefined' ? I18n.t('options.open') : '옵션 열기'}
+              title={typeof I18n !== 'undefined' ? I18n.t('options.open') : '옵션 열기'}
+            >
+              <span className="nd-shell__opts-icon" aria-hidden="true">⚙</span>
+              <span>OPTIONS</span>
+            </button>
+          )}
         </header>
 
         <nav className="nd-shell__tabs" aria-label="Main menu">
