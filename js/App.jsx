@@ -793,6 +793,7 @@ const NeonDefense = () => {
             gameMode={runModeState.runMode}
             spawnConfig={gameState.activeConfig?.SPAWN}
             onMainMenu={handleCampaignMainMenu}
+            mobile={isMobileLandscape}
           />
         );
 

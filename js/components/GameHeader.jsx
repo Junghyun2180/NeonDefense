@@ -1,7 +1,7 @@
 // GameHeader — Holographic Command top bar
 // Spec: design handoff v1.0 / Page A · Game Play
 //   ◇ OPERATION · NEON DEFENSE   ◈ WAVE  ▣ STAGE  ◆ GOLD  ♥ LIFE  ✕ KILLS
-const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null, onMainMenu = null }) => {
+const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying, killedCount, permanentBuffs = {}, gameMode = null, spawnConfig = null, onMainMenu = null, mobile = false }) => {
     const { useState } = React;
     const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -128,8 +128,10 @@ const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying
                 </div>
             </div>
 
-            {/* Secondary chip row — run mode / wave theme / paths */}
-            {(isRunMode || themeTag || pathCount > 1) && (
+            {/* Secondary chip row — run mode / wave theme / paths
+                모바일 가로에서는 숨김: theme 는 WaveInfoBar narrow 에서 별도 표시,
+                run mode 는 identity STAGE/SECTOR 라벨로 구분, paths 는 맵 시각으로 확인 */}
+            {!mobile && (isRunMode || themeTag || pathCount > 1) && (
                 <div className="flex flex-wrap items-center gap-2 mb-2 nd-mono" style={{ fontSize: 10, letterSpacing: 1.5 }}>
                     {isRunMode && (
                         <span style={{
@@ -160,8 +162,9 @@ const GameHeader = ({ stage, wave, sector = 1, gold, lives, pathCount, isPlaying
                 </div>
             )}
 
-            {/* Active permanent buffs — chip row */}
-            {activeBuffs.length > 0 && (
+            {/* Active permanent buffs — chip row
+                모바일 가로에서는 숨김: 좌측 패널 ControlPanel.ACTIVE BUFFS 에서 풀 정보 표시 */}
+            {!mobile && activeBuffs.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-2">
                     {activeBuffs.map(buff => (
                         <div

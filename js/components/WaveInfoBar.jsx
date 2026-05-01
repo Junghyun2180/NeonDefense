@@ -235,9 +235,12 @@ const WaveInfoBar = ({
                     })}
                 </div>
             )}
-            {/* 우: 위험 태그 + 테마 + AUTO */}
+            {/* 우(narrow=하단): 위험 태그 + 테마 + AUTO */}
             {dangerTags.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                    flexWrap: narrow ? 'wrap' : 'nowrap',
+                }}>
                     {dangerTags.map((t, i) => (
                         <span
                             key={i}
@@ -265,7 +268,11 @@ const WaveInfoBar = ({
                         flex: 1, minWidth: 0,
                         fontSize: z.themeSize, color: 'var(--nd-dim)',
                         letterSpacing: 1, lineHeight: 1.4,
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        // narrow 모드: 좁은 패널에서 잘림 방지 위해 wrap 허용
+                        whiteSpace: narrow ? 'normal' : 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: narrow ? 'clip' : 'ellipsis',
+                        wordBreak: narrow ? 'keep-all' : 'normal',
                     }}
                     title={theme.hint}
                 >
