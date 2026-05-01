@@ -3,14 +3,14 @@
 // 슬롯 패턴 — App.jsx 에서 element 인스턴스를 prop 으로 주입받아 배치만 모바일용으로 다르게.
 //
 // 레이아웃:
-//   ┌─ ROW1 col1 header ──────────────┬─ col2 commandBar ─┐
-//   │                                  │                    │
-//   │ ROW2 col1 map                    │  col2 right rail   │
-//   │   (uniform scale, flex centered) │   waveInfo (top)   │
-//   │                                  │   + controlPanel   │
-//   │                                  │   + inventoryPanel │
-//   └──────────────────────────────────┴────────────────────┘
+//   ┌─ ROW1 col1 header ─────────────────┬─ col2 commandBar ─┐
+//   │                                     │                    │
+//   │ ROW2 col1 [waveSide | map]         │  col2 right rail   │
+//   │   waveSide: 150px narrow vertical  │   controlPanel     │
+//   │   map: uniform scale, flex center  │   + inventoryPanel │
+//   └─────────────────────────────────────┴────────────────────┘
 //   col1 = minmax(0, 1fr) | col2 = 240px
+//   col1 inner = [auto waveSide | minmax(0, 1fr) map]
 //
 // 맵 uniform scale 원리:
 //   - App.jsx mapContainerRef 가 cw 측정 → mapScale = min(1, cw / MAP_WIDTH).
@@ -86,32 +86,48 @@ const MobileGameLayout = ({
             <div style={{ gridColumn: 1, gridRow: 1 }}>{slots.header}</div>
             <div style={{ gridColumn: 2, gridRow: 1 }}>{slots.commandBar}</div>
 
-            {/* ROW 2 col 1 — Map (uniform stretch + flex centered) */}
-            <div
-                ref={combinedMapContainerRef}
-                style={{
-                    gridColumn: 1,
-                    gridRow: 2,
-                    position: 'relative',
-                    minWidth: 0,
-                    minHeight: 0,
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
+            {/* ROW 2 col 1 — [waveSide | map] sub-grid */}
+            <div style={{
+                gridColumn: 1,
+                gridRow: 2,
+                display: 'grid',
+                gridTemplateColumns: '150px minmax(0, 1fr)',
+                columnGap: 4,
+                minWidth: 0,
+                minHeight: 0,
+            }}>
+                {/* WaveInfoBar (narrow vertical) — 좌측 letterbox 자리 활용 */}
+                {slots.waveInfo && (
+                    <div style={{ minWidth: 0, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+                        {slots.waveInfo}
+                    </div>
+                )}
+
+                {/* Map cell — uniform scale + flex centered */}
                 <div
+                    ref={combinedMapContainerRef}
                     style={{
-                        transform: `scale(${uniformScale})`,
-                        transformOrigin: 'center center',
+                        position: 'relative',
+                        minWidth: 0,
+                        minHeight: 0,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                     }}
                 >
-                    {slots.map}
+                    <div
+                        style={{
+                            transform: `scale(${uniformScale})`,
+                            transformOrigin: 'center center',
+                        }}
+                    >
+                        {slots.map}
+                    </div>
                 </div>
             </div>
 
-            {/* col 2 row 2 — Right rail (waveInfo + control + inventory, 통째 세로 스크롤) */}
+            {/* col 2 row 2 — Right rail (control + inventory) */}
             <div style={{
                 gridColumn: 2,
                 gridRow: 2,
@@ -131,7 +147,6 @@ const MobileGameLayout = ({
                         overflowX: 'hidden',
                     }}
                 >
-                    {slots.waveInfo}
                     {slots.controlPanel}
                     {slots.inventoryPanel}
                 </div>

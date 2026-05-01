@@ -856,7 +856,7 @@ const NeonDefense = () => {
           />
         );
 
-        // 모바일 가로 전용 — WaveInfoBar 를 별도 위치에 compact 모드로 렌더
+        // 모바일 가로 전용 — WaveInfoBar 를 좌측 letterbox 자리에 compact + narrow 로 렌더
         const waveInfoSlot = (
           <WaveInfoBar
             stage={gameState.stage}
@@ -866,6 +866,7 @@ const NeonDefense = () => {
             autoNextWave={settings.autoNextWave}
             setAutoNextWave={settings.setAutoNextWave}
             compact
+            narrow
           />
         );
 

@@ -15,6 +15,7 @@ const WaveInfoBar = ({
     autoNextWave = false,
     setAutoNextWave = null,
     compact = false,
+    narrow = false,   // 좁은 세로 패널 모드 (모바일 가로 letterbox 활용용)
 }) => {
     const sCfg = spawnConfig || (typeof SPAWN !== 'undefined' ? SPAWN : null);
     if (!sCfg) return null;
@@ -137,14 +138,17 @@ const WaveInfoBar = ({
             style={{
                 marginTop: z.marginTop,
                 padding: z.padding,
-                display: 'flex', alignItems: 'center', gap: z.gap,
+                display: 'flex',
+                flexDirection: narrow ? 'column' : 'row',
+                alignItems: narrow ? 'stretch' : 'center',
+                gap: z.gap,
             }}
         >
             <span className="nd-reticle__c nd-reticle__c--tl" />
             <span className="nd-reticle__c nd-reticle__c--tr" />
             <span className="nd-reticle__c nd-reticle__c--bl" />
             <span className="nd-reticle__c nd-reticle__c--br" />
-            {/* 좌: 웨이브 정보 */}
+            {/* 좌(narrow=상단): 웨이브 정보 */}
             <div style={{ minWidth: 0, flexShrink: 0 }}>
                 <div className="nd-eyebrow" style={{
                     color: 'var(--nd-crimson)',
@@ -155,18 +159,29 @@ const WaveInfoBar = ({
                 </div>
                 <div
                     className="nd-mono nd-tnum"
-                    style={{ color: '#fff', fontSize: z.stageSize, fontWeight: 700, marginTop: 2 }}
+                    style={{ color: '#fff', fontSize: z.stageSize, fontWeight: 700, marginTop: 2, lineHeight: narrow ? 1.25 : 1.4 }}
                 >
-                    STAGE {String(displayStage).padStart(2, '0')} · WAVE {String(displayWave).padStart(2, '0')}
+                    {narrow ? (
+                        <>
+                            <div>STAGE {String(displayStage).padStart(2, '0')}</div>
+                            <div>WAVE {String(displayWave).padStart(2, '0')}</div>
+                        </>
+                    ) : (
+                        <>STAGE {String(displayStage).padStart(2, '0')} · WAVE {String(displayWave).padStart(2, '0')}</>
+                    )}
                 </div>
             </div>
-            {/* 중앙: 몬스터 구성 (UNITS 자리) */}
+            {/* 중앙(narrow=중단): 몬스터 구성 */}
             {enemyBreakdown.length > 0 && (
                 <div style={{
-                    display: 'flex', flexWrap: 'wrap',
-                    gap: z.groupGap, alignItems: 'center',
-                    paddingLeft: z.groupPadL,
-                    borderLeft: '1px solid var(--nd-hair)',
+                    display: 'flex',
+                    flexDirection: narrow ? 'column' : 'row',
+                    flexWrap: narrow ? 'nowrap' : 'wrap',
+                    gap: z.groupGap, alignItems: narrow ? 'stretch' : 'center',
+                    paddingLeft: narrow ? 0 : z.groupPadL,
+                    paddingTop: narrow ? z.groupPadL : 0,
+                    borderLeft: narrow ? 'none' : '1px solid var(--nd-hair)',
+                    borderTop: narrow ? '1px solid var(--nd-hair)' : 'none',
                     flexShrink: 1, minWidth: 0,
                 }}>
                     {enemyBreakdown.map(({ type, count }) => {
@@ -258,8 +273,13 @@ const WaveInfoBar = ({
             {setAutoNextWave && (
                 <label
                     style={{
-                        marginLeft: 'auto',
-                        display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                        marginLeft: narrow ? 0 : 'auto',
+                        marginTop: narrow ? z.groupPadL : 0,
+                        paddingTop: narrow ? z.groupPadL : 0,
+                        borderTop: narrow ? '1px solid var(--nd-hair)' : 'none',
+                        display: 'flex', alignItems: 'center',
+                        justifyContent: narrow ? 'center' : 'flex-start',
+                        gap: 6, cursor: 'pointer',
                         padding: z.autoPadding,
                         background: autoNextWave ? 'rgba(255,61,110,0.15)' : 'transparent',
                         border: '1px solid ' + (autoNextWave ? 'rgba(255,61,110,0.55)' : 'var(--nd-hair-strong)'),
