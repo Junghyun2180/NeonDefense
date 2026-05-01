@@ -1,7 +1,7 @@
 # PC/Mobile UI 분리 가이드
 
 > 인-게임 레이아웃을 데스크톱과 모바일 가로(landscape)에서 **별도 컴포넌트 + 별도 인라인 토큰 + 클래스 스코프 한정 CSS** 로 분리한 구조.
-> 작성일: 2026-05-01 / 관련 커밋: [bec0b51](../../../commit/bec0b51), [5984d8a](../../../commit/5984d8a), [f146cf0](../../../commit/f146cf0), [fdb17b2](../../../commit/fdb17b2), [6e80a33](../../../commit/6e80a33), [c17e798](../../../commit/c17e798)
+> 작성일: 2026-05-01 / 관련 커밋: [bec0b51](../../../commit/bec0b51), [5984d8a](../../../commit/5984d8a), [f146cf0](../../../commit/f146cf0), [fdb17b2](../../../commit/fdb17b2), [6e80a33](../../../commit/6e80a33), [c17e798](../../../commit/c17e798), [be79a37](../../../commit/be79a37)
 
 ---
 
@@ -29,6 +29,7 @@
 | `compact` prop 컴포넌트 | [CommandBar.jsx](../js/components/CommandBar.jsx), [WaveInfoBar.jsx](../js/components/WaveInfoBar.jsx) | 인라인 스타일을 compact 모드로 전환 |
 | `narrow` prop 컴포넌트 | [WaveInfoBar.jsx](../js/components/WaveInfoBar.jsx) | 좁은 세로 패널용 (좌측 letterbox 자리) — flex column, 줄바꿈, 적 chip 2-col grid |
 | `showUnit/showBuffs/showSkills` 분기 | [ControlPanel.jsx](../js/components/ControlPanel.jsx) | 모바일에서 섹션을 좌/우로 분리 마운트 (default = all true: 데스크톱 호환) |
+| `mobile` prop | [GameHeader.jsx](../js/components/GameHeader.jsx) | 모바일에서 secondary chip row(theme/run mode/paths) + active buffs chip row 숨김 (정보는 좌측 패널·WaveInfoBar 에 분산) |
 | 데스크톱 그리드 fallback | App.jsx 내부 (mapContainerRef + map 슬롯 포함 div) | `isMobileLandscape === false` 일 때 |
 
 ---
@@ -155,6 +156,7 @@ const gridX = Math.floor(xLogical / TILE_SIZE);
 | 인라인 스타일을 §13 CSS 로 덮기 시도 | 인라인이 우선순위 더 높음 → 안 먹음 | 컴포넌트에 `compact` prop 추가 |
 | `!important` 사용 | 디자인 토큰 시스템 일관성 깨짐 | 클래스 스코프 또는 `compact` prop |
 | 모바일 전용 컴포넌트를 `js/components/` 루트에 직접 둠 | 데스크톱/모바일 경계 흐려짐 | `js/components/mobile/` 하위에 |
+| 헤더에 조건부 chip row 추가 (예: theme tag, active buffs) | row 1 height 가 컨디션에 따라 폭발 → 모바일에서 맵 영역 침범 | `mobile` prop 으로 모바일에선 숨기고, 정보는 좌측 패널·WaveInfoBar 등 다른 곳으로 분산 |
 
 ---
 
