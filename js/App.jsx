@@ -950,6 +950,7 @@ const NeonDefense = () => {
               inventoryPanel: inventoryPanelSlot,
             }}
             mapContainerRef={mapContainerRef}
+            mapScale={mapScale}
           />
         ) : (
           <div
