@@ -879,6 +879,8 @@ const NeonDefense = () => {
             toggleTowerSelect={inventoryState.toggleTowerSelect}
             toggleSupportTowerSelect={inventoryState.toggleSupportTowerSelect}
             handleTileClick={dragState.handleTileClick}
+            handleTileHover={dragState.handleTileHover}
+            handleMapPointerLeave={dragState.handleMapPointerLeave}
             getElementInfo={getElementInfo}
             selectedEnemyId={selectedEnemyId}
             setSelectedEnemyId={setSelectedEnemyId}
