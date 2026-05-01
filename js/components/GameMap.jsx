@@ -38,6 +38,9 @@ const GameMap = ({
     spawnConfig = null,
     autoNextWave = false,
     setAutoNextWave = null,
+    // MobileGameLayout 이 외부에서 별도 위치에 WaveInfoBar 를 렌더할 때 false.
+    // 기본값 true: 데스크톱 레이아웃에서 맵 아래에 자동 노출.
+    renderWaveInfo = true,
 }) => {
     const speedOptions = React.useMemo(() => {
         const max = Math.max(3, Math.min(5, maxGameSpeed));
@@ -773,251 +776,19 @@ const GameMap = ({
                 </div>
             </div>
 
-            {/* NEXT WAVE preview — inside map column (handoff §05 reference). */}
-            {(() => {
-                const sCfg = spawnConfig || (typeof SPAWN !== 'undefined' ? SPAWN : null);
-                if (!sCfg) return null;
-                const wavesTotal = sCfg.wavesPerStage || 10;
-                // wave 상태는 이미 "다음에 플레이할 웨이브"를 나타냄 (wave=1이면 W1을 아직 안 한 것)
-                const displayStage = stage;
-                const displayWave = wave;
-                const totalCount = sCfg.enemiesPerWave ? sCfg.enemiesPerWave(displayStage, displayWave) : 0;
-                const theme = (typeof WaveThemeSystem !== 'undefined')
-                    ? WaveThemeSystem.getTheme(displayStage, displayWave) : null;
-                // Hint about likely special enemies based on wave progress
-                const dangerTags = [];
-                if (displayWave === wavesTotal) dangerTags.push({ icon: '👑', label: 'BOSS', color: 'var(--nd-red-life)' });
-                else if (displayWave === 5)     dangerTags.push({ icon: '⭐', label: 'MINIBOSS', color: 'var(--nd-amber)' });
-                if (theme) dangerTags.push({ icon: theme.icon, label: theme.name, color: theme.color });
-
-                // 몬스터 구성 미리보기: EnemySystem.determineType의 실제 스폰 알고리즘과 일치시킴
-                // — 각 슬롯별로 specialTypes 순회하며 첫 매치 채택 → 후순위 타입은 이전 실패 확률에 의존
-                const enemyBreakdown = (() => {
-                    if (typeof STAGE_ENEMY_POOL === 'undefined' || typeof SPECIAL_ENEMY_CHANCE === 'undefined') return [];
-                    const pool = STAGE_ENEMY_POOL[displayStage] || (typeof ALL_ENEMY_TYPES !== 'undefined' ? ALL_ENEMY_TYPES : []);
-                    if (!pool || pool.length === 0) return [];
-
-                    const isBossWave = displayWave === wavesTotal;
-                    const isMinibossWave = displayWave === 5;
-                    const counts = {};
-
-                    // 보스/미니보스는 마지막 1슬롯에 강제 배치 (EnemySystem.determineType 합의 10)
-                    let normalSlots = totalCount;
-                    if (isBossWave) {
-                        counts['boss'] = 1;
-                        normalSlots -= 1;
-                    } else if (isMinibossWave) {
-                        counts['elite'] = 1;
-                        normalSlots -= 1;
-                    }
-
-                    if (normalSlots > 0) {
-                        const resolvedBoost = theme && typeof WaveThemeSystem !== 'undefined'
-                            ? WaveThemeSystem.resolveBoost(theme, pool) : null;
-                        const intensity = theme && typeof WaveThemeSystem !== 'undefined'
-                            ? WaveThemeSystem.getIntensityProfile(theme.intensity) : null;
-
-                        // determineType과 동일한 정렬 (부스트 타입 우선)
-                        let specialTypes = pool.filter(t => t !== 'normal');
-                        if (resolvedBoost) {
-                            specialTypes = [...specialTypes].sort((a, b) => {
-                                const aBoost = resolvedBoost[a] !== undefined ? 1 : 0;
-                                const bBoost = resolvedBoost[b] !== undefined ? 1 : 0;
-                                return bBoost - aBoost;
-                            });
-                        }
-
-                        // 체이닝된 기대치: 각 타입이 채택될 확률 = (이전 타입 모두 실패) × 자기 chance
-                        let remainingProb = 1;
-                        const expectedRatios = {};
-                        for (const type of specialTypes) {
-                            const config = SPECIAL_ENEMY_CHANCE[type];
-                            if (!config) continue;
-                            let chance = config.base + (config.perWave || 0) * (displayWave - 1);
-                            if (resolvedBoost && intensity) {
-                                if (resolvedBoost[type] !== undefined) {
-                                    chance = chance + (resolvedBoost[type] - chance) * intensity.boostFactor;
-                                } else {
-                                    chance *= intensity.nonBoostMultiplier;
-                                }
-                            }
-                            chance = Math.max(0, Math.min(1, chance));
-                            expectedRatios[type] = remainingProb * chance;
-                            remainingProb *= (1 - chance);
-                        }
-                        expectedRatios['normal'] = remainingProb;
-
-                        // 정수 분배 (largest-remainder method): 합 = normalSlots 보장
-                        const floors = {};
-                        const fracs = [];
-                        let allocated = 0;
-                        for (const [type, ratio] of Object.entries(expectedRatios)) {
-                            const exact = normalSlots * ratio;
-                            const floor = Math.floor(exact);
-                            floors[type] = floor;
-                            allocated += floor;
-                            fracs.push({ type, frac: exact - floor });
-                        }
-                        fracs.sort((a, b) => b.frac - a.frac);
-                        for (let i = 0; i < normalSlots - allocated; i++) {
-                            floors[fracs[i].type] += 1;
-                        }
-                        for (const [type, c] of Object.entries(floors)) {
-                            if (c > 0) counts[type] = (counts[type] || 0) + c;
-                        }
-                    }
-
-                    // 정렬: boss > elite > 특수 > 일반
-                    const order = ['boss', 'elite', 'jammer', 'suppressor', 'healer', 'aegis', 'splitter', 'fast', 'normal'];
-                    return order
-                        .filter(t => counts[t] > 0)
-                        .map(t => ({ type: t, count: counts[t] }));
-                })();
-
-                return (
-                    <div
-                        className="nd-panel relative nd-game-wave-info"
-                        style={{
-                            marginTop: 8, padding: '12px 14px',
-                            display: 'flex', alignItems: 'center', gap: 14,
-                        }}
-                    >
-                        <span className="nd-reticle__c nd-reticle__c--tl" />
-                        <span className="nd-reticle__c nd-reticle__c--tr" />
-                        <span className="nd-reticle__c nd-reticle__c--bl" />
-                        <span className="nd-reticle__c nd-reticle__c--br" />
-                        {/* 좌: 웨이브 정보 */}
-                        <div style={{ minWidth: 0, flexShrink: 0 }}>
-                            <div className="nd-eyebrow" style={{ color: 'var(--nd-crimson)', letterSpacing: 2 }}>
-                                {isPlaying ? '▸ CURRENT WAVE' : '▸ NEXT WAVE'}
-                            </div>
-                            <div
-                                className="nd-mono nd-tnum"
-                                style={{ color: '#fff', fontSize: 14, fontWeight: 700, marginTop: 2 }}
-                            >
-                                STAGE {String(displayStage).padStart(2, '0')} · WAVE {String(displayWave).padStart(2, '0')}
-                            </div>
-                        </div>
-                        {/* 중앙: 몬스터 구성 (UNITS 자리 — 크게 표시) */}
-                        {enemyBreakdown.length > 0 && (
-                            <div style={{
-                                display: 'flex', flexWrap: 'wrap',
-                                gap: 8, alignItems: 'center',
-                                paddingLeft: 14,
-                                borderLeft: '1px solid var(--nd-hair)',
-                                flexShrink: 1, minWidth: 0,
-                            }}>
-                                {enemyBreakdown.map(({ type, count }) => {
-                                    const enemyUrl = typeof EnemySprite !== 'undefined' ? EnemySprite.getUrl(type) : null;
-                                    const cfg = typeof ENEMY_CONFIG !== 'undefined' ? ENEMY_CONFIG[type] : null;
-                                    const iconFallback = cfg?.icon || '●';
-                                    const color = cfg?.explosionColor || '#9333ea';
-                                    const isBoosted = theme?.boost?.[type] !== undefined;
-                                    const isElite = type === 'boss' || type === 'elite';
-                                    const accent = isBoosted ? theme.color : (isElite ? color : null);
-                                    return (
-                                        <div
-                                            key={type}
-                                            title={type}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: 6,
-                                                padding: '4px 10px 4px 6px',
-                                                background: accent ? `${accent}18` : 'rgba(255,255,255,0.04)',
-                                                border: `1px solid ${accent ? accent + '66' : 'var(--nd-hair)'}`,
-                                            }}
-                                        >
-                                            {enemyUrl ? (
-                                                <img
-                                                    src={enemyUrl}
-                                                    alt={type}
-                                                    draggable={false}
-                                                    style={{
-                                                        width: 36, height: 36,
-                                                        objectFit: 'contain',
-                                                        filter: `drop-shadow(0 0 4px ${color}99)`,
-                                                    }}
-                                                />
-                                            ) : (
-                                                <span style={{ fontSize: 22 }}>{iconFallback}</span>
-                                            )}
-                                            <span
-                                                className="nd-mono nd-tnum"
-                                                style={{
-                                                    fontSize: 16, fontWeight: 700,
-                                                    color: accent || '#fff',
-                                                    lineHeight: 1,
-                                                }}
-                                            >
-                                                ×{count}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                        {/* 우: 위험 태그 + 테마 + AUTO */}
-                        {dangerTags.length > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                {dangerTags.map((t, i) => (
-                                    <span
-                                        key={i}
-                                        className="nd-mono"
-                                        title={t.label}
-                                        style={{
-                                            padding: '3px 8px', fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
-                                            background: `${t.color}20`,
-                                            border: `1px solid ${t.color}66`,
-                                            color: t.color,
-                                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                                        }}
-                                    >
-                                        <span style={{ fontFamily: 'var(--nd-font-sans)' }}>{t.icon}</span>
-                                        {t.label}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        {theme && (
-                            <div
-                                className="nd-mono"
-                                style={{
-                                    flex: 1, minWidth: 0,
-                                    fontSize: 9, color: 'var(--nd-dim)', letterSpacing: 1, lineHeight: 1.4,
-                                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                                }}
-                                title={theme.hint}
-                            >
-                                ◇ {theme.hint}
-                            </div>
-                        )}
-                        {/* AUTO NEXT WAVE */}
-                        {setAutoNextWave && (
-                            <label
-                                style={{
-                                    marginLeft: 'auto',
-                                    display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-                                    padding: '5px 10px',
-                                    background: autoNextWave ? 'rgba(255,61,110,0.15)' : 'transparent',
-                                    border: '1px solid ' + (autoNextWave ? 'rgba(255,61,110,0.55)' : 'var(--nd-hair-strong)'),
-                                    color: autoNextWave ? 'var(--nd-crimson)' : 'var(--nd-dim)',
-                                    fontFamily: 'var(--nd-font-mono)',
-                                    fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
-                                    flexShrink: 0,
-                                }}
-                                title="웨이브 클리어 후 자동으로 다음 웨이브 시작"
-                            >
-                                <input
-                                    type="checkbox"
-                                    checked={!!autoNextWave}
-                                    onChange={(e) => setAutoNextWave(e.target.checked)}
-                                    style={{ accentColor: 'var(--nd-crimson)', width: 11, height: 11, margin: 0 }}
-                                />
-                                ▶ AUTO
-                            </label>
-                        )}
-                    </div>
-                );
-            })()}
+            {/* NEXT WAVE preview — inside map column (handoff §05 reference).
+                Extracted to WaveInfoBar.jsx so MobileGameLayout can reuse it.
+                renderWaveInfo=false 일 때 외부에서 별도 렌더 (mobile 등). */}
+            {renderWaveInfo && typeof WaveInfoBar !== 'undefined' && (
+                <WaveInfoBar
+                    stage={stage}
+                    wave={wave}
+                    isPlaying={isPlaying}
+                    spawnConfig={spawnConfig}
+                    autoNextWave={autoNextWave}
+                    setAutoNextWave={setAutoNextWave}
+                />
+            )}
         </div>
     );
 };
