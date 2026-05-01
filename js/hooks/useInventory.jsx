@@ -524,28 +524,20 @@ const useInventory = (gameState, settings = {}) => {
         setSelectedSupportTowers([]);
     }, [selectedSupportTowers, setSupportTowers, setGold]);
 
-    // ===== 일괄 판매 (하위 티어 인벤토리 정리) =====
-    // elementFilter=null → 모든 속성, 숫자 → 해당 속성만
-    // 각 (속성 그룹)의 최대 티어를 보존하고 그 미만을 모두 판매.
+    // ===== 일괄 판매 (하위 티어 한 단계씩 정리) =====
+    // 한 클릭 = 활성 필터 범위에서 "현재 가장 낮은 티어 1개"만 일괄 판매.
+    // T1·T2·T3·T4 보유 시 클릭 1회 → T1 전부, 다시 → T2, 다시 → T3 순서.
+    // 티어가 한 종류만 남으면(= 더 이상 "하위" 가 아님) 비활성.
     const bulkSellInventoryTowers = useCallback((elementFilter = null) => {
         setInventory(prev => {
             const inScope = elementFilter === null
                 ? prev
                 : prev.filter(n => (n.colorIndex ?? n.element) === elementFilter);
             if (inScope.length === 0) return prev;
-            // 속성별 최대 티어 산출 (필터 없을 땐 속성별로, 있을 땐 단일 그룹)
-            const maxByElement = {};
-            inScope.forEach(n => {
-                const el = n.colorIndex ?? n.element ?? 0;
-                if (maxByElement[el] === undefined || n.tier > maxByElement[el]) {
-                    maxByElement[el] = n.tier;
-                }
-            });
-            const toSell = inScope.filter(n => {
-                const el = n.colorIndex ?? n.element ?? 0;
-                return n.tier < (maxByElement[el] ?? 0);
-            });
-            if (toSell.length === 0) return prev;
+            const tiers = Array.from(new Set(inScope.map(n => n.tier))).sort((a, b) => a - b);
+            if (tiers.length < 2) return prev; // 한 티어만 있으면 보존
+            const sellTier = tiers[0];
+            const toSell = inScope.filter(n => n.tier === sellTier);
             const refund = toSell.reduce((sum, n) => sum + getTowerSellPrice(n.tier), 0);
             setGold(g => g + refund);
             const sellIds = new Set(toSell.map(n => n.id));
@@ -560,18 +552,10 @@ const useInventory = (gameState, settings = {}) => {
                 ? prev
                 : prev.filter(s => s.supportType === supportTypeFilter);
             if (inScope.length === 0) return prev;
-            const maxByType = {};
-            inScope.forEach(s => {
-                const ty = s.supportType ?? 0;
-                if (maxByType[ty] === undefined || s.tier > maxByType[ty]) {
-                    maxByType[ty] = s.tier;
-                }
-            });
-            const toSell = inScope.filter(s => {
-                const ty = s.supportType ?? 0;
-                return s.tier < (maxByType[ty] ?? 0);
-            });
-            if (toSell.length === 0) return prev;
+            const tiers = Array.from(new Set(inScope.map(s => s.tier))).sort((a, b) => a - b);
+            if (tiers.length < 2) return prev;
+            const sellTier = tiers[0];
+            const toSell = inScope.filter(s => s.tier === sellTier);
             const refund = toSell.reduce((sum, s) => sum + TowerSystem.getSupportSellPrice(s.tier), 0);
             setGold(g => g + refund);
             const sellIds = new Set(toSell.map(s => s.id));
@@ -580,45 +564,31 @@ const useInventory = (gameState, settings = {}) => {
         setSelectedSupportInventory([]);
     }, [setGold]);
 
-    // 일괄 판매 환급액 미리보기 (UI 툴팁/배지용)
+    // 일괄 판매 미리보기 — 다음 클릭에 어떤 티어가 얼마에 팔리는지 반환
     const previewBulkSellTowerRefund = useCallback((elementFilter = null) => {
         const inScope = elementFilter === null
             ? inventory
             : inventory.filter(n => (n.colorIndex ?? n.element) === elementFilter);
-        if (inScope.length === 0) return { count: 0, refund: 0 };
-        const maxByElement = {};
-        inScope.forEach(n => {
-            const el = n.colorIndex ?? n.element ?? 0;
-            if (maxByElement[el] === undefined || n.tier > maxByElement[el]) {
-                maxByElement[el] = n.tier;
-            }
-        });
-        const toSell = inScope.filter(n => {
-            const el = n.colorIndex ?? n.element ?? 0;
-            return n.tier < (maxByElement[el] ?? 0);
-        });
+        if (inScope.length === 0) return { count: 0, refund: 0, tier: null };
+        const tiers = Array.from(new Set(inScope.map(n => n.tier))).sort((a, b) => a - b);
+        if (tiers.length < 2) return { count: 0, refund: 0, tier: null };
+        const sellTier = tiers[0];
+        const toSell = inScope.filter(n => n.tier === sellTier);
         const refund = toSell.reduce((sum, n) => sum + getTowerSellPrice(n.tier), 0);
-        return { count: toSell.length, refund };
+        return { count: toSell.length, refund, tier: sellTier };
     }, [inventory]);
 
     const previewBulkSellSupportRefund = useCallback((supportTypeFilter = null) => {
         const inScope = supportTypeFilter === null
             ? supportInventory
             : supportInventory.filter(s => s.supportType === supportTypeFilter);
-        if (inScope.length === 0) return { count: 0, refund: 0 };
-        const maxByType = {};
-        inScope.forEach(s => {
-            const ty = s.supportType ?? 0;
-            if (maxByType[ty] === undefined || s.tier > maxByType[ty]) {
-                maxByType[ty] = s.tier;
-            }
-        });
-        const toSell = inScope.filter(s => {
-            const ty = s.supportType ?? 0;
-            return s.tier < (maxByType[ty] ?? 0);
-        });
+        if (inScope.length === 0) return { count: 0, refund: 0, tier: null };
+        const tiers = Array.from(new Set(inScope.map(s => s.tier))).sort((a, b) => a - b);
+        if (tiers.length < 2) return { count: 0, refund: 0, tier: null };
+        const sellTier = tiers[0];
+        const toSell = inScope.filter(s => s.tier === sellTier);
         const refund = toSell.reduce((sum, s) => sum + TowerSystem.getSupportSellPrice(s.tier), 0);
-        return { count: toSell.length, refund };
+        return { count: toSell.length, refund, tier: sellTier };
     }, [supportInventory]);
 
     // ===== 계산된 값 =====

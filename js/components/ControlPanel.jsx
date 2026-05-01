@@ -1125,26 +1125,28 @@ const InventoryPanel = ({
                             );
                         })}
 
-                    {/* Bulk sell — 하위 티어(각 그룹의 max 미만) 일괄 판매
-                        활성 필터(All/특정 속성)를 그대로 적용. 환급 미리보기 표시. */}
+                    {/* Bulk sell — 한 클릭당 "현재 최저 티어" 하나만 일괄 판매.
+                        다시 클릭하면 그 다음 티어로 진행. 한 티어만 남으면 비활성. */}
                     {(() => {
                         const preview = activeTab === 'tower'
-                            ? (previewBulkSellTowerRefund ? previewBulkSellTowerRefund(towerFilter) : { count: 0, refund: 0 })
-                            : (previewBulkSellSupportRefund ? previewBulkSellSupportRefund(supportFilter) : { count: 0, refund: 0 });
+                            ? (previewBulkSellTowerRefund ? previewBulkSellTowerRefund(towerFilter) : { count: 0, refund: 0, tier: null })
+                            : (previewBulkSellSupportRefund ? previewBulkSellSupportRefund(supportFilter) : { count: 0, refund: 0, tier: null });
                         const has = preview.count > 0;
                         const onClick = () => {
                             if (!has) return;
                             if (activeTab === 'tower') bulkSellInventoryTowers && bulkSellInventoryTowers(towerFilter);
                             else bulkSellInventorySupports && bulkSellInventorySupports(supportFilter);
                         };
-                        const scope = activeFilter === null ? '전체' : '필터';
+                        const tierLabel = preview.tier !== null
+                            ? (activeTab === 'tower' ? `T${preview.tier}` : `S${preview.tier}`)
+                            : '—';
                         return (
                             <button
                                 type="button"
                                 onClick={onClick}
                                 disabled={!has}
                                 title={has
-                                    ? `${scope} 하위 티어 ${preview.count}개 일괄 판매 (+${preview.refund}G)`
+                                    ? `${tierLabel} ${preview.count}개 일괄 판매 (+${preview.refund}G) · 다시 누르면 다음 티어`
                                     : '판매할 하위 티어가 없습니다'}
                                 className="nd-mono"
                                 style={{
@@ -1158,7 +1160,7 @@ const InventoryPanel = ({
                                     whiteSpace: 'nowrap',
                                 }}
                             >
-                                ◢ BULK ×{preview.count} <span className="nd-tnum" style={{ marginLeft: 3, color: has ? '#fff' : 'var(--nd-dimmer)' }}>+{preview.refund}G</span>
+                                ◢ {tierLabel} ×{preview.count} <span className="nd-tnum" style={{ marginLeft: 3, color: has ? '#fff' : 'var(--nd-dimmer)' }}>+{preview.refund}G</span>
                             </button>
                         );
                     })()}
