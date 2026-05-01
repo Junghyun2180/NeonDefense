@@ -5,6 +5,19 @@
   box-sizing: border-box;
 }
 
+/* Hide scrollbars globally — game uses dark holo theme, native scrollbars
+   clash with the design. Scroll behavior is preserved (overflow:auto/scroll
+   still works), only the visual track/thumb is hidden. */
+* {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/legacy Edge */
+}
+*::-webkit-scrollbar {            /* Chrome/Safari/Edge (Chromium) */
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 body {
   margin: 0;
   padding: 0;
