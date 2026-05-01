@@ -876,7 +876,7 @@ const GameMap = ({
 
                 return (
                     <div
-                        className="nd-panel relative"
+                        className="nd-panel relative nd-game-wave-info"
                         style={{
                             marginTop: 8, padding: '12px 14px',
                             display: 'flex', alignItems: 'center', gap: 14,

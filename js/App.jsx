@@ -773,7 +773,7 @@ const NeonDefense = () => {
           the same grid lines so header/map/inventory align cleanly. */}
       {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
         <div
-          className="p-2 sm:p-4"
+          className="p-2 sm:p-4 nd-game-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(0, 1fr) 360px',
@@ -878,8 +878,9 @@ const NeonDefense = () => {
               position:relative + absolute inner stack lets col 2 stretch to col 1's row track
               height (map + NEXT WAVE) without contributing to it, so the inventory area
               can flex-fill the remaining space and scroll. */}
-          <div style={{ gridColumn: 2, position: 'relative', minWidth: 0 }}>
+          <div className="nd-game-rail" style={{ gridColumn: 2, position: 'relative', minWidth: 0 }}>
             <div
+              className="nd-game-rail__stack"
               style={{
                 position: 'absolute', inset: 0,
                 display: 'flex', flexDirection: 'column', gap: 10,
