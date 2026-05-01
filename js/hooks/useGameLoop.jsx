@@ -26,6 +26,7 @@ const useGameLoop = (config) => {
         pathDataRef,
         gameSpeedRef,
         permanentBuffsRef,
+        metaUpgradesRef,
         gameStatsRef,
         // Setters
         setEnemies,
@@ -88,6 +89,7 @@ const useGameLoop = (config) => {
                 projectiles: projectilesRef.current,
                 gameSpeed: speed,
                 permanentBuffs: permanentBuffsRef.current,
+                metaUpgrades: metaUpgradesRef?.current || {},
             }, now);
 
             // ===== 순환 경로 처리: 끝에 도달한 적을 다시 처음으로 =====
@@ -118,10 +120,13 @@ const useGameLoop = (config) => {
                 setGameStats(prev => ({ ...prev, totalKills: prev.totalKills + result.killedCount }));
             }
 
-            // 골드 획득 (영구 버프 적용)
+            // 골드 획득 (영구 버프 + 메타 업그레이드 적용)
             if (result.goldEarned > 0) {
                 const goldMult = BuffHelper.getGoldMultiplier(permanentBuffsRef.current);
-                const earnedGold = Math.floor(result.goldEarned * goldMult);
+                const metaBuffs = (typeof RunMode !== 'undefined')
+                    ? RunMode.getMetaBuffs(metaUpgradesRef?.current || {})
+                    : { goldMultiplier: 1 };
+                const earnedGold = Math.floor(result.goldEarned * goldMult * metaBuffs.goldMultiplier);
                 setGold(prev => prev + earnedGold);
                 setGameStats(prev => ({
                     ...prev,
