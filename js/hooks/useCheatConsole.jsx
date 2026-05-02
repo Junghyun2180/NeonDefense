@@ -262,6 +262,38 @@ const useCheatConsole = (gameState, inventoryState, runModeState = null) => {
         return () => window.removeEventListener('keydown', handleKey);
     }, []);
 
+    // 모바일 비밀 제스처: 로고 5번 연속 탭 (1.5초 윈도우) → 콘솔 토글
+    // 대상: .nd-identity__title (인-게임), .nd-shell__brand-muted (메인 메뉴),
+    //       data-secret-tap 속성이 붙은 임의 요소
+    useEffect(() => {
+        const SELECTOR = '.nd-identity__title, .nd-shell__brand-muted, [data-secret-tap]';
+        const THRESHOLD = 5;
+        const WINDOW_MS = 1500;
+        let tapCount = 0;
+        let resetTimer = null;
+
+        const handleTap = (e) => {
+            const target = e.target && e.target.closest && e.target.closest(SELECTOR);
+            if (!target) return;
+            tapCount++;
+            if (resetTimer) clearTimeout(resetTimer);
+            resetTimer = setTimeout(() => { tapCount = 0; resetTimer = null; }, WINDOW_MS);
+            if (tapCount >= THRESHOLD) {
+                tapCount = 0;
+                if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
+                setCheatOpen(prev => {
+                    if (!prev) setTimeout(() => cheatInputRef.current?.focus(), 50);
+                    return !prev;
+                });
+            }
+        };
+        document.addEventListener('click', handleTap, { passive: true });
+        return () => {
+            document.removeEventListener('click', handleTap);
+            if (resetTimer) clearTimeout(resetTimer);
+        };
+    }, []);
+
     return {
         cheatOpen,
         setCheatOpen,
