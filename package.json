@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
-    "serve": "npx serve ."
+    "serve": "npx serve .",
+    "android": "npm run build && npx cap sync android && npx cap open android",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:run": "npm run build && npx cap sync android && npx cap run android"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
@@ -16,5 +19,10 @@
     "react-dom": "^18.3.1",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.19"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1"
   }
 }

@@ -7,6 +7,35 @@ const NeonDefense = () => {
   const runModeState = useRunMode();
   const [showRunMenu, setShowRunMenu] = useState(false);
 
+  // ===== 플레이 티켓 게이트 =====
+  // 모든 모드(캠페인/Rush/런/엔드리스/데일리) 시작 시 1티켓 차감.
+  // 부족하면 TicketEmptyModal 띄우고 광고 시청 후 자동 재시도.
+  const [ticketModalOpen, setTicketModalOpen] = useState(false);
+  const pendingStartRef = useRef(null);
+
+  const tryStartWithTicket = useCallback((startFn) => {
+    if (typeof PlayTicketSystem === 'undefined') {
+      startFn();
+      return;
+    }
+    if (PlayTicketSystem.consume()) {
+      startFn();
+    } else {
+      pendingStartRef.current = startFn;
+      setTicketModalOpen(true);
+    }
+  }, []);
+
+  const handleTicketRefilled = useCallback(() => {
+    if (typeof PlayTicketSystem === 'undefined') return;
+    if (PlayTicketSystem.consume() && pendingStartRef.current) {
+      const fn = pendingStartRef.current;
+      pendingStartRef.current = null;
+      setTicketModalOpen(false);
+      fn();
+    }
+  }, []);
+
   // ===== 게임 상태 훅 =====
   // 런 모드: runConfig / 캠페인: campaignConfig (메타 업그레이드 적용)
   const activeConfig = runModeState.runActive
@@ -521,19 +550,23 @@ const NeonDefense = () => {
       return;
     }
     if (mode === 'endless') {
-      runModeState.startRun('endless');
+      tryStartWithTicket(() => {
+        runModeState.startRun('endless');
+        setShowRunMenu(false);
+        saveLoadState.setShowMainMenu(false);
+        saveLoadState.setGameStarted(true);
+      });
+    }
+  }, [runModeState, saveLoadState, tryStartWithTicket]);
+
+  const handleStartRun = useCallback((mode, modifiers = []) => {
+    tryStartWithTicket(() => {
+      runModeState.startRun(mode, modifiers);
       setShowRunMenu(false);
       saveLoadState.setShowMainMenu(false);
       saveLoadState.setGameStarted(true);
-    }
-  }, [runModeState, saveLoadState]);
-
-  const handleStartRun = useCallback((mode, modifiers = []) => {
-    runModeState.startRun(mode, modifiers);
-    setShowRunMenu(false);
-    saveLoadState.setShowMainMenu(false);
-    saveLoadState.setGameStarted(true);
-  }, [runModeState, saveLoadState]);
+    });
+  }, [runModeState, saveLoadState, tryStartWithTicket]);
 
   const handleCampaignMainMenu = useCallback(() => {
     // runMode를 먼저 정리하여 resetGame이 캠페인 config로 동작하게 함
@@ -569,11 +602,13 @@ const NeonDefense = () => {
 
   const handleRunResultRestart = useCallback(() => {
     const mode = runModeState.runResult?.mode || 'standard';
-    runModeState.closeRunResult();
-    runModeState.startRun(mode);
-    saveLoadState.setShowMainMenu(false);
-    saveLoadState.setGameStarted(true);
-  }, [runModeState, saveLoadState]);
+    tryStartWithTicket(() => {
+      runModeState.closeRunResult();
+      runModeState.startRun(mode);
+      saveLoadState.setShowMainMenu(false);
+      saveLoadState.setGameStarted(true);
+    });
+  }, [runModeState, saveLoadState, tryStartWithTicket]);
 
   const handleRunResultUpgrades = useCallback(() => {
     runModeState.closeRunResult();
@@ -767,13 +802,15 @@ const NeonDefense = () => {
         <MainMenu
           saveInfo={saveLoadState.saveInfo}
           onNewGame={() => {
-            saveLoadState.handleNewGame();
-            gameState.resetGame();
-            inventoryState.resetInventory();
-            dragState.resetDragState();
-            // 합의 10: 새 게임 = 다음 도전 sector (highestCampaignSector + 1)
-            const highest = runModeState.metaProgress?.stats?.highestCampaignSector || 0;
-            gameState.setSector(highest + 1);
+            tryStartWithTicket(() => {
+              saveLoadState.handleNewGame();
+              gameState.resetGame();
+              inventoryState.resetInventory();
+              dragState.resetDragState();
+              // 합의 10: 새 게임 = 다음 도전 sector (highestCampaignSector + 1)
+              const highest = runModeState.metaProgress?.stats?.highestCampaignSector || 0;
+              gameState.setSector(highest + 1);
+            });
           }}
           onLoadGame={saveLoadState.handleLoadGame}
           onSelectMode={handleSelectMode}
@@ -1266,6 +1303,18 @@ const NeonDefense = () => {
       {/* Near-miss 위험 vignette (lives ≤ 5) */}
       {saveLoadState.gameStarted && !saveLoadState.showMainMenu && (
         <DangerVignette lives={gameState.lives} maxLives={30} isPlaying={gameState.isPlaying} />
+      )}
+
+      {/* 플레이 티켓 부족 모달 (모든 모드 시작 게이트 공통) */}
+      {typeof TicketEmptyModal !== 'undefined' && (
+        <TicketEmptyModal
+          isOpen={ticketModalOpen}
+          onClose={() => {
+            pendingStartRef.current = null;
+            setTicketModalOpen(false);
+          }}
+          onWatchAdSuccess={handleTicketRefilled}
+        />
       )}
     </div>
   );

@@ -42,13 +42,25 @@
 - [ ] 자동 판매 (인벤토리 포화 시 T1 자동 판매 옵션)
 - [ ] 적 프로젝타일/이펙트 Pool 재활용으로 큰 웨이브 렉 제거
 
-### W3 (5/08 ~ 5/15): Rush Mode (짧은 세션 모드)
-목표: 10분 이하 한 판 모드로 캐주얼 진입로
+### W3 (5/08 ~ 5/15): Rush Mode + 플레이 티켓 시스템
+목표: 10분 이하 한 판 모드 + 모든 모드 입장권 시스템 (수익화 핵심 훅)
 
+**Rush Mode**
 - [ ] `js/domain/config/rush-mode-constants.js` — 3스테이지×3웨이브
 - [ ] `js/components/RushModeMenu.jsx` 진입점
 - [ ] 빠른 모드 전용 보상 테이블
-- [ ] 하루 3판 제한 (리셋 00:00 로컬)
+- [ ] ~~하루 3판 제한~~ → **티켓 시스템으로 통합** (아래 참고)
+
+**플레이 티켓 시스템** ([상세 명세](./TICKET_AND_ADS_DESIGN.md))
+- [x] `js/domain/progression/play-ticket-system.js` — 5캡 / 10분 충전 / 광고 +2 / 50 IAP
+- [x] `js/infra/ads/ad-manager.js` — 광고 통합 인터페이스 (stub)
+- [x] `js/components/PlayTicketBadge.jsx` 헤더 위젯
+- [x] `js/components/TicketEmptyModal.jsx` 부족 모달
+- [x] `App.jsx` 모든 모드 시작 게이트에 `consume()` 삽입 (캠페인/엔드리스/런/리스타트)
+- [x] HoloShell 통합 (메인 메뉴 헤더)
+- [x] 치트 콘솔 `tickets`/`tk` 명령 (개발 편의)
+- [ ] 캠페인 게임 종료 후 결과 화면에 다음 충전 카운트다운 (W4)
+- [ ] 모든 진입 화면(GameOverModal, GameClearModal)에서 즉시 재시작 시 티켓 게이트 (W4)
 
 ### W4 (5/15 ~ 5/22): 속도감 마감 + 밸런스
 목표: W1~W3 변경 여파 밸런스 조정 + 체감 최종 검증
@@ -117,17 +129,25 @@
 - [ ] 스킵/다시보기 가능
 - [ ] 완료 보상: 크리스탈 30개 + 첫 카드
 
-### W14 (7/24 ~ 7/31): Capacitor 네이티브 래핑
+### W14 (7/24 ~ 7/31): Capacitor 네이티브 래핑 — **W2(2026-05-05)에 조기 진행**
 목표: iOS/Android 앱 빌드 가능 상태.
 
-- [ ] `npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android`
-- [ ] `capacitor.config.ts` 작성
-- [ ] CDN 의존성 제거: React/ReactDOM/Tailwind 로컬 번들링 (build.js 확장)
-- [ ] Tailwind JIT → 정적 CSS 빌드
-- [ ] Babel 런타임 → 빌드 타임 변환 (이미 build.js가 함, 검증 필요)
-- [ ] `npx cap add ios`, `npx cap add android`
-- [ ] Xcode/Android Studio 빌드 검증
-- [ ] BGM/SFX autoplay 정책 대응 (iOS WebView)
+**완료 (W2 조기 진행)**
+- [x] `npm install @capacitor/core @capacitor/cli @capacitor/android`
+- [x] `capacitor.config.json` 작성 (appId: `com.neondefense.app`)
+- [x] CDN 의존성 제거: React/ReactDOM/Tailwind 로컬 번들링 (`vendor/`)
+- [x] Babel 런타임 → 빌드 타임 변환 (`build.js`)
+- [x] `npx cap add android` → `android/` 네이티브 프로젝트 생성
+- [x] `package.json` scripts: `npm run android` / `android:sync` / `android:run`
+- [x] `CAPACITOR_SETUP.md` 가이드 업데이트
+
+**남은 작업 (W14에서)**
+- [ ] iOS 플랫폼 추가 (`npx cap add ios`) — Phase 2 출시 후
+- [ ] Android Studio 실기/에뮬레이터 빌드 검증 (개발자 머신 필요)
+- [ ] BGM/SFX autoplay 정책 대응 (Android WebView 첫 탭 AudioContext.resume)
+- [ ] AdMob 플러그인 설치: `@capacitor-community/admob` ([상세](./TICKET_AND_ADS_DESIGN.md#62))
+- [ ] AndroidManifest.xml AdMob App ID 추가
+- [ ] UMP (Google User Messaging Platform) 동의 SDK 통합
 
 ### W15 (7/31 ~ 8/07): 모바일 최적화
 목표: 60fps 안정, 터치 정밀도.
@@ -144,11 +164,31 @@
 ## Phase D — 라이브 준비 (W16~W20, 8/07 ~ 9/11)
 
 ### W16 (8/07 ~ 8/14): 수익화 + 분석
-- [ ] AdMob SDK (Capacitor 플러그인) — 전면/보상형
-- [ ] IAP: 광고 제거($2.99), 크리스탈 번들 3종 (선택적 IAP, 페이투윈 아님)
-- [ ] Firebase Analytics — 핵심 이벤트 20종 (tutorial_complete, stage_clear, gacha_pull, ad_watched 등)
+**광고 (AdMob)** — [상세 명세](./TICKET_AND_ADS_DESIGN.md#6)
+- [ ] `js/infra/ads/admob-bridge.js` — Capacitor AdMob 플러그인 실제 연동
+- [ ] 보상형 광고 노출 포인트:
+  - [x] 티켓 충전 (+2장) — W3에 stub 완료, W16 실광고 전환
+  - [ ] 골드 2배 (게임 종료 후, 일 5회)
+  - [ ] 부활 1회 (게임 오버, 게임당 1회)
+  - [ ] 무료 뽑기 추가 1회 (일 3회)
+  - [ ] 일일 출석 보너스 2배 (일 1회)
+- [ ] 전면 광고: 게임 종료 후 (3판 + 5분 쿨다운)
+- [ ] 배너: 메인메뉴 / 결과 화면 (인게임 OFF)
+- [ ] 광고 빈도 캡 / 쿨다운 로직 (`ad-config.js`)
+
+**IAP (Google Play Billing)**
+- [ ] 광고 제거 ($2.99)
+- [ ] **50티켓 패키지** (가격 W17 베타 후 결정)
+- [ ] 크리스탈 번들 3종 (선택적, 페이투윈 아님)
+- [ ] 영수증 검증 (클라이언트 사이드, 추후 서버 도입 시 강화)
+
+**분석 / 운영**
+- [ ] Firebase Analytics — 핵심 이벤트 25종:
+  - tutorial_complete, stage_clear, gacha_pull
+  - **ticket_consumed, ticket_empty_modal_shown, ad_rewarded_ticket**
+  - ad_watched, ad_rewarded, iap_purchase, iap_50pack_purchase
 - [ ] Firebase Crashlytics
-- [ ] Remote Config (긴급 밸런스 패치용)
+- [ ] Remote Config (긴급 밸런스 패치용 — 티켓 충전 속도/광고 보상량)
 
 ### W17~W18 (8/14 ~ 8/28): 베타 + 피드백 반영
 - [ ] TestFlight 업로드, 테스터 30명 모집
@@ -225,3 +265,4 @@
 
 ---
 *업데이트: 2026-04-24 생성*
+*업데이트: 2026-05-05 — 안드로이드 우선 트랙 확정. Capacitor 셋업(W14) + 플레이 티켓 시스템(W3) 조기 완료. 상세: [TICKET_AND_ADS_DESIGN.md](./TICKET_AND_ADS_DESIGN.md)*
