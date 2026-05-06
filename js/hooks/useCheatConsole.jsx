@@ -130,6 +130,38 @@ const useCheatConsole = (gameState, inventoryState, runModeState = null) => {
                 runModeState.endRun(true, gameState.gameStats, gameState.lives);
                 return '▶ 런 즉시 클리어!';
 
+            case 'tickets':
+            case 'tk': {
+                if (typeof PlayTicketSystem === 'undefined') return '❌ 티켓 시스템 미로드';
+                const sub = (parts[1] || '').toLowerCase();
+                if (sub === 'reset') {
+                    PlayTicketSystem.reset();
+                    return '▶ 티켓 시스템 초기화';
+                }
+                if (sub === 'empty' || sub === '0') {
+                    PlayTicketSystem.setCurrent(0);
+                    return '▶ 티켓 0장 (모달 테스트용)';
+                }
+                if (sub === 'status' || sub === 's') {
+                    const st = PlayTicketSystem.getStatus();
+                    return `▶ 티켓 ${st.current}/${st.max} · 다음 충전 ${Math.ceil(st.msUntilNextCharge/1000)}초 · canPlay=${st.canPlay} · abuse=${st.abuseFlag}`;
+                }
+                if (sub === 'ad') {
+                    const r = PlayTicketSystem.refillByAd();
+                    return `▶ 광고 충전 +${r.gained} (현재 ${r.current})`;
+                }
+                if (sub === 'iap') {
+                    const r = PlayTicketSystem.refillByPurchase();
+                    return `▶ IAP 충전 +${r.gained} (현재 ${r.current})`;
+                }
+                const n = parseInt(parts[1], 10);
+                if (Number.isFinite(n)) {
+                    PlayTicketSystem.setCurrent(n);
+                    return `▶ 티켓 ${n}장으로 설정`;
+                }
+                return '▶ tickets [n|reset|empty|status|ad|iap]';
+            }
+
             case 'runlog':
             case 'rl': {
                 if (typeof RunLog === 'undefined') return '❌ RunLog 미로드';
@@ -199,6 +231,13 @@ const useCheatConsole = (gameState, inventoryState, runModeState = null) => {
                     't3all           모든 속성 T3 × 3 획득',
                     'support [tier]  서포트 획득 (기본 S3)',
                     'crystal [n]     크리스탈 추가 (기본 100)',
+                    'tickets (tk)    티켓 시스템',
+                    '  tk [n]         n장으로 설정',
+                    '  tk 0/empty     티켓 0 (모달 테스트)',
+                    '  tk reset       전체 초기화',
+                    '  tk status (s)  상태 출력',
+                    '  tk ad          광고 충전 +2',
+                    '  tk iap         IAP 충전 +50',
                     'runwin          런 즉시 클리어',
                     'runlog (rl) [sub]  RunLog 조작',
                     '  status / now / summary / report / export / full / clear',

@@ -53,6 +53,8 @@ const HoloShell = ({
             <strong>{crystals.toLocaleString()}</strong>
           </div>
 
+          {typeof PlayTicketBadge !== 'undefined' && <PlayTicketBadge />}
+
           <div className="nd-shell-box nd-shell__stat">
             <span className="nd-reticle__c nd-reticle__c--tl" />
             <span className="nd-reticle__c nd-reticle__c--tr" />
